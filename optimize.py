@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run one local+global optimizer step from the gtamaplibvc chain."""
+"""Run one local+global optimizer stage from the gtamaplibvc chain."""
 
 from __future__ import annotations
 
@@ -2092,7 +2092,7 @@ def print_current_step_global_residuals(report: dict[str, Any]) -> None:
         return
     rows.sort(key=lambda row: abs(row["final_error_arcmin"]), reverse=True)
     print()
-    print("Current step observation residuals after global:")
+    print("Current stage observation residuals after global:")
     for index, row in enumerate(rows, start=1):
         details = []
         if row.get("source_camera") and row["source_camera"] != row["camera"]:
@@ -2558,13 +2558,13 @@ def load_chain(path: Path = CHAIN_PATH) -> list[str]:
     data = json.loads(path.read_text())
     if not isinstance(data, list):
         raise ValueError(f"{path} must contain a JSON list of camera names")
-    for index, step in enumerate(data, start=1):
-        if isinstance(step, str):
+    for index, stage in enumerate(data, start=1):
+        if isinstance(stage, str):
             continue
-        if isinstance(step, dict) and "camera" in step:
-            data[index - 1] = step["camera"]
+        if isinstance(stage, dict) and "camera" in stage:
+            data[index - 1] = stage["camera"]
             continue
-        raise ValueError(f"Optimizer step {index} must be a camera name")
+        raise ValueError(f"Optimizer stage {index} must be a camera name")
     return data
 
 
@@ -2585,11 +2585,11 @@ def config_path_for_camera(camera_name: str) -> Path:
     return OPTIMIZER_DIR / "configs" / f"{camera_name}.json"
 
 
-def result_path_for_step(step_index: int, camera_name: str) -> Path:
-    return RESULTS_DIR / f"{step_index + 1:02d} {camera_name}.json"
+def result_path_for_stage(stage_index: int, camera_name: str) -> Path:
+    return RESULTS_DIR / f"{stage_index + 1:02d} {camera_name}.json"
 
 
-def solve_from_chain_step(camera_name: str) -> dict[str, Any]:
+def solve_from_chain_stage(camera_name: str) -> dict[str, Any]:
     config_path = config_path_for_camera(camera_name)
     config = load_optimizer_config(config_path)
     camera = get_camera(camera_name)
@@ -2599,7 +2599,7 @@ def solve_from_chain_step(camera_name: str) -> dict[str, Any]:
     hfov = init.get("hfov", camera.hfov)
     size = init.get("size", camera.size)
     return {
-        "schema": "gtamaplibvc-optimizer-step-v1",
+        "schema": "gtamaplibvc-optimizer-stage-v1",
         "id": camera_name,
         "camera_name": camera_name,
         "xyz": np.asarray(xyz, dtype=float),
@@ -2612,26 +2612,26 @@ def solve_from_chain_step(camera_name: str) -> dict[str, Any]:
     }
 
 
-def step_index_for_id(chain: list[str], step_id: str) -> int:
-    if step_id.isdigit():
-        step_index = int(step_id) - 1
-        if 0 <= step_index < len(chain):
-            return step_index
+def stage_index_for_id(chain: list[str], stage_id: str) -> int:
+    if stage_id.isdigit():
+        stage_index = int(stage_id) - 1
+        if 0 <= stage_index < len(chain):
+            return stage_index
     for index, camera_name in enumerate(chain):
-        if camera_name == step_id:
+        if camera_name == stage_id:
             return index
-    raise KeyError(f"No optimizer step named {step_id!r}")
+    raise KeyError(f"No optimizer stage named {stage_id!r}")
 
 
-def load_optimizer_priors(step_index: int, chain: list[str]) -> dict[str, Any]:
+def load_optimizer_priors(stage_index: int, chain: list[str]) -> dict[str, Any]:
     data = json.loads(PRIORS_PATH.read_text())
     batch_id, rows = data["batches"][0]
-    for previous_index in range(step_index):
+    for previous_index in range(stage_index):
         previous_camera = chain[previous_index]
-        result_path = result_path_for_step(previous_index, previous_camera)
+        result_path = result_path_for_stage(previous_index, previous_camera)
         if not result_path.exists():
             raise FileNotFoundError(
-                f"Missing accepted result for previous step {previous_camera!r}: {result_path}"
+                f"Missing accepted result for previous stage {previous_camera!r}: {result_path}"
             )
         result = json.loads(result_path.read_text())
         batch_id, rows = result["global"]["next_prior_batch"]
@@ -2639,22 +2639,22 @@ def load_optimizer_priors(step_index: int, chain: list[str]) -> dict[str, Any]:
 
 
 def load_chain_solves(chain: list[str], through_index: int) -> list[dict[str, Any]]:
-    return [solve_from_chain_step(step) for step in chain[: through_index + 1]]
+    return [solve_from_chain_stage(stage) for stage in chain[: through_index + 1]]
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--step", required=True, help="Camera name or 1-based index from optimizer/chain.json")
+    parser.add_argument("--stage", required=True, help="Camera name or 1-based index from optimizer/chain.json")
     parser.add_argument(
         "--max-steps-local",
         type=int,
         default=2000,
-        help="Maximum function evaluations for the local camera step.",
+        help="Maximum function evaluations for the local camera solve.",
     )
     parser.add_argument(
         "--max-steps-global",
         type=int,
-        help="Maximum function evaluations for the global mini-system step. Defaults to --max-steps-local.",
+        help="Maximum function evaluations for the global system solve. Defaults to --max-steps-local.",
     )
     parser.add_argument(
         "--output",
@@ -2674,10 +2674,10 @@ def main() -> None:
 
     register_synthetic_cameras()
     chain = load_chain()
-    step_index = step_index_for_id(chain, args.step)
-    solve = solve_from_chain_step(chain[step_index])
-    solves = load_chain_solves(chain, step_index)
-    priors = load_optimizer_priors(step_index, chain)
+    stage_index = stage_index_for_id(chain, args.stage)
+    solve = solve_from_chain_stage(chain[stage_index])
+    solves = load_chain_solves(chain, stage_index)
+    priors = load_optimizer_priors(stage_index, chain)
     add_required_synthetic_priors(priors, solve)
     report = solve_camera(
         solve,
@@ -2715,7 +2715,7 @@ def main() -> None:
 
     output = args.output
     if output is None:
-        output = result_path_for_step(step_index, report["camera_name"])
+        output = result_path_for_stage(stage_index, report["camera_name"])
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, indent=4, ensure_ascii=False) + "\n")
     print()

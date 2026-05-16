@@ -92,18 +92,18 @@ optimizer/results/
 optimizer/renders/
 ```
 
-`optimizer/chain.json` is a plain ordered list of camera names. Each camera has a matching config file in `optimizer/configs/` that lists the landmarks, rays, and objects used for that calibration step.
+`optimizer/chain.json` is a plain ordered list of camera names. Each camera has a matching config file in `optimizer/configs/` that lists the landmarks, rays, and objects used for that calibration stage.
 
-Run one step of this optimizer chain with:
+Run one stage of this optimizer chain with:
 
 ```bash
-python3 optimize.py --step 1
+python3 optimize.py --stage 1
 ```
 
 The default local and global optimizer limits are 2000 function evaluations. They can be changed with:
 
 ```bash
-python3 optimize.py --step 1 --max-steps-local 2000 --max-steps-global 2000
+python3 optimize.py --stage 1 --max-steps-local 2000 --max-steps-global 2000
 ```
 
 Each run writes a numbered result JSON into `optimizer/results/`, updates `data/gtamaplib-vc.json` as the current complete VC world snapshot, and renders the current optimizer state into `optimizer/renders/`.
