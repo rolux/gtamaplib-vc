@@ -26,7 +26,7 @@ Or more modern:
 uv pip install -r requirements.txt
 ```
 
-Run the bootstrap script:
+Then run the bootstrap script:
 
 ```bash
 python3 bootstrap.py
