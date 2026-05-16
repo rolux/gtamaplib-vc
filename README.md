@@ -94,13 +94,13 @@ optimizer/renders/
 
 `optimizer/chain.json` is a plain ordered list of camera names. Each camera has a matching config file in `optimizer/configs/` that lists the landmarks, rays, and objects used for that calibration step.
 
-Run one optimizer step with:
+Run one step of this optimizer chain with:
 
 ```bash
 python3 optimize.py --step 1
 ```
 
-The default local and global optimizer limits are 2000 steps. They can be changed with:
+The default local and global optimizer limits are 2000 function evaluations. They can be changed with:
 
 ```bash
 python3 optimize.py --step 1 --max-steps-local 2000 --max-steps-global 2000
