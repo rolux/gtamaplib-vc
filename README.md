@@ -34,8 +34,6 @@ python3 bootstrap.py
 
 The bootstrap script clones **gtamaplib** into `./gtamaplib`, fetches its Git LFS assets, sparse-checks out the `yanis,12` map tiles from [map.gtadb.org](https://map.gtadb.org) into `./gtadb.org`, and then generates the local browser data.
 
-Git LFS is required because **gtamaplib** stores its frames and maps as LFS assets.
-
 ## Updating
 
 To update the linked **gtamaplib** and **gtadb.org** checkouts and regenerate local browser data, run:
