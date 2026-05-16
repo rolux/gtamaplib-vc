@@ -1,0 +1,18 @@
+{
+    "schema": "gtamaplibvc-optimizer-config-v1",
+    "landmarks": [
+        "Homestead Water Tower",
+        "Park Grove Condominium (S)",
+        "Prison Tower (2)",
+        "Prison Tower (3)",
+        "Prison Tower (4)",
+        "Prison Tower (5)",
+        "Prison Tower (6)"
+    ],
+    "rays": [
+        ["Leonida Keys 01 (Airplane) (X)", "Turkey Point Nuclear Power Station (N)"],
+        ["Leonida Keys 01 (Airplane) (X)", "Turkey Point Nuclear Power Station (3)"],
+        ["Four Seasons Hotel Miami (BNW) Fake Cam", "Four Seasons Hotel Miami (FW)"]
+    ],
+    "objects": []
+}

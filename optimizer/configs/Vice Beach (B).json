@@ -1,0 +1,22 @@
+{
+    "schema": "gtamaplibvc-optimizer-config-v1",
+    "landmarks": [
+        "Four Seasons Hotel Miami (BE)",
+        "Four Seasons Hotel Miami (BW)",
+        "Four Seasons Hotel Miami (NW)",
+        "Four Seasons Hotel Miami (SE)"
+    ],
+    "rays": [
+        ["Alley (W)", "Flamingo South Beach (TE)"],
+        ["Alley (W)", "Flamingo South Beach (TNE)"],
+        ["Alley (W)", "Flamingo South Beach (TSE)"],
+        ["Sidewalk (Jason) (E)", "The Floridian"],
+        ["Park", "Jenny Hostel (NE)"],
+        ["Port", "Murano Grande"],
+        ["Park", "1500 Ocean Dr"],
+        ["Park", "1500 Ocean Dr (S) (SE)"],
+        ["Tennis Court (SE)", "Old City Hall"],
+        ["Tennis Court (SE)", "1000 Venetian Way (SW)"]
+    ],
+    "objects": []
+}

@@ -1,0 +1,446 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #111;
+  color: #eee;
+  font: 13px/1.35 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  overflow: hidden;
+  user-select: none;
+}
+
+#app {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#workspace {
+  position: absolute;
+  inset: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.panel {
+  position: absolute;
+  top: 32px;
+  bottom: 32px;
+  width: 256px;
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background: rgba(5, 5, 5, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  overflow: hidden;
+}
+
+#camera-panel {
+  left: 0;
+  border-right: 0;
+  z-index: 2;
+}
+
+#landmark-panel {
+  right: 0;
+  border-left: 0;
+  z-index: 2;
+}
+
+.panel-tools {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  padding: 8px;
+  background: transparent;
+  border-bottom: 0;
+}
+
+input,
+select {
+  width: 100%;
+  min-height: 28px;
+  border: 1px solid #333;
+  border-radius: 0;
+  background: #171717;
+  color: #eee;
+  font: inherit;
+  outline: 0;
+  box-shadow: none;
+}
+
+input {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+input:focus,
+select:focus,
+input:focus-visible,
+select:focus-visible {
+  border-color: #333;
+  outline: 0;
+  box-shadow: none;
+}
+
+.list {
+  min-height: 0;
+  overflow: auto;
+  background: transparent;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 32px;
+  gap: 8px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+#camera-list .item {
+  border-left: 8px solid transparent;
+}
+
+#landmark-list .item {
+  border-right: 8px solid transparent;
+}
+
+body:not(.is-dragging) .item:not(.selected):hover {
+  background: #282828;
+}
+
+.item.selected {
+  background: #fff;
+  color: #000;
+}
+
+.item-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.item-meta {
+  color: #888;
+  font-variant-numeric: tabular-nums;
+}
+
+.selected .item-meta {
+  color: #333;
+}
+
+.panel-status,
+#topbar,
+#global-status {
+  min-height: 32px;
+  padding: 8px;
+  color: #aaa;
+  border: 0;
+  box-shadow: none;
+  outline: 0;
+}
+
+.panel-status {
+  background: transparent;
+}
+
+#viewer {
+  position: absolute;
+  inset: 0;
+  display: block;
+  min-width: 0;
+  min-height: 0;
+  z-index: 1;
+}
+
+#topbar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px 4px 4px;
+  background: rgba(5, 5, 5, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-top: 0;
+  border-bottom: 0;
+  z-index: 4;
+}
+
+#view-select {
+  width: auto;
+  min-height: 24px;
+}
+
+#app-logo {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+
+#camera-preview {
+  height: 256px;
+  overflow: hidden;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+#camera-map-preview,
+#camera-image-preview {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+#camera-image-preview {
+  object-fit: contain;
+}
+
+#camera-preview[hidden],
+#camera-map-preview[hidden],
+#camera-image-preview[hidden] {
+  display: none;
+}
+
+#global-status {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  background: rgba(5, 5, 5, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-top: 0;
+  z-index: 4;
+}
+
+#camera-data,
+#landmark-data {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+
+#camera-data {
+  text-align: left;
+}
+
+#landmark-data {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.status-name {
+  color: #fff;
+}
+
+.status-field {
+  color: #aaa;
+}
+
+#viewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #181818;
+  cursor: grab;
+}
+
+body.is-dragging,
+body.is-dragging #viewport {
+  cursor: grabbing;
+}
+
+#stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+}
+
+#frame,
+#map-canvas,
+#guides-overlay,
+#preview-canvas,
+#overlay {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+#frame {
+  display: block;
+  pointer-events: none;
+  z-index: 0;
+}
+
+#map-canvas {
+  background-color: rgb(44, 103, 164);
+  display: none;
+  pointer-events: none;
+  z-index: 0;
+  filter: grayscale(100%);
+}
+
+#stage.is-map #frame {
+  display: none;
+}
+
+#stage.is-map #map-canvas {
+  display: block;
+}
+
+#frame.map-image {
+  filter: grayscale(100%);
+}
+
+#guides-overlay {
+  overflow: visible;
+  pointer-events: none;
+  z-index: 1;
+}
+
+#preview-canvas {
+  display: block;
+  pointer-events: none;
+  z-index: 2;
+}
+
+#overlay {
+  overflow: visible;
+  z-index: 3;
+}
+
+.guide-layer {
+  pointer-events: none;
+}
+
+.vertical-guide {
+  stroke: #ffff00;
+  stroke-opacity: 0.55;
+  stroke-width: var(--vertical-guide-width, 0.5px);
+  stroke-dasharray: 6 6;
+}
+
+.horizon-guide {
+  stroke: #ffff00;
+  stroke-opacity: 0.85;
+  stroke-width: var(--horizon-guide-width, 1px);
+  stroke-dasharray: 8 8;
+}
+
+.camera-cone {
+  cursor: pointer;
+  pointer-events: visiblePainted;
+}
+
+.camera-cone-hit {
+  stroke: transparent;
+  stroke-width: 8px;
+  opacity: 0;
+  pointer-events: stroke;
+}
+
+.camera-cone-line {
+  fill: none;
+  stroke-width: 1px;
+  stroke-opacity: 0.55;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.camera-cone-vertical {
+  stroke-width: 0.5px;
+}
+
+.camera-cone:hover .camera-cone-line {
+  stroke-opacity: 0.9;
+}
+
+.marker {
+  cursor: pointer;
+  fill: transparent;
+  stroke-width: 2px;
+  vector-effect: non-scaling-stroke;
+}
+
+.marker:hover,
+.marker.selected {
+  stroke-width: 4px;
+}
+
+.map-ray {
+  fill: none;
+  stroke-width: 1px;
+  stroke-opacity: 0.55;
+  vector-effect: non-scaling-stroke;
+}
+
+.map-ray.selected {
+  stroke-width: 2px;
+  stroke-opacity: 0.9;
+}
+
+.map-camera-cone-line {
+  fill: none;
+  stroke-width: 1px;
+  stroke-opacity: 0.5;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.map-camera-marker,
+.map-landmark-marker {
+  cursor: pointer;
+  vector-effect: non-scaling-stroke;
+}
+
+.map-camera-marker {
+  fill: #fff;
+  stroke-width: 2px;
+}
+
+.map-landmark-marker {
+  stroke: #fff;
+  stroke-width: 1.25px;
+}
+
+.map-camera-marker.selected,
+.map-landmark-marker.selected {
+  stroke-width: 3px;
+}

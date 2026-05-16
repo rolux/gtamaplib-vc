@@ -1,0 +1,781 @@
+#!/usr/bin/env python3
+"""Export browser-friendly data from gtamaplib."""
+
+from __future__ import annotations
+
+import json
+import hashlib
+import re
+import sys
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+from PIL import Image
+
+
+ROOT = Path(__file__).resolve().parent
+UPSTREAM = ROOT / "gtamaplib"
+DATA_DIR = ROOT / "data"
+UI_DIR = ROOT / "ui"
+UI_DATA_DIR = UI_DIR / "data"
+THUMBNAIL_DIR = UI_DIR / "thumbnails"
+GTAMAPDATA_JSON_PATH = DATA_DIR / "gtamapdata.json"
+SPECIAL_JSON_PATH = DATA_DIR / "special.json"
+CONFIG_JSON_PATH = DATA_DIR / "config.json"
+IMPORT_EXTRAS_JSON_PATH = DATA_DIR / "import_extras.json"
+UI_OVERLAY_JSON_PATH = UI_DATA_DIR / "overlay.json"
+MAP_NAME = "yanis"
+CAMERA_CONE_DISTANCE_M = 25
+VERTICAL_GUIDE_SPACING_DEGREES = 1.0
+THUMBNAIL_SCALE = 4
+
+
+L1_CAMERA_RIGIDITY = {
+    "[L1/1] Diner": 1,
+    "[L1/2] AI World Editor Map (4K)": 0,
+    "[L1/3] Amphitheater": 0,
+    "[L1/4] Diner (NE)": 1,
+    "[L1/4] Diner (N)": 1,
+    "[L1/4] Diner (NW)": 1,
+    "[L1/4] Diner (W) (A)": 1,
+    "[L1/4] Diner (W) (B)": 1,
+    "[L1/4] Diner (SW)": 1,
+    "[L1/4] Diner (S)": 1,
+    "[L1/4] Diner (E)": 1,
+    "[L1/4] Diner (SE) (A)": 1,
+    "[L1/4] Diner (SE) (B)": 1,
+    "[L1/4] Easy Inn": 1,
+    "[L1/4] Car Wash": 1,
+    "[L1/5] Trees": 2,
+    "[L1/6] Sidewalk (Jason) (E)": 1,
+    "[L1/7] Port": 2,
+    "[L1/8] Gas Station (Lucia)": 1,
+    "[L1/9] Motel": 1,
+    "[L1/10] Pawn Shop (W)": 1,
+    "[L1/10] Pawn Shop (S)": 1,
+    "[L1/11] Sidewalk (Lucia)": 1,
+    "[L1/12] Auto Shop (SE)": 1,
+    "[L1/12] Auto Shop (SW)": 1,
+    "[L1/12] Auto Shop (NW)": 2,
+    "[L1/12] Auto Shop (NE)": 2,
+    "[L1/13] House with Boat (X)": 1,
+    "[L1/14] Shootout (S)": 1,
+    "[L1/14] Shootout (W)": 1,
+    "[L1/15] Park": 1,
+    "[L1/15] Bar": 1,
+    "[L1/15] Yard": 1,
+    "[L1/15] Hedge (B) (X)": 1,
+    "[L1/15] Hedge (C) (X)": 1,
+    "[L1/15] Hedge (D)": 1,
+    "[L1/15] Glitch (A)": 1,
+    "[L1/16] Boat (Jason)": 1,
+    "[L1/17] Hotel (E)": 1,
+    "[L1/18] Hotel (W)": 1,
+    "[L1/19] Farm": 2,
+    "[L1/20] Gas Station (Jason)": 1,
+    "[L1/21] Ocean near Keys (N)": 1,
+    "[L1/21] Ocean near Keys (E)": 1,
+    "[L1/22] Metro (SE) (A) (4K)": 1,
+    "[L1/22] Metro (SE) (B)": 1,
+    "[L1/22] Metro (NE) (B)": 1,
+    "[L1/23] Tarmac": 1,
+    "[L1/24] Sidewalk (Jason) (S)": 1,
+    "[L1/25] Parking Lot": 1,
+    "[L1/26] Loading Zone near Prison (N)": 1,
+    "[L1/26] Loading Zone near Prison (SW)": 1,
+    "[L1/27] Highway (N)": 1,
+    "[L1/27] Highway (NE)": 2,
+    "[L1/27] Highway (E)": 2,
+    "[L1/28] Intersection (N)": 0,
+    "[L1/29] Welcome Center (E)": 1,
+    "[L1/29] Welcome Center (W)": 1,
+    "[L1/30] Store (Lucia)": 1,
+    "[L1/31] Intersection (W)": 3,
+    "[L1/32] Police Chase (A)": 1,
+    "[L2/32] Police Chase (B)": 1,
+    "[L2/32] Police Chase (C)": 1,
+    "[L1/32] Police Chase (D)": 1,
+    "[L2/32] Police Chase (E)": 1,
+    "[L2/32] Police Chase (F)": 1,
+    "[L2/32] Police Chase (G)": 1,
+    "[L2/32] Police Chase (H)": 1,
+    "[L2/32] Police Chase (I)": 1,
+    "[L1/32] Police Chase (J)": 1,
+    "[L1/33] Strip Club (Jason) (U)": 1,
+    "[L1/34] Strip Club (Jason) (D)": 1,
+    "[L1/35] Intersection (SE)": 1,
+    "[L1/36] Alley (W)": 2,
+    "[L1/36] Alley (NW)": 2,
+    "[L1/37] Airport (X)": 1,
+    "[L1/38] Strip Club (Lucia)": 2,
+    "[L1/39] Bedroom": 1,
+    "[L1/40] Backyard": 1,
+    "[L1/41] Grassrivers Sign": 1,
+    "[L1/42] Tennis Court (SW)": 3,
+    "[L1/42] Tennis Court (N)": 3,
+    "[L1/42] Tennis Court (NE)": 3,
+    "[L1/42] Tennis Court (E)": 3,
+    "[L1/42] Tennis Court (SE)": 3,
+    "[L1/43] Pool": 1,
+    "[L1/44] Tennis Stadium (4K)": 1,
+    "[L1/45] Street (Jason)": 0,
+    "[L1/46] Street (Lucia) (S)": 0,
+    "[L1/47] Street (Lucia) (N)": 0,
+    "[L1/48] Hangar (A)": 2,
+    "[L1/49] Hangar (B)": 2,
+    "[L1/50] Hangar (C)": 2,
+}
+
+LANDMARKS_FIXED = [
+    "Four Seasons Hotel Miami (BE)",
+    "Four Seasons Hotel Miami (BW)",
+    "Four Seasons Hotel Miami (NW)",
+    "Four Seasons Hotel Miami (SE)",
+]
+
+IGNORED_TRIANGULATION_LANDMARKS = {"Player"}
+IGNORED_TRIANGULATION_PREFIXES = (
+    "Minimap (BR",
+    "Minimap (N",
+    "Minimap (TL",
+    "Minimap BR",
+    "Minimap N",
+    "Minimap TL",
+)
+
+EXTRA_FIXED_ELEVATION = [
+    {
+        "z": 5.0,
+        "landmarks": [
+            "Lake Leonida (A)",
+            "Lake Leonida (B)",
+            "Lake Leonida (C)",
+            "Lake Leonida (D)",
+            "Lake Leonida (E)",
+            "Lake Leonida (F)",
+            "Lake Leonida (G)",
+            "Lake Leonida (H)",
+            "Lake Leonida (I)",
+            "Lake Leonida (J)",
+            "Lake Leonida (K)",
+            "Lake Leonida (L)",
+            "Lake Leonida (M)",
+            "Lake Leonida (N)",
+            "Lake Leonida (O)",
+            "Lake Leonida (P)",
+            "Lake Leonida (Q)",
+            "Lake Leonida (R)",
+            "Lake Leonida (S)",
+            "Lake Leonida (T)",
+            "Lake Leonida (U)",
+            "Lake Leonida (V)",
+            "Lake Leonida (W)",
+            "Lake Leonida (X)",
+        ],
+    },
+    {
+        "z": 5.5,
+        "landmarks": [
+            "Red Boxville (BNE)",
+            "Red Boxville (BNW)",
+            "Red Boxville (TNW)",
+            "Red Boxville (TSW)",
+        ],
+    },
+]
+
+
+def add_import_path() -> None:
+    sys.path.insert(0, str(ROOT))
+
+
+def jsonable_point(value: Any) -> list[float] | None:
+    if value is None:
+        return None
+    return [float(item) for item in value]
+
+
+def frame_path_for(camera_name: str) -> str | None:
+    path = UPSTREAM / "frames" / f"{camera_name}.png"
+    if path.exists():
+        return f"../gtamaplib/frames/{path.name}"
+    return None
+
+
+def image_size(path: Path) -> tuple[int, int] | None:
+    if not path.exists():
+        return None
+    with Image.open(path) as image:
+        return image.size
+
+
+def map_image_path(map_info: dict[str, Any]) -> tuple[str, tuple[int, int]]:
+    source = Path(map_info["filename"])
+    target = UI_DIR / f"{MAP_NAME}-{map_info['version']}-bw.jpg"
+    if not target.exists() or target.stat().st_mtime < source.stat().st_mtime:
+        with Image.open(source) as image:
+            image.convert("L").save(target, quality=88, optimize=True)
+    size = image_size(target) or image_size(source) or (0, 0)
+    return f"ui/{target.name}", size
+
+
+def thumbnail_path_for(camera_name: str) -> str | None:
+    source = UPSTREAM / "frames" / f"{camera_name}.png"
+    if not source.exists():
+        return None
+    THUMBNAIL_DIR.mkdir(parents=True, exist_ok=True)
+    digest = hashlib.sha1(camera_name.encode("utf-8")).hexdigest()[:12]
+    target = THUMBNAIL_DIR / f"{digest}-{THUMBNAIL_SCALE}x.jpg"
+    if target.exists() and target.stat().st_mtime >= source.stat().st_mtime:
+        return f"ui/thumbnails/{target.name}"
+    with Image.open(source) as image:
+        width = max(1, image.size[0] // THUMBNAIL_SCALE)
+        height = max(1, image.size[1] // THUMBNAIL_SCALE)
+        thumbnail = image.convert("RGB").resize((width, height), Image.LANCZOS)
+        thumbnail.save(target, quality=82, optimize=True)
+    return f"ui/thumbnails/{target.name}"
+
+
+def get_color(name: str) -> str:
+    name = normalize_name(name)
+    sha1 = hashlib.sha1(name.encode("utf-8")).hexdigest()[-6:]
+    rgb = [int(int(sha1[index * 2 : index * 2 + 2], 16) * 0.75) for index in range(3)]
+    return "#{:02x}{:02x}{:02x}".format(*rgb)
+
+
+def normalize_name(name: str) -> str:
+    for _ in range(3):
+        name = re.sub(r" \([A-Z0-9\?]+\)$", "", name)
+        if not name.endswith(")"):
+            break
+    return name
+
+
+def qualified_camera_name(camera_name: str, camera_id: str) -> str:
+    return f"[{camera_id}] {camera_name}"
+
+
+def camera_rigidity(md: Any) -> list[dict[str, Any]]:
+    groups: dict[int, list[str]] = {0: [], 1: [], 2: [], 3: []}
+    for camera_name, camera in md.cameras.items():
+        qualified_name = qualified_camera_name(camera_name, camera["id"])
+        group = L1_CAMERA_RIGIDITY.get(qualified_name)
+        if group in groups:
+            groups[group].append(camera_name)
+    return [
+        {
+            "level": level,
+            "cameras": sorted(cameras),
+        }
+        for level, cameras in groups.items()
+        if cameras
+    ]
+
+
+def gtamapdata_landmark_source_lines(md: Any) -> dict[str, str]:
+    lines: dict[str, str] = {}
+    for line in Path(md.__file__).read_text().splitlines():
+        match = re.match(r'\s*"([^"]+)":\s*\(', line)
+        if match:
+            lines[match.group(1)] = line
+    return lines
+
+
+def fixed_elevation_zero_landmarks(md: Any) -> list[str]:
+    source_lines = gtamapdata_landmark_source_lines(md)
+    landmarks: list[str] = []
+    in_landmarks = False
+    for line in Path(md.__file__).read_text().splitlines():
+        if line.startswith("landmarks = {"):
+            in_landmarks = True
+            continue
+        if not in_landmarks:
+            continue
+        if "AIWE MAP" in line:
+            break
+        match = re.match(r'\s*"([^"]+)":\s*\(', line)
+        if not match:
+            continue
+        name = match.group(1)
+        if name not in md.landmarks:
+            continue
+        z = float(md.landmarks[name][2])
+        if abs(z) < 1e-9 or abs(z - 10.0) < 1e-9:
+            landmarks.append(name)
+    return landmarks
+
+
+def fixed_elevation(md: Any) -> list[dict[str, Any]]:
+    rows = [
+        {
+            "z": 0.0,
+            "landmarks": fixed_elevation_zero_landmarks(md),
+        }
+    ]
+    rows.extend(EXTRA_FIXED_ELEVATION)
+    return rows
+
+
+def write_special_if_missing(md: Any) -> None:
+    if SPECIAL_JSON_PATH.exists():
+        return
+    special = {
+        "schema": "gtamaplibvc-special-v1",
+        "camera_rigidity": camera_rigidity(md),
+        "landmarks_fixed": LANDMARKS_FIXED,
+        "landmarks_fixed_elevation": fixed_elevation(md),
+    }
+    SPECIAL_JSON_PATH.write_text(json.dumps(special, indent=4, ensure_ascii=False) + "\n")
+    print(f"Wrote editable {SPECIAL_JSON_PATH}")
+
+
+def write_config_if_missing() -> None:
+    if CONFIG_JSON_PATH.exists():
+        return
+    config = {
+        "schema": "gtamaplibvc-config-v1",
+        "min_triangulation_delta_degrees": 10.0,
+    }
+    CONFIG_JSON_PATH.write_text(json.dumps(config, indent=4, ensure_ascii=False) + "\n")
+    print(f"Wrote editable {CONFIG_JSON_PATH}")
+
+
+def load_config() -> dict[str, Any]:
+    write_config_if_missing()
+    return json.loads(CONFIG_JSON_PATH.read_text())
+
+
+def load_special(md: Any) -> dict[str, Any]:
+    write_special_if_missing(md)
+    return json.loads(SPECIAL_JSON_PATH.read_text())
+
+
+def rigid_camera_names(special: dict[str, Any]) -> set[str]:
+    names: set[str] = set()
+    for group in special.get("camera_rigidity", []):
+        if int(group["level"]) in {1, 2, 3}:
+            names.update(group.get("cameras", []))
+    return names
+
+
+def mean_pair_delta_m(rays: list[tuple[Any, Any]], intersect_ray_and_ray: Any) -> float:
+    deltas = []
+    for index_a, ray_a in enumerate(rays):
+        for ray_b in rays[index_a + 1 :]:
+            try:
+                deltas.append(float(intersect_ray_and_ray(ray_a, ray_b)[3]))
+            except Exception:
+                continue
+    return float(np.mean(deltas)) if deltas else 0.0
+
+
+def is_ignored_triangulation_landmark(landmark_name: str) -> bool:
+    return landmark_name in IGNORED_TRIANGULATION_LANDMARKS or landmark_name.startswith(
+        IGNORED_TRIANGULATION_PREFIXES
+    )
+
+
+def ray_angle_degrees(ray_a: tuple[Any, Any], ray_b: tuple[Any, Any]) -> float:
+    direction_a = np.asarray(ray_a[1], dtype=float)
+    direction_b = np.asarray(ray_b[1], dtype=float)
+    norm_a = np.linalg.norm(direction_a)
+    norm_b = np.linalg.norm(direction_b)
+    if norm_a == 0 or norm_b == 0:
+        return 0.0
+    cosine = float(np.dot(direction_a, direction_b) / (norm_a * norm_b))
+    return float(np.degrees(np.arccos(np.clip(abs(cosine), -1.0, 1.0))))
+
+
+def max_ray_pair_angle_degrees(rays: list[tuple[Any, Any]]) -> float:
+    angles = []
+    for index_a, ray_a in enumerate(rays):
+        for ray_b in rays[index_a + 1 :]:
+            angles.append(ray_angle_degrees(ray_a, ray_b))
+    return float(max(angles)) if angles else 0.0
+
+
+def jsonable_segment(segment: list[list[float]] | None) -> list[list[float]] | None:
+    if segment is None:
+        return None
+    return [[float(point[0]), float(point[1])] for point in segment]
+
+
+def map_point(map_info: dict[str, Any], xyz: tuple[float, float, float] | list[float]) -> dict[str, float]:
+    return {
+        "x": float(map_info["zero"][0] + xyz[0] * map_info["scale"]),
+        "y": float(map_info["zero"][1] - xyz[1] * map_info["scale"]),
+    }
+
+
+def map_camera_cone_lines(cam: Any, map_info: dict[str, Any], get_point: Any) -> list[list[dict[str, float]]]:
+    if cam.xyz is None or cam.hfov < 1:
+        return []
+    origin = map_point(map_info, cam.xyz)
+    corners = (
+        get_point(cam.xyz, cam.get_pixel_direction((0, cam.h / 2)), CAMERA_CONE_DISTANCE_M),
+        get_point(cam.xyz, cam.get_pixel_direction((cam.w, cam.h / 2)), CAMERA_CONE_DISTANCE_M),
+    )
+    return [
+        [origin, map_point(map_info, corner)]
+        for corner in corners
+    ]
+
+
+def project_line(viewer: Any, point_a: Any, point_b: Any) -> list[list[float]] | None:
+    pixel_a = viewer.get_pixel(point_a)
+    pixel_b = viewer.get_pixel(point_b)
+    if pixel_a is None or pixel_b is None:
+        return None
+    return [[float(pixel_a[0]), float(pixel_a[1])], [float(pixel_b[0]), float(pixel_b[1])]]
+
+
+def point_in_frame(point: Any, width: float, height: float) -> bool:
+    return 0 <= float(point[0]) <= width and 0 <= float(point[1]) <= height
+
+
+def orientation(a: list[float], b: list[float], c: tuple[float, float]) -> float:
+    return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+
+
+def segments_intersect(a: list[float], b: list[float], c: tuple[float, float], d: tuple[float, float]) -> bool:
+    ab_c = orientation(a, b, c)
+    ab_d = orientation(a, b, d)
+    cd_a = (d[0] - c[0]) * (a[1] - c[1]) - (d[1] - c[1]) * (a[0] - c[0])
+    cd_b = (d[0] - c[0]) * (b[1] - c[1]) - (d[1] - c[1]) * (b[0] - c[0])
+    return ab_c * ab_d <= 0 and cd_a * cd_b <= 0
+
+
+def segment_intersects_frame(segment: list[list[float]], width: float, height: float) -> bool:
+    a, b = segment
+    if point_in_frame(a, width, height) or point_in_frame(b, width, height):
+        return True
+    edges = [
+        ((0.0, 0.0), (width, 0.0)),
+        ((width, 0.0), (width, height)),
+        ((width, height), (0.0, height)),
+        ((0.0, height), (0.0, 0.0)),
+    ]
+    return any(segments_intersect(a, b, c, d) for c, d in edges)
+
+
+def cone_intersects_frame(segments: list[list[list[float]]], quad: list[list[float]] | None, width: float, height: float) -> bool:
+    if quad and any(point_in_frame(point, width, height) for point in quad):
+        return True
+    return any(segment_intersects_frame(segment, width, height) for segment in segments)
+
+
+def camera_cones_for_viewer(viewer_name: str, camera_names: list[str], get_camera: Any, get_point: Any) -> list[dict[str, Any]]:
+    viewer = get_camera(viewer_name)
+    cones = []
+    for camera_name in camera_names:
+        if camera_name == viewer_name:
+            continue
+        cam = get_camera(camera_name)
+        if cam.xyz is None or cam.hfov < 1:
+            continue
+        segments = []
+        vertical = project_line(viewer, cam.xyz, (cam.x, cam.y, 0))
+        if vertical:
+            segments.append(vertical)
+        corners = (
+            get_point(cam.xyz, cam.get_pixel_direction((0, 0)), CAMERA_CONE_DISTANCE_M),
+            get_point(cam.xyz, cam.get_pixel_direction((cam.w, 0)), CAMERA_CONE_DISTANCE_M),
+            get_point(cam.xyz, cam.get_pixel_direction((cam.w, cam.h)), CAMERA_CONE_DISTANCE_M),
+            get_point(cam.xyz, cam.get_pixel_direction((0, cam.h)), CAMERA_CONE_DISTANCE_M),
+        )
+        projected_corners = [viewer.get_pixel(corner) for corner in corners]
+        quad = None
+        if all(pixel is not None for pixel in projected_corners):
+            quad = [[float(pixel[0]), float(pixel[1])] for pixel in projected_corners]
+        for index, corner in enumerate(corners):
+            ray = project_line(viewer, cam.xyz, corner)
+            edge = project_line(viewer, corner, corners[(index + 1) % len(corners)])
+            if ray:
+                segments.append(ray)
+            if edge:
+                segments.append(edge)
+        if segments and cone_intersects_frame(segments, quad, viewer.w, viewer.h):
+            cone = {"camera": camera_name, "segments": segments}
+            if quad:
+                cone["quad"] = quad
+            cones.append(cone)
+    return cones
+
+
+def camera_guides(cam: Any) -> dict[str, Any]:
+    horizon_y = float(cam.get_horizon())
+    guides: dict[str, Any] = {
+        "horizon": [[0.0, horizon_y], [float(cam.w), horizon_y]],
+        "verticals": [],
+    }
+    start = int(cam.yaw - 60)
+    stop = int(cam.yaw + 60)
+    for deg in np.arange(start, stop, VERTICAL_GUIDE_SPACING_DEGREES):
+        rad = np.radians(deg + 90)
+        x = cam.x + np.cos(rad) * 10
+        y = cam.y + np.sin(rad) * 10
+        segment = project_line(cam, (x, y, cam.z - 10), (x, y, cam.z + 10))
+        if segment:
+            guides["verticals"].append(segment)
+    return guides
+
+
+def write_ui_overlay_data(md: Any, get_camera: Any, get_point: Any) -> None:
+    UI_DATA_DIR.mkdir(parents=True, exist_ok=True)
+    camera_names = list(md.cameras)
+    cones = {
+        camera_name: camera_cones_for_viewer(camera_name, camera_names, get_camera, get_point)
+        for camera_name in camera_names
+    }
+    guides = {}
+    for camera_name in camera_names:
+        try:
+            guides[camera_name] = camera_guides(get_camera(camera_name))
+        except Exception:
+            guides[camera_name] = {"horizon": None, "verticals": []}
+    overlay = {
+        "schema": "gtamaplibvc-ui-overlay-v1",
+        "camera_cone_distance_m": CAMERA_CONE_DISTANCE_M,
+        "cones": cones,
+        "guides": guides,
+    }
+    UI_OVERLAY_JSON_PATH.write_text(json.dumps(overlay, indent=4, ensure_ascii=False) + "\n")
+    print(f"Wrote {UI_OVERLAY_JSON_PATH}")
+
+
+def triangulate_missing_landmarks(
+    md: Any,
+    get_camera: Any,
+    intersect_rays: Any,
+    intersect_ray_and_ray: Any,
+    special: dict[str, Any],
+    config: dict[str, Any],
+) -> dict[str, list[Any]]:
+    min_delta_degrees = float(config.get("min_triangulation_delta_degrees", 10.0))
+    cameras = []
+    for camera_name in sorted(rigid_camera_names(special)):
+        if camera_name not in md.cameras:
+            continue
+        cam = get_camera(camera_name)
+        if cam.xyz is None:
+            continue
+        cameras.append(cam)
+
+    by_landmark: dict[str, list[Any]] = {}
+    for cam in cameras:
+        for landmark_name in cam.landmark_pixels:
+            if is_ignored_triangulation_landmark(landmark_name):
+                continue
+            if landmark_name in md.landmarks:
+                continue
+            by_landmark.setdefault(landmark_name, []).append(cam)
+
+    generated = {}
+    for landmark_name, cams in sorted(by_landmark.items()):
+        if len(cams) < 2:
+            continue
+        rays = []
+        ray_cameras = []
+        for cam in cams:
+            try:
+                rays.append((cam.xyz, cam.get_landmark_direction(landmark_name)))
+                ray_cameras.append(cam.name)
+            except Exception:
+                continue
+        if len(rays) < 2:
+            continue
+        if max_ray_pair_angle_degrees(rays) < min_delta_degrees:
+            continue
+        try:
+            point, _distances = intersect_rays(rays)
+        except Exception:
+            continue
+        generated[landmark_name] = [
+            [float(value) for value in point],
+            mean_pair_delta_m(rays, intersect_ray_and_ray),
+            ray_cameras,
+        ]
+    return generated
+
+
+def compact_json_value(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=False, separators=(", ", ": "))
+
+
+def dumps_import_extras(data: dict[str, Any]) -> str:
+    lines = [
+        "{",
+        f'    "schema": {compact_json_value(data["schema"])},',
+        '    "formats": {',
+        f'        "added_landmarks": {compact_json_value(data["formats"]["added_landmarks"])},',
+        f'        "generated_landmarks": {compact_json_value(data["formats"]["generated_landmarks"])}',
+        "    },",
+        '    "added_landmarks": {',
+    ]
+    added_items = list(data["added_landmarks"].items())
+    for index, (name, value) in enumerate(added_items):
+        comma = "," if index < len(added_items) - 1 else ""
+        lines.append(f"        {compact_json_value(name)}: {compact_json_value(value)}{comma}")
+    lines.extend([
+        "    },",
+        '    "generated_landmarks": {',
+    ])
+    items = list(data["generated_landmarks"].items())
+    for index, (name, value) in enumerate(items):
+        comma = "," if index < len(items) - 1 else ""
+        lines.append(f"        {compact_json_value(name)}: {compact_json_value(value)}{comma}")
+    lines.extend(["    }", "}"])
+    return "\n".join(lines) + "\n"
+
+
+def write_import_extras(md: Any, get_camera: Any, intersect_rays: Any, intersect_ray_and_ray: Any) -> None:
+    from gtamaplib.gtamaplib import FourSeasons
+
+    special = load_special(md)
+    config = load_config()
+    fs = FourSeasons()
+    # Extra Four Seasons construction points that are not upstream landmarks
+    # yet, but are useful as explicit anchors for top-down fake cameras.
+    added_landmarks = {
+        "Four Seasons Hotel Miami (BNW)": [
+            [float(value) for value in fs.hb58nw],
+            "FourSeasons().hb58nw",
+        ],
+        "Four Seasons Hotel Miami (BNE)": [
+            [float(value) for value in fs.hb58ne],
+            "FourSeasons().hb58ne",
+        ],
+    }
+    import_extras = {
+        "schema": "gtamaplibvc-import-extras-v1",
+        "formats": {
+            "added_landmarks": {
+                "<landmark_name>": [
+                    ["x", "y", "z"],
+                    "source",
+                ]
+            },
+            "generated_landmarks": {
+                "<landmark_name>": [
+                    ["x", "y", "z"],
+                    "mean_pair_delta_m",
+                    ["camera_name"],
+                ]
+            }
+        },
+        "added_landmarks": added_landmarks,
+        "generated_landmarks": triangulate_missing_landmarks(
+            md,
+            get_camera,
+            intersect_rays,
+            intersect_ray_and_ray,
+            special,
+            config,
+        ),
+    }
+    IMPORT_EXTRAS_JSON_PATH.write_text(dumps_import_extras(import_extras))
+    print(
+        "Wrote {path} with {count} generated landmarks.".format(
+            path=IMPORT_EXTRAS_JSON_PATH,
+            count=len(import_extras["generated_landmarks"]),
+        )
+    )
+
+
+def main() -> None:
+    add_import_path()
+    from gtamaplib import gtamapdata as md
+    from gtamaplib.gtamaplib import get_camera, get_point, intersect_ray_and_ray, intersect_rays
+
+    map_info = md.maps[MAP_NAME]
+    map_image, map_size = map_image_path(map_info)
+    cameras = []
+    observations = []
+    landmark_observation_counts: dict[str, int] = {}
+
+    for order, camera_name in enumerate(md.cameras):
+        cam = get_camera(camera_name)
+        camera_pixels = md.pixels.get(camera_name, {})
+        frame = frame_path_for(camera_name)
+        thumbnail = thumbnail_path_for(camera_name)
+        cameras.append(
+            {
+                "name": camera_name,
+                "id": str(cam.id),
+                "order": order,
+                "player": jsonable_point(cam.player),
+                "xyz": jsonable_point(cam.xyz),
+                "ypr": jsonable_point(cam.ypr),
+                "fov": [float(cam.hfov), float(cam.vfov)],
+                "size": [int(cam.size[0]), int(cam.size[1])],
+                "source": str(getattr(cam, "source", "")),
+                "frame": frame,
+                "thumbnail": thumbnail,
+                "color": get_color(camera_name),
+                "observation_count": len(camera_pixels),
+                "map": map_point(map_info, cam.xyz),
+                "mapCone": map_camera_cone_lines(cam, map_info, get_point),
+            }
+        )
+        for landmark_name, pixel in camera_pixels.items():
+            observations.append(
+                {
+                    "camera": camera_name,
+                    "landmark": landmark_name,
+                    "xy": [float(pixel[0]), float(pixel[1])],
+                    "color": get_color(landmark_name),
+                }
+            )
+            landmark_observation_counts[landmark_name] = landmark_observation_counts.get(landmark_name, 0) + 1
+
+    landmarks = []
+    for order, (landmark_name, xyz) in enumerate(md.landmarks.items()):
+        landmarks.append(
+            {
+                "name": landmark_name,
+                "order": order,
+                "xyz": jsonable_point(xyz),
+                "color": get_color(landmark_name),
+                "observation_count": landmark_observation_counts.get(landmark_name, 0),
+                "map": map_point(map_info, xyz),
+            }
+        )
+
+    gtamapdata = {
+        "schema": "gtamaplibvc-gtamapdata-v1",
+        "upstream": {
+            "path": str(UPSTREAM),
+            "gtamapdata": str(Path(md.__file__).resolve()),
+        },
+        "counts": {
+            "cameras": len(cameras),
+            "landmarks": len(landmarks),
+            "observations": len(observations),
+        },
+        "map": {
+            "name": MAP_NAME,
+            "version": int(map_info["version"]),
+            "image": map_image,
+            "size": [int(map_size[0]), int(map_size[1])],
+            "scale": float(map_info["scale"]),
+            "zero": [float(map_info["zero"][0]), float(map_info["zero"][1])],
+        },
+        "cameras": cameras,
+        "landmarks": landmarks,
+        "observations": observations,
+    }
+
+    DATA_DIR.mkdir(exist_ok=True)
+    GTAMAPDATA_JSON_PATH.write_text(json.dumps(gtamapdata, indent=4, ensure_ascii=False) + "\n")
+    write_special_if_missing(md)
+    write_import_extras(md, get_camera, intersect_rays, intersect_ray_and_ray)
+    write_ui_overlay_data(md, get_camera, get_point)
+    print(
+        "Wrote {path} with {cameras} cameras, {landmarks} landmarks, "
+        "{observations} observations.".format(path=GTAMAPDATA_JSON_PATH, **gtamapdata["counts"])
+    )
+
+
+if __name__ == "__main__":
+    main()

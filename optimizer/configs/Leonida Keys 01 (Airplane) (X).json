@@ -1,0 +1,25 @@
+{
+    "schema": "gtamaplibvc-optimizer-config-v1",
+    "landmarks": [
+        "Four Seasons Hotel Miami (BE)",
+        "Four Seasons Hotel Miami (BW)",
+        "Portofino Tower (NW)",
+        "House with Boat (X)"
+    ],
+    "rays": [
+        ["Tennis Stadium (4K)", "Park Grove Condominium (S)"],
+        ["Tennis Stadium (4K)", "Homestead Water Tower"],
+        ["Tennis Stadium (4K)", "Prison Tower (2)"],
+        ["Tennis Stadium (4K)", "Prison Tower (3)"],
+        ["Tennis Stadium (4K)", "Prison Tower (4)"],
+        ["Tennis Stadium (4K)", "Prison Tower (5)"],
+        ["Tennis Stadium (4K)", "Prison Tower (6)"],
+        ["Ocean near Keys (N)", "Seven Mile Bridge (3T)"],
+        ["Ocean near Keys (N)", "Seven Mile Bridge (6T)"],
+        ["Ocean near Keys (N)", "Blue Billboard (Key Lento)"],
+        ["Ocean near Keys (N)", "99353 Overseas Hwy"],
+        ["Ocean near Keys (N)", "102180 Overseas Hwy"],
+        ["House with Boat (X)", "House D (SW)"]
+    ],
+    "objects": []
+}

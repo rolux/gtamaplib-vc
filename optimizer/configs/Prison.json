@@ -1,0 +1,19 @@
+{
+    "schema": "gtamaplibvc-optimizer-config-v1",
+    "landmarks": [
+        "Four Seasons Hotel Miami (NW)",
+        "Four Seasons Hotel Miami (SE)",
+        "Turkey Point Nuclear Power Station (N)",
+        "Turkey Point Nuclear Power Station (3)"
+    ],
+    "rays": [
+        ["Grassrivers 02 (Watson Bay)", "Prison Tower (1)"],
+        ["Grassrivers 02 (Watson Bay)", "Prison Tower (2)"],
+        ["Grassrivers 02 (Watson Bay)", "Prison Tower (3)"],
+        ["Grassrivers 02 (Watson Bay)", "Prison Tower (4)"],
+        ["Grassrivers 02 (Watson Bay)", "Prison Tower (5)"],
+        ["Grassrivers 02 (Watson Bay)", "Prison Tower (6)"],
+        ["Leonida Keys 01 (Airplane) (X)", "WDNA FM SW 248th St"]
+    ],
+    "objects": []
+}

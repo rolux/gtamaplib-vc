@@ -1,0 +1,14 @@
+{
+    "schema": "gtamaplibvc-optimizer-config-v1",
+    "landmarks": [
+        "FAA Miami ATCT (MIA)"
+    ],
+    "rays": [
+        ["Leonida Keys 01 (Airplane) (X)", "MIA North Terminal Tower"],
+        ["Loading Zone near Prison (SW)", "Water Tower near Prison"],
+        ["WDNA FM Fake Cam", "WDNA FM (B)"]
+    ],
+    "objects": [
+        ["Red Boxville (BNE)", "Red Boxville (BNW)", "horizontal", 6.35, 5.5]
+    ]
+}

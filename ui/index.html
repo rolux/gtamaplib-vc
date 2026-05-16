@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>gtamaplib-vc</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <div id="app">
+      <header id="topbar">
+        <img id="app-logo" src="/ui/gtamaplib-vc.png" alt="">
+        <strong>gtamaplib-vc</strong>
+        <select id="view-select" title="View">
+          <option value="camera">View Cameras</option>
+          <option value="map">View Map</option>
+        </select>
+        <span id="selection-title"></span>
+      </header>
+
+      <div id="workspace">
+        <main id="viewer">
+          <section id="viewport">
+            <div id="stage">
+              <img id="frame" alt="">
+              <canvas id="map-canvas"></canvas>
+              <svg id="guides-overlay"></svg>
+              <canvas id="preview-canvas"></canvas>
+              <svg id="overlay"></svg>
+            </div>
+          </section>
+        </main>
+
+        <aside class="panel" id="camera-panel">
+          <header class="panel-tools">
+            <input id="camera-find" type="search" placeholder="Find camera">
+            <select id="camera-sort">
+              <option value="ID">Sort by ID</option>
+              <option value="name">Sort by Name</option>
+              <option value="observations">Sort by Number of Observations</option>
+            </select>
+          </header>
+          <div class="list" id="camera-list"></div>
+          <div id="camera-preview" hidden>
+            <canvas id="camera-map-preview"></canvas>
+            <img id="camera-image-preview" alt="">
+          </div>
+          <footer class="panel-status" id="camera-status"></footer>
+        </aside>
+
+        <aside class="panel" id="landmark-panel">
+          <header class="panel-tools">
+            <input id="landmark-find" type="search" placeholder="Find landmark">
+            <select id="landmark-sort">
+              <option value="ID">Sort by ID</option>
+              <option value="name">Sort by Name</option>
+              <option value="observations">Sort by Number of Observations</option>
+            </select>
+          </header>
+          <div class="list" id="landmark-list"></div>
+          <footer class="panel-status" id="landmark-status"></footer>
+        </aside>
+      </div>
+
+      <footer id="global-status">
+        <span id="camera-data"></span>
+        <span id="landmark-data"></span>
+      </footer>
+    </div>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,20 @@
+{
+    "schema": "gtamaplibvc-optimizer-config-v1",
+    "landmarks": [
+        "Flamingo South Beach (TE)",
+        "Flamingo South Beach (TSE)",
+        "Four Seasons Hotel Miami (BE)",
+        "Four Seasons Hotel Miami (BW)",
+        "1500 Ocean Dr",
+        "Old City Hall",
+        "Portofino Tower (NW)"
+    ],
+    "rays": [
+        ["Vice Beach (B)", "Capri South Beach (SE)"],
+        ["Vice Beach (B)", "Flamingo South Beach (NENE)"],
+        ["Vice Beach (B)", "Royal Palm South Beach (S)"],
+        ["Vice Beach (B)", "Royal Palm South Beach (N) (N)"],
+        ["Vice Beach (B)", "The Waverly South Beach (SE)"]
+    ],
+    "objects": []
+}

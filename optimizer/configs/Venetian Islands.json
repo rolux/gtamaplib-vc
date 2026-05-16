@@ -1,0 +1,21 @@
+{
+    "schema": "gtamaplibvc-optimizer-config-v1",
+    "landmarks": [
+        "Flamingo South Beach (TNE)",
+        "Loews Miami Beach",
+        "1500 Ocean Dr",
+        "1000 Venetian Way (SW)"
+    ],
+    "rays": [
+        ["Highway (NE)", "Akoya Condominium"],
+        ["Vice Beach (A)", "Flamingo South Beach (SDS)"],
+        ["Sidewalk (Jason) (E)", "Flamingo South Beach (SRSW)"],
+        ["Highway (NE)", "Jade Ocean Condos"],
+        ["Vice Beach (B)", "1500 Ocean Dr (S) (NW)"],
+        ["Park", "1500 Ocean Dr (S) (SW)"],
+        ["Vice Beach (B)", "Royal Palm South Beach (N) (N)"],
+        ["Vice Beach (B)", "Royal Palm South Beach (N) (S)"],
+        ["Vice Beach (B)", "St. Moritz Hotel (SW)"]
+    ],
+    "objects": []
+}

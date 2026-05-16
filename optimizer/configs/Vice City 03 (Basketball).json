@@ -1,0 +1,20 @@
+{
+    "schema": "gtamaplibvc-optimizer-config-v1",
+    "landmarks": [
+        "The Grand (E)",
+        "Loft Downtown II",
+        "Marina Blue (NE)",
+        "Opera Tower",
+        "Southeast Financial Center",
+        "Wells Fargo Center (N)"
+    ],
+    "rays": [
+        ["Hotel (W)", "Brown Hotel Sign"],
+        ["Vice Beach (B)", "Marriott Miami Biscayne Bay (NE)"],
+        ["Vice Beach (B)", "Quantum on the Bay Condominium (N) (NE)"],
+        ["Vice Beach (B)", "Quantum on the Bay Condominium (S) (NE)"],
+        ["Vice Beach (B)", "Venetian Isle Condominium"],
+        ["Rooftop Party", "W South Beach (BNW)"]
+    ],
+    "objects": []
+}

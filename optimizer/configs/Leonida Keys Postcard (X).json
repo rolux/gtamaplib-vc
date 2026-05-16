@@ -1,0 +1,20 @@
+{
+    "schema": "gtamaplibvc-optimizer-config-v1",
+    "landmarks": [
+        "Key Lento (A)",
+        "Key Lento (J)",
+        "Island A (W)",
+        "House with Boat (X)",
+        "Portofino Tower (NW)"
+    ],
+    "rays": [
+        ["Leonida Keys 01 (Airplane) (X)", "102180 Overseas Hwy"],
+        ["Leonida Keys 01 (Airplane) (X)", "Tree on Island J"],
+        ["Leonida Keys 01 (Airplane) (X)", "Pin A02R"],
+        ["Leonida Keys 01 (Airplane) (X)", "Pin B04R"],
+        ["Leonida Keys 01 (Airplane) (X)", "Pin C01R"],
+        ["Leonida Keys 01 (Airplane) (X)", "Pin D01R"],
+        ["House with Boat (X)", "House D (SW)"]
+    ],
+    "objects": []
+}
