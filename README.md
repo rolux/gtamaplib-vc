@@ -66,6 +66,8 @@ Then open:
 http://127.0.0.1:8026/
 ```
 
+The UI has a couple of useful keyboard shortcuts, like `up`/`down` for list navigation, and `esc` (or `cmd+click`) to deselect.
+
 ## Optimizer
 
 The optimizer chain lives in `optimizer/`:
