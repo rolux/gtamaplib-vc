@@ -122,6 +122,8 @@ Each run writes a numbered result JSON into `optimizer/results/`, updates `data/
 
 ## Notes
 
+Inspired by prior work from Neutral_State on the GTA VI Mapping Discord.
+
 Please keep in mind that v1.0.0 is pre-release software. Some parts may change quickly, others may still be unfinished.
 
 **gtamaplib-vc** was written by Codex. The quality and readability of the code will reflect this.
