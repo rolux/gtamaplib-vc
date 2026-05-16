@@ -129,6 +129,10 @@ function landmarkObservationCount(name) {
   return Math.max(1, count);
 }
 
+function shouldBlurCamera(camera) {
+  return Boolean(state.data?.config?.blur_leaks && camera?.id?.startsWith("L"));
+}
+
 function svg(tag, attributes = {}) {
   const element = document.createElementNS("http://www.w3.org/2000/svg", tag);
   for (const [key, value] of Object.entries(attributes)) {
@@ -519,9 +523,11 @@ function drawConePreview(image, quad) {
   context.globalAlpha = 0.82;
   context.imageSmoothingEnabled = true;
   context.imageSmoothingQuality = "high";
+  context.filter = state.hoveredCone && shouldBlurCamera(cameraByName.get(state.hoveredCone.camera)) ? "grayscale(100%) blur(16px)" : "none";
   drawTexturedTriangle(context, image, [[0, 0], [width, 0], [width, height]], [scaledQuad[0], scaledQuad[1], scaledQuad[2]]);
   drawTexturedTriangle(context, image, [[0, 0], [width, height], [0, height]], [scaledQuad[0], scaledQuad[2], scaledQuad[3]]);
   context.setTransform(1, 0, 0, 1, 0, 0);
+  context.filter = "none";
   context.globalAlpha = 1;
 }
 
@@ -799,9 +805,11 @@ function renderCameraPreview() {
   if (showImagePreview) {
     els.cameraImagePreview.src = camera.thumbnail;
     els.cameraImagePreview.alt = camera.name;
+    els.cameraImagePreview.classList.toggle("blurred-leak-preview", shouldBlurCamera(camera));
   } else {
     els.cameraImagePreview.removeAttribute("src");
     els.cameraImagePreview.alt = "";
+    els.cameraImagePreview.classList.remove("blurred-leak-preview");
   }
   if (!showMapPreview) return;
 
@@ -1007,6 +1015,7 @@ function applyCameraSelection(name, resetView = true) {
     setStageSize(state.camera.size[0], state.camera.size[1], false);
     els.frame.src = state.camera.frame || "";
     els.frame.hidden = !state.camera.frame;
+    els.frame.classList.toggle("blurred-leak-frame", shouldBlurCamera(state.camera));
     if (resetView) {
       if (state.pendingCameraFit === "between-panels") {
         fitCameraBetweenPanels();
@@ -1249,6 +1258,8 @@ async function init() {
   const response = await fetch("/data/gtamapdata.json");
   if (!response.ok) throw new Error(`Could not load gtamapdata: ${response.status}`);
   state.data = await response.json();
+  const configResponse = await fetch("/data/config.json");
+  state.data.config = configResponse.ok ? await configResponse.json() : {};
   const worldResponse = await fetch("/data/gtamaplib-vc.json");
   if (worldResponse.ok) {
     applyWorldSnapshot(await worldResponse.json());

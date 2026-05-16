@@ -328,6 +328,14 @@ body.is-dragging #viewport {
   filter: grayscale(100%);
 }
 
+#frame.blurred-leak-frame {
+  filter: grayscale(100%) blur(32px);
+}
+
+#camera-image-preview.blurred-leak-preview {
+  filter: grayscale(100%) blur(8px);
+}
+
 #guides-overlay {
   overflow: visible;
   pointer-events: none;
