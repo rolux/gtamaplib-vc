@@ -20,7 +20,7 @@ Run the bootstrap script:
 python3 bootstrap.py
 ```
 
-The bootstrap script clones **gtamaplib** into `./gtamaplib`, sparse-checks out the `yanis,12` map tiles from **gtadb.org** into `./gtadb.org`, and then generates the local browser data.
+The bootstrap script clones **gtamaplib** into `./gtamaplib`, sparse-checks out the `yanis,12` map tiles from [map.gtadb.org](https://map.gtadb.org) into `./gtadb.org`, and then generates the local browser data.
 
 ## Regenerating Data
 
