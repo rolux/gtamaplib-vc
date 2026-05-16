@@ -14,13 +14,13 @@ Clone this repository, then `cd` into the `gtamaplib-vc` directory:
 cd gtamaplib-vc
 ```
 
-Install Python dependencies:
+Install Python dependencies. Old school:
 
 ```bash
 python3 -m pip install -r requirements.txt
 ```
 
-With `uv`:
+Or more modern:
 
 ```bash
 uv pip install -r requirements.txt
