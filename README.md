@@ -22,11 +22,23 @@ python3 bootstrap.py
 
 The bootstrap script clones **gtamaplib** into `./gtamaplib`, sparse-checks out the `yanis,12` map tiles from [map.gtadb.org](https://map.gtadb.org) into `./gtadb.org`, and then generates the local browser data.
 
+## Updating
+
+To update the linked **gtamaplib** and **gtadb.org** checkouts and regenerate local browser data, run:
+
+```bash
+python3 update.py
+```
+
+This runs `git pull --ff-only` in the external dependency checkouts and then runs `import_data.py`.
+
+Updating **gtamaplib** may change imported cameras, landmarks, observations, and pre-triangulated points. Existing optimizer results may no longer describe exactly the same starting data after an update.
+
 ## Regenerating Data
 
-`bootstrap.py` already runs the importer. You do not need to run `import_data.py` after bootstrapping.
+`bootstrap.py` already runs the importer. `update.py` also runs the importer after pulling dependencies. You do not need to run `import_data.py` after either command.
 
-During development, if **gtamaplib** data changes and you only want to regenerate the local browser data, run:
+During development, if you only want to regenerate local browser data without pulling external repositories, run:
 
 ```bash
 python3 import_data.py
