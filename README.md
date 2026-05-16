@@ -14,6 +14,18 @@ Clone this repository, then `cd` into the `gtamaplib-vc` directory:
 cd gtamaplib-vc
 ```
 
+Install Python dependencies:
+
+```bash
+python3 -m pip install -r requirements.txt
+```
+
+With `uv`:
+
+```bash
+uv pip install -r requirements.txt
+```
+
 Run the bootstrap script:
 
 ```bash
