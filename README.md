@@ -44,7 +44,7 @@ python3 update.py
 
 This runs `git pull --ff-only` in the external dependency checkouts and then runs `import_data.py`.
 
-Updating **gtamaplib** may change imported cameras, landmarks, observations, and pre-triangulated points. Existing optimizer results may no longer describe exactly the same starting data after an update. The same is true for updating **gtamaplib-vc** isself, which may change the behavior of the optimizer.
+Updating **gtamaplib** may change imported cameras, landmarks, observations, and pre-triangulated points. Existing optimizer results may no longer describe exactly the same starting data after an update. The same is true for updating **gtamaplib-vc** itself, which may change the behavior of the optimizer.
 
 ## Regenerating Data
 
