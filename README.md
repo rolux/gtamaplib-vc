@@ -2,7 +2,7 @@
 
 # gtamaplib-vc
 
-(VC stands for vibe-coded, not for Vice City.)
+(vc stands for vibe-coded, not for Vice City!)
 
 **gtamaplib-vc** is a collection of interfaces and tools on top of [gtamaplib](https://github.com/rolux/gtamaplib), including a UI for browsing the map, cameras and landmarks, and a fast and furious optimizer that improves existing calibrations and triangulations.
 
@@ -22,9 +22,11 @@ python3 bootstrap.py
 
 The bootstrap script clones **gtamaplib** into `./gtamaplib`, sparse-checks out the `yanis,12` map tiles from **gtadb.org** into `./gtadb.org`, and then generates the local browser data.
 
-## Import Data
+## Regenerating Data
 
-To regenerate browser data from **gtamaplib** directly during development:
+`bootstrap.py` already runs the importer. You do not need to run `import_data.py` after bootstrapping.
+
+During development, if **gtamaplib** data changes and you only want to regenerate the local browser data, run:
 
 ```bash
 python3 import_data.py
