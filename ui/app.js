@@ -1260,6 +1260,12 @@ async function init() {
   state.data = await response.json();
   const configResponse = await fetch("/data/config.json");
   state.data.config = configResponse.ok ? await configResponse.json() : {};
+  for (const observation of state.data.observations) {
+    if (!byCamera.has(observation.camera)) byCamera.set(observation.camera, []);
+    byCamera.get(observation.camera).push(observation);
+    if (!byLandmark.has(observation.landmark)) byLandmark.set(observation.landmark, []);
+    byLandmark.get(observation.landmark).push(observation);
+  }
   const worldResponse = await fetch("/data/gtamaplib-vc.json");
   if (worldResponse.ok) {
     applyWorldSnapshot(await worldResponse.json());
@@ -1271,12 +1277,6 @@ async function init() {
   }
   for (const landmark of state.data.landmarks) {
     landmarkByName.set(landmark.name, landmark);
-  }
-  for (const observation of state.data.observations) {
-    if (!byCamera.has(observation.camera)) byCamera.set(observation.camera, []);
-    byCamera.get(observation.camera).push(observation);
-    if (!byLandmark.has(observation.landmark)) byLandmark.set(observation.landmark, []);
-    byLandmark.get(observation.landmark).push(observation);
   }
   restorePreferences();
   wireControls();
