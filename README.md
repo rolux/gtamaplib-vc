@@ -4,7 +4,7 @@
 
 (vc stands for vibe-coded, not for Vice City!)
 
-**gtamaplib-vc** is a collection of interfaces and tools on top of [gtamaplib](https://github.com/rolux/gtamaplib), including a UI for browsing the map, cameras and landmarks, and a fast and furious optimizer that improves existing calibrations and triangulations.
+**gtamaplib-vc** is a collection of interfaces and tools on top of [gtamaplib](https://github.com/rolux/gtamaplib), including a UI for browsing the map, cameras and landmarks, an annotation editor and a fast and furious optimizer that improves existing calibrations and triangulations.
 
 ## Setup
 
@@ -78,7 +78,7 @@ optimizer/renders/
 
 ## Server
 
-Start the local UI server:
+Start the local UI server and editing API:
 
 ```bash
 python3 server.py
@@ -91,6 +91,20 @@ http://127.0.0.1:8026/
 ```
 
 The UI has a couple of useful keyboard shortcuts, like `up`/`down` for list navigation, and `esc` (or `cmd+click`) to deselect.
+
+## Observation Editing
+
+The UI can add, move, rename, and remove observations. These edits are stored locally in `data/observation_edits.json` and applied by the frontend on top of the current **gtamaplib** data.
+
+`server.py` starts both the browser UI on port `8026` and the local editing API on port `8027`. You do not normally need to run the API separately.
+
+If **gtamaplib** changes and you want to rebuild the generated upstream browser data, run:
+
+```bash
+python3 import_data.py
+```
+
+This keeps **gtamaplib** as the upstream source of cameras, landmarks, frames, and initial observations, while allowing private local annotation edits in **gtamaplib-vc**. The optimizer should use the same model: load the imported **gtamaplib** data, then explicitly apply local observation edits on top.
 
 ## Optimizer
 

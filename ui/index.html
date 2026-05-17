@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>gtamaplib-vc</title>
+    <link rel="icon" type="image/png" href="/ui/gtamaplib-vc.png">
     <link rel="stylesheet" href="style.css">
   </head>
   <body>
@@ -16,6 +17,12 @@
           <option value="map">View Map</option>
         </select>
         <span id="selection-title"></span>
+        <nav id="edit-tools" aria-label="Observation tools">
+          <button id="add-observation" type="button" title="A" hidden>Add</button>
+          <button id="edit-observation" type="button" title="E" hidden>Edit</button>
+          <button id="rename-landmark" type="button" title="R" hidden>Rename</button>
+          <button id="remove-observation" type="button" title="DELETE" hidden>Remove</button>
+        </nav>
       </header>
 
       <div id="workspace">

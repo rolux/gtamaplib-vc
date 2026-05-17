@@ -10,6 +10,7 @@ untracked/
 data/gtamapdata.json
 data/import_extras.json
 data/gtamaplib-vc.json
+data/observation_edits.json
 ui/data/overlay.json
 ui/*-bw.jpg
 ui/thumbnails/

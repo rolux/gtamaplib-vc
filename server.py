@@ -3,8 +3,11 @@
 
 from __future__ import annotations
 
+import threading
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
+
+import api
 
 
 PORT = 8026
@@ -21,9 +24,20 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 def main() -> None:
-    server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
-    print(f"Serving gtamaplib-vc at http://127.0.0.1:{PORT}/")
-    server.serve_forever()
+    ui_server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
+    api_server = ThreadingHTTPServer(("127.0.0.1", api.PORT), api.Handler)
+    api_thread = threading.Thread(target=api_server.serve_forever, daemon=True)
+    api_thread.start()
+    print(f"Serving gtamaplib-vc web UI at http://127.0.0.1:{PORT}/")
+    print(f"Serving gtamaplib-vc edit API at http://127.0.0.1:{api.PORT}/")
+    try:
+        ui_server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        ui_server.server_close()
+        api_server.shutdown()
+        api_server.server_close()
 
 
 if __name__ == "__main__":

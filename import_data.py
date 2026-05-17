@@ -24,6 +24,7 @@ GTAMAPDATA_JSON_PATH = DATA_DIR / "gtamapdata.json"
 SPECIAL_JSON_PATH = DATA_DIR / "special.json"
 CONFIG_JSON_PATH = DATA_DIR / "config.json"
 IMPORT_EXTRAS_JSON_PATH = DATA_DIR / "import_extras.json"
+OBSERVATION_EDITS_JSON_PATH = DATA_DIR / "observation_edits.json"
 UI_OVERLAY_JSON_PATH = UI_DATA_DIR / "overlay.json"
 MAP_NAME = "yanis"
 CAMERA_CONE_DISTANCE_M = 25
@@ -250,6 +251,20 @@ def normalize_name(name: str) -> str:
         if not name.endswith(")"):
             break
     return name
+
+
+def quantize_xy(value: Any) -> list[float]:
+    if not isinstance(value, (list, tuple)) or len(value) != 2:
+        raise ValueError("xy must be a two-item list or tuple")
+    return [round(float(value[0]) * 2) / 2, round(float(value[1]) * 2) / 2]
+
+
+def observation_counts(observations: list[dict[str, Any]], key: str) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for observation in observations:
+        value = observation[key]
+        counts[value] = counts.get(value, 0) + 1
+    return counts
 
 
 def qualified_camera_name(camera_name: str, camera_id: str) -> str:
@@ -692,7 +707,6 @@ def main() -> None:
     map_image, map_size = map_image_path(map_info)
     cameras = []
     observations = []
-    landmark_observation_counts: dict[str, int] = {}
 
     for order, camera_name in enumerate(md.cameras):
         cam = get_camera(camera_name)
@@ -713,7 +727,7 @@ def main() -> None:
                 "frame": frame,
                 "thumbnail": thumbnail,
                 "color": get_color(camera_name),
-                "observation_count": len(camera_pixels),
+                "observation_count": 0,
                 "map": map_point(map_info, cam.xyz),
                 "mapCone": map_camera_cone_lines(cam, map_info, get_point),
             }
@@ -727,10 +741,18 @@ def main() -> None:
                     "color": get_color(landmark_name),
                 }
             )
-            landmark_observation_counts[landmark_name] = landmark_observation_counts.get(landmark_name, 0) + 1
+
+    camera_observation_counts = observation_counts(observations, "camera")
+    landmark_observation_counts = observation_counts(observations, "landmark")
+    for camera in cameras:
+        camera["observation_count"] = camera_observation_counts.get(camera["name"], 0)
 
     landmarks = []
+    landmark_names = set()
     for order, (landmark_name, xyz) in enumerate(md.landmarks.items()):
+        if landmark_name in landmark_names:
+            continue
+        landmark_names.add(landmark_name)
         landmarks.append(
             {
                 "name": landmark_name,
@@ -739,6 +761,18 @@ def main() -> None:
                 "color": get_color(landmark_name),
                 "observation_count": landmark_observation_counts.get(landmark_name, 0),
                 "map": map_point(map_info, xyz),
+            }
+        )
+    observed_only_landmarks = sorted(set(landmark_observation_counts) - landmark_names)
+    for index, landmark_name in enumerate(observed_only_landmarks, len(landmarks)):
+        landmarks.append(
+            {
+                "name": landmark_name,
+                "order": index,
+                "xyz": None,
+                "color": get_color(landmark_name),
+                "observation_count": landmark_observation_counts.get(landmark_name, 0),
+                "map": None,
             }
         )
 

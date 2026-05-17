@@ -15,6 +15,9 @@ const state = {
   pendingCameraFit: null,
   pendingMapFocus: true,
   panelPreviewRequest: 0,
+  editMode: false,
+  renameMode: false,
+  editingObservation: null,
   map: {
     centerX: 0,
     centerY: 0,
@@ -56,6 +59,10 @@ const els = {
   title: document.querySelector("#selection-title"),
   cameraData: document.querySelector("#camera-data"),
   landmarkData: document.querySelector("#landmark-data"),
+  addObservation: document.querySelector("#add-observation"),
+  editObservation: document.querySelector("#edit-observation"),
+  renameLandmark: document.querySelector("#rename-landmark"),
+  removeObservation: document.querySelector("#remove-observation"),
 };
 
 const byCamera = new Map();
@@ -129,6 +136,10 @@ function landmarkObservationCount(name) {
   return Math.max(1, count);
 }
 
+function cameraObservationCount(name) {
+  return byCamera.get(name)?.length ?? cameraByName.get(name)?.observation_count ?? 0;
+}
+
 function shouldBlurCamera(camera) {
   return Boolean(state.data?.config?.blur_leaks && camera?.id?.startsWith("L"));
 }
@@ -189,6 +200,20 @@ function updateGlobalStatus() {
   }
 }
 
+function updateEditTools() {
+  const canAdd = state.view === "camera" && Boolean(state.camera);
+  const canEditObservation = state.view === "camera" && Boolean(state.camera && state.landmark);
+  const canRenameGlobally = Boolean(state.landmark && !state.camera);
+  els.addObservation.hidden = !canAdd;
+  els.editObservation.hidden = !canEditObservation;
+  els.removeObservation.hidden = !canEditObservation;
+  els.renameLandmark.hidden = !canRenameGlobally;
+  els.editObservation.classList.toggle("active", state.editMode);
+  els.renameLandmark.classList.toggle("active", state.renameMode);
+  els.editObservation.textContent = state.editMode ? "Done" : "Edit";
+  els.renameLandmark.textContent = state.renameMode ? "Done" : "Rename";
+}
+
 function filteredCameras() {
   const query = els.cameraFind.value.trim().toLowerCase();
   const items = state.data.cameras.filter((camera) => {
@@ -238,7 +263,7 @@ function renderCameraList() {
     if (state.camera && state.camera.name === camera.name) row.classList.add("selected");
     row.innerHTML = `
       <span class="item-name"></span>
-      <span class="item-meta">${camera.observation_count}</span>
+      <span class="item-meta">${cameraObservationCount(camera.name)}</span>
     `;
     row.style.borderLeftColor = camera.color;
     row.querySelector(".item-name").textContent = cameraLabel(camera);
@@ -250,6 +275,7 @@ function renderCameraList() {
     els.cameraList.append(row);
   }
   els.cameraStatus.textContent = `${cameras.length} / ${state.data.cameras.length} cameras`;
+  updateEditTools();
 }
 
 function cameraRows() {
@@ -260,23 +286,65 @@ function renderLandmarkList() {
   const observations = selectedObservations();
   els.landmarkList.replaceChildren();
   for (const observation of observations) {
+    const isSelected = state.landmark === observation.landmark;
+    const isEditing = isSelected && ((state.editMode && state.camera) || (state.renameMode && !state.camera));
     const row = document.createElement("div");
     row.className = "item";
-    if (state.landmark === observation.landmark) row.classList.add("selected");
+    if (isSelected) row.classList.add("selected");
     row.innerHTML = `
       <span class="item-name"></span>
       <span class="item-meta">${landmarkObservationCount(observation.landmark)}</span>
     `;
     row.style.borderRightColor = landmarkColor(observation.landmark);
-    row.querySelector(".item-name").textContent = landmarkLabel(observation.landmark);
+    const nameSlot = row.querySelector(".item-name");
+    if (isEditing) {
+      const input = document.createElement("input");
+      let cancelled = false;
+      let submitted = false;
+      input.className = "item-name-input";
+      input.value = observation.landmark;
+      const submit = (finish = false) => {
+        if (cancelled || submitted) return;
+        submitted = true;
+        const value = input.value;
+        input.blur();
+        if (state.camera) commitLocalObservationName(value, finish);
+        else commitGlobalLandmarkName(value, finish);
+      };
+      input.addEventListener("mousedown", (event) => event.stopPropagation());
+      input.addEventListener("keydown", (event) => {
+        event.stopPropagation();
+        if (event.key === "Enter") {
+          event.preventDefault();
+          submit(true);
+        } else if (event.key === "Escape") {
+          event.preventDefault();
+          cancelled = true;
+          input.blur();
+          cancelObservationEditMode();
+        }
+      });
+      input.addEventListener("blur", () => {
+        submit();
+      });
+      nameSlot.replaceWith(input);
+      requestAnimationFrame(() => {
+        input.focus();
+        input.select();
+      });
+    } else {
+      nameSlot.textContent = landmarkLabel(observation.landmark);
+    }
     row.title = observation.landmark;
     row.addEventListener("mousedown", (event) => {
       state.focus = "landmarks";
+      if (isEditing && event.target.classList.contains("item-name-input")) return;
       selectLandmark(observation.landmark, true, event.metaKey || event.ctrlKey);
     });
     els.landmarkList.append(row);
   }
   els.landmarkStatus.textContent = `${observations.length} / ${byLandmark.size} landmarks`;
+  updateEditTools();
 }
 
 function landmarkRows() {
@@ -620,7 +688,9 @@ function renderOverlay() {
   const observations = byCamera.get(state.camera.name) || [];
   for (const observation of observations) {
     const circle = svg("circle");
-    circle.setAttribute("class", observation.landmark === state.landmark ? "marker selected" : "marker");
+    const isSelected = observation.landmark === state.landmark;
+    const isEditing = state.editMode && isSelected;
+    circle.setAttribute("class", `marker${isSelected ? " selected" : ""}${isEditing ? " editing" : ""}`);
     circle.setAttribute("cx", observation.xy[0]);
     circle.setAttribute("cy", observation.xy[1]);
     circle.setAttribute("r", 8);
@@ -628,6 +698,10 @@ function renderOverlay() {
     circle.dataset.landmark = observation.landmark;
     circle.addEventListener("mousedown", (event) => {
       event.stopPropagation();
+      if (isEditing) {
+        startObservationDrag(event, observation);
+        return;
+      }
       selectLandmark(observation.landmark, false);
     });
     const title = svg("title");
@@ -790,6 +864,7 @@ function renderCurrentView(resetView = false) {
     renderOverlay();
   }
   renderCameraPreview();
+  updateEditTools();
 }
 
 function renderCameraPreview() {
@@ -871,6 +946,401 @@ function renderCameraPreview() {
   context.fill();
   context.stroke();
   context.setTransform(1, 0, 0, 1, 0, 0);
+}
+
+function viewportCenterImagePoint() {
+  if (!state.camera) return null;
+  const rect = els.viewport.getBoundingClientRect();
+  const x = (rect.width / 2 - state.panX) / state.scale;
+  const y = (rect.height / 2 - state.panY) / state.scale;
+  return [
+    Math.max(0, Math.min(state.camera.size[0], x)),
+    Math.max(0, Math.min(state.camera.size[1], y)),
+  ];
+}
+
+function eventImagePoint(event) {
+  if (!state.camera) return null;
+  const rect = els.viewport.getBoundingClientRect();
+  const x = (event.clientX - rect.left - state.panX) / state.scale;
+  const y = (event.clientY - rect.top - state.panY) / state.scale;
+  return [
+    Math.max(0, Math.min(state.camera.size[0], x)),
+    Math.max(0, Math.min(state.camera.size[1], y)),
+  ];
+}
+
+function offsetImagePoint(point, offset) {
+  return [
+    Math.max(0, Math.min(state.camera.size[0], point[0] - offset[0])),
+    Math.max(0, Math.min(state.camera.size[1], point[1] - offset[1])),
+  ];
+}
+
+async function postObservationEdit(payload) {
+  const response = await fetch("http://127.0.0.1:8027/api/observations", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json();
+  if (!response.ok || !data.ok) {
+    throw new Error(data.error || `Observation edit failed: ${response.status}`);
+  }
+  return data;
+}
+
+async function loadObservationEdits() {
+  const response = await fetch("/data/observation_edits.json", { cache: "no-store" });
+  if (!response.ok) return [];
+  const data = await response.json();
+  return Array.isArray(data.edits) ? data.edits : [];
+}
+
+function ensureRawLandmarkRecord(name, color = null) {
+  let landmark = state.data.landmarks.find((item) => item.name === name);
+  if (landmark) {
+    if (color) landmark.color = color;
+    return landmark;
+  }
+  landmark = {
+    name,
+    order: state.data.landmarks.length,
+    xyz: null,
+    color: color || "#fff",
+    observation_count: 0,
+    map: null,
+  };
+  state.data.landmarks.push(landmark);
+  return landmark;
+}
+
+function refreshImportedObservationCounts() {
+  const cameraCounts = new Map();
+  const landmarkCounts = new Map();
+  for (const observation of state.data.observations) {
+    cameraCounts.set(observation.camera, (cameraCounts.get(observation.camera) || 0) + 1);
+    landmarkCounts.set(observation.landmark, (landmarkCounts.get(observation.landmark) || 0) + 1);
+  }
+  for (const camera of state.data.cameras) {
+    camera.observation_count = cameraCounts.get(camera.name) || 0;
+  }
+  for (const landmark of state.data.landmarks) {
+    landmark.observation_count = landmarkCounts.get(landmark.name) || 0;
+  }
+}
+
+function replayObservationEdits(edits) {
+  if (!edits.length) return;
+  for (const edit of edits) {
+    if (edit.action === "add") {
+      if (!state.data.cameras.some((camera) => camera.name === edit.camera)) continue;
+      if (state.data.observations.some((observation) => observation.camera === edit.camera && observation.landmark === edit.landmark)) continue;
+      state.data.observations.push({
+        camera: edit.camera,
+        landmark: edit.landmark,
+        xy: edit.xy,
+        color: edit.color || "#fff",
+      });
+      ensureRawLandmarkRecord(edit.landmark, edit.color);
+    } else if (edit.action === "edit") {
+      const observation = state.data.observations.find((item) => item.camera === edit.camera && item.landmark === edit.landmark);
+      if (!observation) continue;
+      if (edit.xy) observation.xy = edit.xy;
+      if (edit.name && edit.name !== edit.landmark) {
+        observation.landmark = edit.name;
+        observation.color = edit.color || observation.color;
+        ensureRawLandmarkRecord(edit.name, edit.color || observation.color);
+      }
+    } else if (edit.action === "remove") {
+      state.data.observations = state.data.observations.filter((observation) => {
+        return !(observation.camera === edit.camera && observation.landmark === edit.landmark);
+      });
+    } else if (edit.action === "rename") {
+      if (!edit.name || edit.name === edit.landmark) continue;
+      for (const observation of state.data.observations) {
+        if (observation.landmark === edit.landmark) {
+          observation.landmark = edit.name;
+          observation.color = edit.color || observation.color;
+        }
+      }
+      const landmark = state.data.landmarks.find((item) => item.name === edit.landmark);
+      if (landmark) {
+        landmark.name = edit.name;
+        landmark.color = edit.color || landmark.color;
+      } else {
+        ensureRawLandmarkRecord(edit.name, edit.color);
+      }
+    }
+  }
+  refreshImportedObservationCounts();
+}
+
+function ensureLandmarkRecord(name, color = null) {
+  if (landmarkByName.has(name)) return landmarkByName.get(name);
+  const landmark = {
+    name,
+    order: state.data.landmarks.length,
+    xyz: null,
+    color: color || "#fff",
+    observation_count: 0,
+    map: null,
+  };
+  state.data.landmarks.push(landmark);
+  landmarkByName.set(name, landmark);
+  return landmark;
+}
+
+function addObservationToState(edit, color) {
+  const observation = {
+    camera: edit.camera,
+    landmark: edit.landmark,
+    xy: edit.xy,
+    color,
+  };
+  state.data.observations.push(observation);
+  if (!byCamera.has(edit.camera)) byCamera.set(edit.camera, []);
+  if (!byLandmark.has(edit.landmark)) byLandmark.set(edit.landmark, []);
+  byCamera.get(edit.camera).push(observation);
+  byLandmark.get(edit.landmark).push(observation);
+  const landmark = ensureLandmarkRecord(edit.landmark, color);
+  landmark.color = color || landmark.color;
+  landmark.observation_count = byLandmark.get(edit.landmark).length;
+  const camera = cameraByName.get(edit.camera);
+  if (camera) camera.observation_count = byCamera.get(edit.camera).length;
+}
+
+function removeObservationFromState(edit) {
+  state.data.observations = state.data.observations.filter((observation) => {
+    return !(observation.camera === edit.camera && observation.landmark === edit.landmark);
+  });
+  if (byCamera.has(edit.camera)) {
+    byCamera.set(edit.camera, byCamera.get(edit.camera).filter((observation) => observation.landmark !== edit.landmark));
+  }
+  if (byLandmark.has(edit.landmark)) {
+    const observations = byLandmark.get(edit.landmark).filter((observation) => observation.camera !== edit.camera);
+    if (observations.length) byLandmark.set(edit.landmark, observations);
+    else byLandmark.delete(edit.landmark);
+  }
+  const landmark = landmarkByName.get(edit.landmark);
+  if (landmark) landmark.observation_count = byLandmark.get(edit.landmark)?.length || 0;
+  const camera = cameraByName.get(edit.camera);
+  if (camera) camera.observation_count = byCamera.get(edit.camera)?.length || 0;
+}
+
+function updateObservationInState(edit) {
+  const observation = (byCamera.get(edit.camera) || []).find((item) => item.landmark === edit.landmark);
+  if (!observation) return;
+  if (edit.xy) observation.xy = edit.xy;
+}
+
+function renameObservationInState(edit, color) {
+  const oldName = edit.landmark;
+  const newName = edit.name;
+  if (!newName || newName === oldName) return;
+  const observation = (byCamera.get(edit.camera) || []).find((item) => item.landmark === oldName);
+  if (!observation) return;
+  observation.landmark = newName;
+  observation.color = color || observation.color;
+
+  if (byLandmark.has(oldName)) {
+    const oldObservations = byLandmark.get(oldName).filter((item) => item !== observation);
+    if (oldObservations.length) byLandmark.set(oldName, oldObservations);
+    else byLandmark.delete(oldName);
+  }
+  if (!byLandmark.has(newName)) byLandmark.set(newName, []);
+  byLandmark.get(newName).push(observation);
+
+  const oldRecord = landmarkByName.get(oldName);
+  if (oldRecord) oldRecord.observation_count = byLandmark.get(oldName)?.length || 0;
+  const newRecord = ensureLandmarkRecord(newName, color || observation.color);
+  newRecord.color = color || newRecord.color;
+  newRecord.observation_count = byLandmark.get(newName).length;
+  state.landmark = newName;
+}
+
+function renameGlobalLandmarkInState(edit, color) {
+  const oldName = edit.landmark;
+  const newName = edit.name;
+  if (!newName || newName === oldName) return;
+  const observations = byLandmark.get(oldName) || [];
+  byLandmark.delete(oldName);
+  byLandmark.set(newName, observations);
+  for (const observation of observations) {
+    observation.landmark = newName;
+    observation.color = color || observation.color;
+  }
+  const landmark = landmarkByName.get(oldName);
+  if (landmark) {
+    landmark.name = newName;
+    landmark.color = color || landmark.color;
+    landmark.observation_count = observations.length;
+    landmarkByName.delete(oldName);
+    landmarkByName.set(newName, landmark);
+  } else {
+    const newRecord = ensureLandmarkRecord(newName, color);
+    newRecord.observation_count = observations.length;
+  }
+  state.landmark = newName;
+}
+
+function cancelObservationEditMode() {
+  state.editMode = false;
+  state.renameMode = false;
+  state.editingObservation = null;
+  document.body.classList.remove("is-editing-observation", "is-dragging-observation");
+  renderLandmarkList();
+  renderOverlay();
+  updateEditTools();
+}
+
+async function commitLocalObservationName(value, finish = false) {
+  if (!state.editMode || !state.camera || !state.landmark) return;
+  const name = value.trim();
+  const oldName = state.landmark;
+  if (!name || name === oldName) {
+    if (finish) cancelObservationEditMode();
+    else renderLandmarkList();
+    return;
+  }
+  try {
+    const result = await postObservationEdit({
+      action: "edit",
+      camera: state.camera.name,
+      landmark: oldName,
+      name,
+    });
+    renameObservationInState(result.edit, result.color);
+    renderCameraList();
+    renderLandmarkList();
+    renderOverlay();
+    renderCameraPreview();
+    updateGlobalStatus();
+    writeHash(state.camera.name, result.edit.name);
+    if (finish) cancelObservationEditMode();
+  } catch (error) {
+    console.error(error);
+    els.title.textContent = error.message;
+    renderLandmarkList();
+  }
+}
+
+async function commitGlobalLandmarkName(value, finish = false) {
+  if (!state.renameMode || state.camera || !state.landmark) return;
+  const name = value.trim();
+  const oldName = state.landmark;
+  if (!name || name === oldName) {
+    if (finish) cancelObservationEditMode();
+    else renderLandmarkList();
+    return;
+  }
+  try {
+    const result = await postObservationEdit({
+      action: "rename",
+      landmark: oldName,
+      name,
+    });
+    renameGlobalLandmarkInState(result.edit, result.color);
+    renderCameraList();
+    renderLandmarkList();
+    renderMap();
+    renderCameraPreview();
+    updateGlobalStatus();
+    writeHash(null, result.edit.name);
+    if (finish) cancelObservationEditMode();
+  } catch (error) {
+    console.error(error);
+    els.title.textContent = error.message;
+    renderLandmarkList();
+  }
+}
+
+function toggleObservationEditMode() {
+  if (state.view !== "camera" || !state.camera || !state.landmark) return;
+  state.renameMode = false;
+  state.editMode = !state.editMode;
+  state.editingObservation = null;
+  document.body.classList.toggle("is-editing-observation", state.editMode);
+  renderLandmarkList();
+  renderOverlay();
+  updateEditTools();
+}
+
+function toggleGlobalRenameMode() {
+  if (!state.landmark || state.camera) return;
+  state.editMode = false;
+  state.renameMode = !state.renameMode;
+  state.editingObservation = null;
+  document.body.classList.toggle("is-editing-observation", state.renameMode);
+  renderLandmarkList();
+  updateEditTools();
+}
+
+function startObservationDrag(event, observation) {
+  if (!state.editMode || !state.camera || observation.landmark !== state.landmark) return;
+  event.preventDefault();
+  const pointer = eventImagePoint(event) || observation.xy;
+  state.editingObservation = {
+    camera: observation.camera,
+    landmark: observation.landmark,
+    originalXY: [...observation.xy],
+    pointerOffset: [pointer[0] - observation.xy[0], pointer[1] - observation.xy[1]],
+    observation,
+  };
+  document.body.classList.add("is-dragging-observation");
+}
+
+async function addObservation() {
+  if (state.view !== "camera" || !state.camera) return;
+  const xy = viewportCenterImagePoint();
+  if (!xy) return;
+  const result = await postObservationEdit({
+    action: "add",
+    camera: state.camera.name,
+    xy,
+  });
+  addObservationToState(result.edit, result.color);
+  state.landmark = result.edit.landmark;
+  state.editMode = true;
+  state.renameMode = false;
+  state.editingObservation = null;
+  document.body.classList.add("is-editing-observation");
+  writeHash(state.camera.name, result.edit.landmark);
+  renderCameraList();
+  renderLandmarkList();
+  renderOverlay();
+  renderCameraPreview();
+  updateGlobalStatus();
+}
+
+async function removeObservation() {
+  if (state.view !== "camera" || !state.camera || !state.landmark) return;
+  cancelObservationEditMode();
+  const landmark = state.landmark;
+  const result = await postObservationEdit({
+    action: "remove",
+    camera: state.camera.name,
+    landmark,
+  });
+  removeObservationFromState(result.edit);
+  selectLandmark(null, false);
+}
+
+async function runObservationAction(action) {
+  try {
+    if (action === "add") await addObservation();
+    else if (action === "remove") await removeObservation();
+    else if (action === "edit") {
+      toggleObservationEditMode();
+    } else if (action === "rename") {
+      toggleGlobalRenameMode();
+    }
+  } catch (error) {
+    console.error(error);
+    els.title.textContent = error.message;
+  }
 }
 
 function focusObservation(landmarkName) {
@@ -964,6 +1434,7 @@ function selectCameraFromCone(name, shouldToggle) {
 function setView(view) {
   if (view !== "camera" && view !== "map") return;
   if (state.view === view) return;
+  cancelObservationEditMode();
   state.view = view;
   els.viewSelect.value = view;
   writeHash(state.camera?.name || null, state.landmark);
@@ -975,6 +1446,7 @@ function setView(view) {
 }
 
 function clearLandmarkSelection() {
+  cancelObservationEditMode();
   writeHash(state.camera?.name || null, null);
   if (window.location.hash.replace(/^#/, "") === hashParams().toString()) {
     applyLandmarkSelection(null, false);
@@ -983,6 +1455,7 @@ function clearLandmarkSelection() {
 }
 
 function clearCameraSelection() {
+  cancelObservationEditMode();
   state.camera = null;
   state.landmark = null;
   state.scale = 1;
@@ -1008,6 +1481,7 @@ function applyCameraSelection(name, resetView = true) {
   const previousCameraName = state.camera?.name || null;
   state.camera = state.data.cameras.find((camera) => camera.name === name) || null;
   if (previousCameraName !== state.camera?.name && !cameraObservesLandmark(name, state.landmark)) {
+    cancelObservationEditMode();
     state.landmark = null;
   }
   if (!state.camera) return;
@@ -1054,6 +1528,7 @@ function applyLandmarkSelection(name, focus) {
     const hasObservation = (byCamera.get(state.camera.name) || []).some((observation) => observation.landmark === name);
     if (!hasObservation) return;
   }
+  if (state.landmark !== name) cancelObservationEditMode();
   state.landmark = name;
   renderCameraList();
   renderLandmarkList();
@@ -1143,6 +1618,13 @@ function installPan() {
     };
   });
   window.addEventListener("mousemove", (event) => {
+    if (state.editingObservation) {
+      const pointer = eventImagePoint(event);
+      if (!pointer) return;
+      state.editingObservation.observation.xy = offsetImagePoint(pointer, state.editingObservation.pointerOffset);
+      renderOverlay();
+      return;
+    }
     if (!drag) return;
     if (state.view === "map") {
       const dx = event.clientX - drag.x;
@@ -1162,7 +1644,32 @@ function installPan() {
     state.panY = drag.panY + event.clientY - drag.y;
     applyTransform();
   });
-  window.addEventListener("mouseup", () => {
+  window.addEventListener("mouseup", async (event) => {
+    if (state.editingObservation) {
+      const editing = state.editingObservation;
+      state.editingObservation = null;
+      document.body.classList.remove("is-dragging-observation");
+      const pointer = eventImagePoint(event);
+      const xy = pointer ? offsetImagePoint(pointer, editing.pointerOffset) : editing.observation.xy;
+      editing.observation.xy = xy;
+      renderOverlay();
+      try {
+        const result = await postObservationEdit({
+          action: "edit",
+          camera: editing.camera,
+          landmark: editing.landmark,
+          xy,
+        });
+        updateObservationInState(result.edit);
+        renderOverlay();
+      } catch (error) {
+        editing.observation.xy = editing.originalXY;
+        renderOverlay();
+        console.error(error);
+        els.title.textContent = error.message;
+      }
+      return;
+    }
     drag = null;
     state.dragging = false;
     document.body.classList.remove("is-dragging");
@@ -1193,6 +1700,10 @@ function wireControls() {
   els.landmarkSort.addEventListener("focus", () => {
     state.focus = "landmarks";
   });
+  els.addObservation.addEventListener("click", () => runObservationAction("add"));
+  els.editObservation.addEventListener("click", () => runObservationAction("edit"));
+  els.renameLandmark.addEventListener("click", () => runObservationAction("rename"));
+  els.removeObservation.addEventListener("click", () => runObservationAction("remove"));
   els.viewport.addEventListener("wheel", onWheel, { passive: false });
   els.cameraPreview.addEventListener("click", () => {
     if (state.view === "camera") {
@@ -1208,13 +1719,21 @@ function wireControls() {
     const tag = document.activeElement?.tagName;
     if (tag === "INPUT" && document.activeElement?.type === "search") return;
     if (event.key === "Escape") {
-      if (state.landmark) {
+      if (state.editMode || state.renameMode) {
+        event.preventDefault();
+        cancelObservationEditMode();
+      } else if (state.landmark) {
         event.preventDefault();
         clearLandmarkSelection();
       } else if (state.camera) {
         event.preventDefault();
         writeHash(null, null);
       }
+      return;
+    }
+    if (event.key === "Enter" && (state.editMode || state.renameMode)) {
+      event.preventDefault();
+      cancelObservationEditMode();
       return;
     }
     if (event.key.toLowerCase() === "c") {
@@ -1225,6 +1744,26 @@ function wireControls() {
     if (event.key.toLowerCase() === "m") {
       event.preventDefault();
       setView("map");
+      return;
+    }
+    if (event.key.toLowerCase() === "a" && !els.addObservation.hidden) {
+      event.preventDefault();
+      runObservationAction("add");
+      return;
+    }
+    if (event.key.toLowerCase() === "e" && !els.editObservation.hidden) {
+      event.preventDefault();
+      runObservationAction("edit");
+      return;
+    }
+    if (event.key.toLowerCase() === "r" && !els.renameLandmark.hidden) {
+      event.preventDefault();
+      runObservationAction("rename");
+      return;
+    }
+    if (event.key === "Delete" && !els.removeObservation.hidden) {
+      event.preventDefault();
+      runObservationAction("remove");
       return;
     }
     if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
@@ -1260,6 +1799,7 @@ async function init() {
   state.data = await response.json();
   const configResponse = await fetch("/data/config.json");
   state.data.config = configResponse.ok ? await configResponse.json() : {};
+  replayObservationEdits(await loadObservationEdits());
   for (const observation of state.data.observations) {
     if (!byCamera.has(observation.camera)) byCamera.set(observation.camera, []);
     byCamera.get(observation.camera).push(observation);
@@ -1287,6 +1827,7 @@ async function init() {
     renderLandmarkList();
     updateGlobalStatus();
   }
+  updateEditTools();
 }
 
 init().catch((error) => {

@@ -68,11 +68,12 @@ body {
 }
 
 input,
-select {
+select,
+button {
   width: 100%;
   min-height: 28px;
   border: 1px solid #333;
-  border-radius: 0;
+  border-radius: 4px;
   background: #171717;
   color: #eee;
   font: inherit;
@@ -94,8 +95,10 @@ select {
 
 input:focus,
 select:focus,
+button:focus,
 input:focus-visible,
-select:focus-visible {
+select:focus-visible,
+button:focus-visible {
   border-color: #333;
   outline: 0;
   box-shadow: none;
@@ -138,6 +141,15 @@ body:not(.is-dragging) .item:not(.selected):hover {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.item-name-input {
+  min-height: 0;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
 }
 
 .item-meta {
@@ -193,6 +205,28 @@ body:not(.is-dragging) .item:not(.selected):hover {
 #view-select {
   width: auto;
   min-height: 24px;
+}
+
+#edit-tools {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+#edit-tools button {
+  width: auto;
+  min-height: 24px;
+  padding: 0 8px;
+  cursor: pointer;
+}
+
+#edit-tools button.active {
+  background: #fff;
+  color: #000;
+}
+
+#edit-tools button[hidden] {
+  display: none;
 }
 
 #app-logo {
@@ -410,6 +444,18 @@ body.is-dragging #viewport {
 .marker:hover,
 .marker.selected {
   stroke-width: 4px;
+}
+
+.marker.editing {
+  fill: rgba(255, 255, 255, 0.35);
+  stroke: #fff;
+  cursor: move;
+}
+
+body.is-dragging-observation,
+body.is-dragging-observation #viewport,
+body.is-dragging-observation .marker.editing {
+  cursor: move;
 }
 
 .map-ray {
