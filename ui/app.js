@@ -1439,13 +1439,26 @@ function setView(view) {
   if (view !== "camera" && view !== "map") return;
   if (state.view === view) return;
   cancelObservationEditMode();
+  const cameraName = state.camera?.name || null;
+  const landmarkName = state.landmark || null;
+  const focusCameraLandmark = view === "camera" && cameraName && landmarkName && cameraObservesLandmark(cameraName, landmarkName);
+  const focusMapSelection = view === "map" && (cameraName || landmarkName);
+  if (focusCameraLandmark) {
+    state.pendingCameraFit = "between-panels";
+    state.pendingFocusLandmark = true;
+  }
   state.view = view;
   els.viewSelect.value = view;
-  writeHash(state.camera?.name || null, state.landmark);
+  writeHash(cameraName, landmarkName);
   if (view === "camera" && state.camera) {
     applyCameraSelection(state.camera.name, true);
+    if (focusCameraLandmark) applyLandmarkSelection(state.landmark, true);
   } else if (view === "map") {
-    renderCurrentView(true);
+    renderMap();
+    if (focusMapSelection) centerMapSelection(Math.max(state.map.zoom, MAP_FOCUS_ZOOM));
+    else fitStage();
+    renderCameraPreview();
+    updateEditTools();
   }
 }
 
