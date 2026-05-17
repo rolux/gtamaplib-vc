@@ -36,13 +36,14 @@ The bootstrap script clones **gtamaplib** into `./gtamaplib`, fetches its Git LF
 
 ## Updating
 
-To update the linked **gtamaplib** and **gtadb.org** checkouts and regenerate local browser data, run:
+To update **gtamaplib-vc**, along with the linked **gtamaplib** and **gtadb.org** checkouts, and regenerate local browser data, run:
 
 ```bash
+git pull
 python3 update.py
 ```
 
-This runs `git pull --ff-only` in the external dependency checkouts and then runs `import_data.py`.
+This first updates **gtamaplib-vc** itself, then runs `git pull --ff-only` in the external dependency checkouts and runs `import_data.py`.
 
 Updating **gtamaplib** may change imported cameras, landmarks, observations, and pre-triangulated points. Existing optimizer results may no longer describe exactly the same starting data after an update. The same is true for updating **gtamaplib-vc** itself, which may change the behavior of the optimizer.
 
