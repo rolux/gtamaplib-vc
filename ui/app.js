@@ -274,7 +274,7 @@ function renderCameraList() {
     });
     els.cameraList.append(row);
   }
-  els.cameraStatus.textContent = `${cameras.length} / ${state.data.cameras.length} cameras`;
+  els.cameraStatus.textContent = `${cameras.length} OF ${state.data.cameras.length} cameras`;
   updateEditTools();
 }
 
@@ -343,7 +343,7 @@ function renderLandmarkList() {
     });
     els.landmarkList.append(row);
   }
-  els.landmarkStatus.textContent = `${observations.length} / ${byLandmark.size} landmarks`;
+  els.landmarkStatus.textContent = `${observations.length} OF ${byLandmark.size} landmarks`;
   updateEditTools();
 }
 
