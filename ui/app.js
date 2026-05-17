@@ -404,6 +404,10 @@ function fitStage() {
     fitMap();
     return;
   }
+  if (state.camera) {
+    fitCameraBetweenPanels();
+    return;
+  }
   const rect = els.viewport.getBoundingClientRect();
   const minScale = state.view === "map" ? Math.max(0.01, rect.width / size[0]) : minimumCameraScale();
   const scale = Math.max(minScale, Math.min(rect.width / size[0], rect.height / size[1]));
@@ -414,7 +418,7 @@ function fitStage() {
 }
 
 function fitCamera() {
-  fitStage();
+  fitCameraBetweenPanels();
 }
 
 function availableImageWidthBetweenPanels() {
