@@ -2,8 +2,7 @@
     "schema": "gtamaplibvc-optimizer-config-v1",
     "landmarks": [
         "Four Seasons Hotel Miami (BE)",
-        "Four Seasons Hotel Miami (NW)",
-        "1000 Venetian Way (SE)"
+        "Four Seasons Hotel Miami (NW)"
     ],
     "rays": [
         ["Vice Beach (B)", "Asia Brickell Key"],
@@ -15,6 +14,7 @@
         ["Vice Beach (B)", "Southeast Financial Center"],
         ["Vice Beach (B)", "Ten Museum Park (SE)"],
         ["Venetian Islands", "1000 Venetian Way (4)"],
+        ["Vice Beach (B)", "1000 Venetian Way (SE)"],
         ["Vice Beach (B)", "Wells Fargo Center (N)"]
     ],
     "objects": []
