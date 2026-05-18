@@ -1,0 +1,14 @@
+{
+    "schema": "gtamaplibvc-optimizer-config-v1",
+    "landmarks": [
+        "Skyviews Miami Observation Wheel"
+    ],
+    "rays": [
+        ["Motorboats (B)", "Container Crane (1)"],
+        ["Motorboats (B)", "Container Crane (2)"],
+        ["Motorboats (B)", "Container Crane (3)"],
+        ["Skyline", "Kaseya Center (NW)"],
+        ["Skyline", "Kaseya Center (SE)"]
+    ],
+    "objects": []
+}

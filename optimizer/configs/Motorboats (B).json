@@ -1,0 +1,12 @@
+{
+    "schema": "gtamaplibvc-optimizer-config-v1",
+    "landmarks": [
+        "Four Seasons Hotel Miami (BE)",
+        "Four Seasons Hotel Miami (SE)",
+        "Marina Blue (NE)",
+        "Park Grove Condominium (S)",
+        "Vizcayne North Condominium (NE)"
+    ],
+    "rays": [],
+    "objects": []
+}

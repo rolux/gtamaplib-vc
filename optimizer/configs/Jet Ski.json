@@ -1,0 +1,18 @@
+{
+    "schema": "gtamaplibvc-optimizer-config-v1",
+    "landmarks": [
+        "Akoya Condominium",
+        "Jade Ocean Condos",
+        "The Ritz-Carlton Bal Harbour"
+    ],
+    "rays": [
+        ["Venetian Islands", "Blue Diamond"],
+        ["Venetian Islands", "East Venetian Causeway Bridge"],
+        ["Venetian Islands", "Green Diamond"],
+        ["Venetian Islands", "Jade Ocean Condos (SW)"],
+        ["Highway (NE)", "Sherry Frontenac Oceanfront Hotel (N)"],
+        ["Highway (NE)", "Sherry Frontenac Oceanfront Hotel (S)"],
+        ["Venetian Islands", "Trésor Tower"]
+    ],
+    "objects": []
+}
