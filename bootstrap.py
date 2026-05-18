@@ -64,6 +64,7 @@ def main() -> None:
     ensure_gtamaplib()
     ensure_gtadb_tiles()
     run([sys.executable, "import_data.py"])
+    run([sys.executable, "generate_priors.py"])
 
 
 if __name__ == "__main__":

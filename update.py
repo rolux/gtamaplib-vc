@@ -30,6 +30,7 @@ def main() -> None:
     update_repo(GTAMAPLIB, "gtamaplib")
     update_repo(GTADB, "gtadb.org")
     run([sys.executable, "import_data.py"])
+    run([sys.executable, "generate_priors.py"])
 
 
 if __name__ == "__main__":

@@ -19,11 +19,14 @@ PRIORS_PATH = OPTIMIZER_DIR / "priors.json"
 RESULTS_DIR = OPTIMIZER_DIR / "results"
 RENDERS_DIR = OPTIMIZER_DIR / "renders"
 IMPORT_EXTRAS_PATH = ROOT / "data" / "import_extras.json"
+CONFIG_PATH = ROOT / "data" / "config.json"
+SPECIAL_PATH = ROOT / "data" / "special.json"
 OPTIMIZER_RESULT_PATH = OPTIMIZER_DIR / "result.json"
 
 sys.path.insert(0, str(ROOT))
 
 import numpy as np
+from PIL import Image, ImageDraw
 from scipy.optimize import least_squares
 from scipy.sparse import lil_matrix
 
@@ -49,11 +52,12 @@ LAKE_LEONIDA_Z = 5.0
 FAKE_CAMERA_SUFFIX = " Fake Cam"
 # Pairwise triangulations with very narrow baselines are numerically fragile:
 # the rays can nearly meet while the point is hundreds of meters wrong.
-MIN_TRIANGULATION_BASELINE_DEG = 5.0
+DEFAULT_MIN_TRIANGULATION_BASELINE_DEG = 10.0
 DEFAULT_REFERENCED_CAMERA_RIGIDITY = (0.05, None, 0.05)
 FIXED_ROLL_EPS = 1e-12
 IGNORED_RENDER_RAY_NAMES = {"Player", "Minimap", "AIWE"}
 DEFAULT_RENDER_MAP_NAME = "yanis"
+DEFAULT_DELTA_MAP_SCALE = 0.25
 DEFAULT_RENDER_CAMERA_SCALE = 2.0
 DEFAULT_RENDER_RAY_DISTANCE = 20000.0
 MANUAL_RENDER_LANDMARK_SOURCES = {
@@ -80,6 +84,44 @@ def ray_baseline_degrees(a: np.ndarray, b: np.ndarray) -> float:
     dot = float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
     angle = float(np.degrees(np.arccos(np.clip(dot, -1.0, 1.0))))
     return min(angle, 180.0 - angle)
+
+
+def min_triangulation_baseline_degrees() -> float:
+    if not CONFIG_PATH.exists():
+        return DEFAULT_MIN_TRIANGULATION_BASELINE_DEG
+    config = json.loads(CONFIG_PATH.read_text())
+    return float(
+        config.get(
+            "min_triangulation_delta_degrees",
+            DEFAULT_MIN_TRIANGULATION_BASELINE_DEG,
+        )
+    )
+
+
+def fixed_elevation_lookup() -> dict[str, float]:
+    if not SPECIAL_PATH.exists():
+        return {}
+    special = json.loads(SPECIAL_PATH.read_text())
+    lookup: dict[str, float] = {}
+    for group in special.get("landmarks_fixed_elevation", []):
+        z = float(group["z"])
+        for name in group.get("landmarks", []):
+            lookup[name] = z
+    return lookup
+
+
+def object_elevation_lookup(solve: dict[str, Any]) -> dict[str, float]:
+    lookup: dict[str, float] = {}
+    for row in solve.get("horizontal_objects", []):
+        z = float(row["z"])
+        lookup[row["point_a"]] = z
+        if row["orientation"] == "horizontal":
+            lookup[row["point_b"]] = z
+        elif row["orientation"] == "vertical":
+            lookup[row["point_b"]] = z + float(row["length_m"])
+        else:
+            raise ValueError(f"Unsupported object orientation: {row['orientation']!r}")
+    return lookup
 
 
 def residual_summary(values: np.ndarray) -> dict[str, float]:
@@ -290,7 +332,13 @@ def is_ground_landmark(name: str, pre_aiwe_names: set[str]) -> bool:
     return name in pre_aiwe_names and abs(z - 10.0) < 1e-9
 
 
-def intersection_plane_z(name: str, pre_aiwe_names: set[str]) -> float | None:
+def intersection_plane_z(
+    name: str,
+    pre_aiwe_names: set[str],
+    fixed_elevations: dict[str, float],
+) -> float | None:
+    if name in fixed_elevations:
+        return fixed_elevations[name]
     if re.fullmatch(r"Lake Leonida \([A-Z]\)", name):
         return LAKE_LEONIDA_Z
     if is_ground_landmark(name, pre_aiwe_names):
@@ -405,8 +453,15 @@ def camera_location_landmark_prior(name: str) -> dict[str, Any] | None:
     }
 
 
-def add_required_synthetic_priors(priors: dict[str, Any], solve: dict[str, Any]) -> None:
+def add_required_synthetic_priors(
+    priors: dict[str, Any],
+    solve: dict[str, Any],
+    blocked_cameras: set[str] | None = None,
+) -> None:
+    blocked_cameras = blocked_cameras or set()
     for source_camera_name, target_name in solve["rays"]:
+        if source_camera_name in blocked_cameras:
+            continue
         if source_camera_name in priors["cameras"]:
             if source_camera_name.endswith(FAKE_CAMERA_SUFFIX):
                 ensure_top_down_fake_camera(source_camera_name, target_name, priors)
@@ -892,11 +947,24 @@ def triangulate_from_local_solution(
     target_ypr = tuple(float(value) for value in local_report["final"]["ypr"])
     target_fov = tuple(float(value) for value in local_report["final"]["fov"])
     target_size = tuple(int(value) for value in local_report["final"]["size"])
+    min_baseline_degrees = min_triangulation_baseline_degrees()
 
     rows = []
     used_names = set(solve["landmarks"]) | {target_name for _, target_name in solve["rays"]}
     explicit_ray_pairs = {(source_camera_name, target_name) for source_camera_name, target_name in solve["rays"]}
+
+    def is_known_prior_landmark(name: str) -> bool:
+        return name in priors["landmarks"] or camera_location_landmark_prior(name) is not None
+
     for source_camera_name, target_name in solve["rays"]:
+        if source_camera_name not in priors["cameras"]:
+            prior = synthetic_camera_prior(source_camera_name, target_name, priors)
+            if prior is None:
+                prior = referenced_camera_prior(source_camera_name)
+            if prior is not None:
+                priors["cameras"][source_camera_name] = prior
+        elif source_camera_name not in md.cameras:
+            ensure_top_down_fake_camera(source_camera_name, target_name, priors)
         source_prior = priors["cameras"][source_camera_name]
         source_camera = get_camera(source_camera_name)
         target_pixel = tuple(float(value) for value in target_camera.landmark_pixels[target_name])
@@ -914,7 +982,7 @@ def triangulate_from_local_solution(
             source_prior["size"],
         )
         baseline_degrees = ray_baseline_degrees(target_direction, source_direction)
-        if baseline_degrees < MIN_TRIANGULATION_BASELINE_DEG:
+        if baseline_degrees < min_baseline_degrees:
             continue
         midpoint, point_a, point_b, distance, angle = intersect_ray_and_ray(
             (target_xyz, target_direction),
@@ -941,9 +1009,13 @@ def triangulate_from_local_solution(
     for source_camera_name, source_prior in priors["cameras"].items():
         if source_camera_name == solve["camera_name"]:
             continue
+        if source_camera_name not in md.cameras:
+            continue
         source_camera = get_camera(source_camera_name)
         for target_name, target_pixel_raw in target_camera.landmark_pixels.items():
             if (source_camera_name, target_name) in explicit_ray_pairs:
+                continue
+            if is_known_prior_landmark(target_name):
                 continue
             if target_name not in source_camera.landmark_pixels:
                 continue
@@ -962,7 +1034,7 @@ def triangulate_from_local_solution(
                 source_prior["size"],
             )
             baseline_degrees = ray_baseline_degrees(target_direction, source_direction)
-            if baseline_degrees < MIN_TRIANGULATION_BASELINE_DEG:
+            if baseline_degrees < min_baseline_degrees:
                 continue
             midpoint, point_a, point_b, distance, angle = intersect_ray_and_ray(
                 (target_xyz, target_direction),
@@ -990,9 +1062,11 @@ def triangulate_from_local_solution(
             )
             used_names.add(target_name)
     pre_aiwe_names = pre_aiwe_landmark_names()
+    fixed_elevations = fixed_elevation_lookup()
+    fixed_elevations.update(object_elevation_lookup(solve))
     for name, pixel in target_camera.landmark_pixels.items():
-        plane_z = intersection_plane_z(name, pre_aiwe_names)
-        if name in used_names or plane_z is None:
+        plane_z = intersection_plane_z(name, pre_aiwe_names, fixed_elevations)
+        if name in used_names or is_known_prior_landmark(name) or plane_z is None:
             continue
         target_pixel = tuple(float(value) for value in pixel)
         target_direction = camera_direction_from_pixel(
@@ -1635,6 +1709,10 @@ def solve_gtamaplib_residuals(solve: dict[str, Any]) -> np.ndarray:
     for source_camera_name, target_name in solve["rays"]:
         if target_name not in camera.landmark_pixels:
             continue
+        if source_camera_name not in md.cameras:
+            ensure_top_down_fake_camera(source_camera_name, target_name)
+        if source_camera_name not in md.cameras:
+            continue
         source_camera = get_camera(source_camera_name)
         if target_name not in source_camera.landmark_pixels:
             continue
@@ -1713,6 +1791,10 @@ def solve_optimizer_residuals(
         values.append(1e6 if expected is None else angle_arcmin(direction, expected))
     for source_camera_name, target_name in solve["rays"]:
         if source_camera_name not in camera_index or target_name not in camera.landmark_pixels:
+            continue
+        if source_camera_name not in md.cameras:
+            ensure_top_down_fake_camera(source_camera_name, target_name)
+        if source_camera_name not in md.cameras:
             continue
         source_camera = get_camera(source_camera_name)
         if target_name not in source_camera.landmark_pixels:
@@ -2040,7 +2122,7 @@ def print_local_summary(report: dict[str, Any]) -> None:
     )
     print()
     print(
-        "GTAMapLib vs optimizer camera loss: "
+        "gtamaplib vs optimizer camera loss: "
         f"{database['camera_loss_arcmin2']:.6f} -> "
         f"{final['camera_loss_arcmin2']:.6f} arcmin^2 "
         f"(delta {final['camera_loss_arcmin2'] - database['camera_loss_arcmin2']:+.6f})."
@@ -2122,35 +2204,11 @@ def global_camera_params(report: dict[str, Any], camera_name: str) -> list[float
     raise KeyError(f"No global camera row for {camera_name!r}")
 
 
-def print_optimizer_camera_report(local_report: dict[str, Any], global_report: dict[str, Any]) -> None:
-    database = local_report["database"]
-    rows = current_step_global_rows(global_report)
-    values = np.asarray([row["final_error_arcmin"] for row in rows], dtype=float)
-    summary = residual_summary(values)
-    landmark_count = local_report["constraints"]["landmark_count"]
-    ray_count = local_report["constraints"]["ray_count"]
-    object_count = local_report["constraints"].get("horizontal_object_count", 0)
-    print()
-    print(f"{global_report['camera_name']}")
-    print(f"Configured constraints: {landmark_count} landmarks + {ray_count} rays + {object_count} objects.")
-    print()
-    print(
-        "GTAMapLib vs optimizer camera loss: "
-        f"{database['camera_loss_arcmin2']:.6f} -> "
-        f"{summary['loss_arcmin2']:.6f} arcmin^2 "
-        f"(delta {summary['loss_arcmin2'] - database['camera_loss_arcmin2']:+.6f})."
-    )
-    print()
-    print(
-        "Final observation residuals: "
-        f"mean {summary['mean_abs_arcmin']:.3f}', "
-        f"median {summary['median_abs_arcmin']:.3f}', "
-        f"max {summary['max_abs_arcmin']:.3f}'."
-    )
-    final_params = global_camera_params(global_report, global_report["camera_name"])
-    final_fov = [float(final_params[6]), float(get_vfov(float(final_params[6]), tuple(database["size"])))]
+def print_camera_parameter_table(
+    database: dict[str, Any],
+    final_values: list[float],
+) -> None:
     database_values = database["xyz"] + database["ypr"] + database["fov"]
-    final_values = final_params[:3] + final_params[3:6] + final_fov
     print()
     print(f"{'param':<8} {'gtamaplib':>14} {'optimizer':>14} {'delta':>14}")
     for label, database_value, final_value in zip(
@@ -2164,6 +2222,9 @@ def print_optimizer_camera_report(local_report: dict[str, Any], global_report: d
             f"{final_value:14.6f} "
             f"{final_value - database_value:14.6f}"
         )
+
+
+def print_global_observation_rows(rows: list[dict[str, Any]]) -> None:
     print()
     print("Observation residuals:")
     for index, row in enumerate(rows, start=1):
@@ -2177,6 +2238,78 @@ def print_optimizer_camera_report(local_report: dict[str, Any], global_report: d
             f"  {index:>2}. {row['final_error_arcmin']:8.3f}' | "
             f"{row['landmark']} | {row['type']}{suffix}"
         )
+
+
+def print_local_observation_rows(local_report: dict[str, Any]) -> None:
+    print()
+    print("Observation residuals:")
+    for index, row in enumerate(local_report["constraints"]["items"], start=1):
+        if row["type"] == "ray":
+            label = f"{row['source_camera']} | {row['name']} | ray"
+        elif row["type"] == "horizontal_object":
+            label = (
+                f"{row['point_a']} -> {row['point_b']} | "
+                f"{row.get('orientation', 'horizontal')} {row['length_m']:.3f}m @ z={row['z']:g}"
+            )
+        else:
+            label = f"{row['name']} | landmark"
+        print(f"  {index:>2}. {row['final_error_arcmin']:8.3f}' | {label}")
+
+
+def print_optimizer_camera_report(
+    local_report: dict[str, Any],
+    global_report: dict[str, Any],
+    *,
+    local_pass: bool = True,
+) -> None:
+    database = local_report["database"]
+    global_rows = current_step_global_rows(global_report)
+    global_values = np.asarray([row["final_error_arcmin"] for row in global_rows], dtype=float)
+    global_summary = residual_summary(global_values)
+    landmark_count = local_report["constraints"]["landmark_count"]
+    ray_count = local_report["constraints"]["ray_count"]
+    object_count = local_report["constraints"].get("horizontal_object_count", 0)
+    print()
+    print(f"{global_report['camera_name']}")
+    print(f"Configured constraints: {landmark_count} landmarks + {ray_count} rays + {object_count} objects.")
+    print()
+
+    if local_pass:
+        print("Local pass")
+        print(
+            "gtamaplib vs optimizer camera loss: "
+            f"{database['camera_loss_arcmin2']:.6f} -> "
+            f"{local_report['final']['camera_loss_arcmin2']:.6f} arcmin^2 "
+            f"(delta {local_report['final']['camera_loss_arcmin2'] - database['camera_loss_arcmin2']:+.6f})."
+        )
+        print(
+            "Final observation residuals: "
+            f"mean {local_report['final']['mean_abs_arcmin']:.3f}', "
+            f"median {local_report['final']['median_abs_arcmin']:.3f}', "
+            f"max {local_report['final']['max_abs_arcmin']:.3f}'."
+        )
+        local_final = local_report["final"]["xyz"] + local_report["final"]["ypr"] + local_report["final"]["fov"]
+        print_camera_parameter_table(database, local_final)
+        print_local_observation_rows(local_report)
+        print()
+    print("Global pass")
+    print(
+        "gtamaplib vs optimizer camera loss: "
+        f"{database['camera_loss_arcmin2']:.6f} -> "
+        f"{global_summary['loss_arcmin2']:.6f} arcmin^2 "
+        f"(delta {global_summary['loss_arcmin2'] - database['camera_loss_arcmin2']:+.6f})."
+    )
+    print(
+        "Final observation residuals: "
+        f"mean {global_summary['mean_abs_arcmin']:.3f}', "
+        f"median {global_summary['median_abs_arcmin']:.3f}', "
+        f"max {global_summary['max_abs_arcmin']:.3f}'."
+    )
+    final_params = global_camera_params(global_report, global_report["camera_name"])
+    final_fov = [float(final_params[6]), float(get_vfov(float(final_params[6]), tuple(database["size"])))]
+    final_values = final_params[:3] + final_params[3:6] + final_fov
+    print_camera_parameter_table(database, final_values)
+    print_global_observation_rows(global_rows)
 
 
 def print_global_report(report: dict[str, Any]) -> None:
@@ -2278,7 +2411,13 @@ def print_global_report(report: dict[str, Any]) -> None:
 def print_new_priors(report: dict[str, Any]) -> None:
     print()
     print("New triangulated landmarks:")
+    landmark_sources = {
+        row["name"]: row.get("source")
+        for row in report.get("landmarks", [])
+    }
     for row in report["triangulations"]:
+        if landmark_sources.get(row["name"]) != "triangulated":
+            continue
         xyz = row["xyz"]
         landmark_line = (
             f'    "{row["name"]}": '
@@ -2390,6 +2529,174 @@ def render_optimizer_maps(
     return paths
 
 
+def row_xyz_by_type(rows: list[list[Any]], row_type: str) -> dict[str, tuple[float, float, float]]:
+    values: dict[str, tuple[float, float, float]] = {}
+    for row in rows:
+        if row[0] != row_type:
+            continue
+        values[row[1]] = tuple(float(value) for value in row[3 if row_type == "camera" else 2])
+    return values
+
+
+def original_camera_xyz(name: str) -> tuple[float, float, float] | None:
+    if name not in md.cameras:
+        return None
+    return tuple(float(value) for value in get_camera(name).xyz)
+
+
+def original_landmark_xyz(name: str) -> tuple[float, float, float] | None:
+    if name in md.landmarks:
+        return tuple(float(value) for value in md.landmarks[name])
+    if name in md.cameras:
+        return tuple(float(value) for value in get_camera(name).xyz)
+    return None
+
+
+def blend_rgb(color: tuple[int, int, int], target: tuple[int, int, int], amount: float) -> tuple[int, int, int]:
+    return tuple(int(round(color[i] * (1.0 - amount) + target[i] * amount)) for i in range(3))
+
+
+def draw_delta_marker(
+    draw: ImageDraw.ImageDraw,
+    xy: tuple[float, float],
+    color: tuple[int, int, int],
+    radius: int,
+    *,
+    alpha: int,
+    outline: tuple[int, int, int] | None = None,
+) -> None:
+    x, y = xy
+    fill = (*color, alpha)
+    outline_color = outline or (255, 255, 255)
+    stroke = (*outline_color, min(255, alpha + 40))
+    draw.ellipse((x - radius, y - radius, x + radius, y + radius), fill=fill, outline=stroke, width=1)
+
+
+def draw_delta_camera_marker(
+    draw: ImageDraw.ImageDraw,
+    xy: tuple[float, float],
+    color: tuple[int, int, int],
+    radius: int,
+    *,
+    alpha: int,
+) -> None:
+    x, y = xy
+    draw.ellipse(
+        (x - radius, y - radius, x + radius, y + radius),
+        fill=(255, 255, 255, alpha),
+        outline=(*color, min(255, alpha + 40)),
+        width=1,
+    )
+
+
+def draw_delta_original_position(
+    draw: ImageDraw.ImageDraw,
+    map_obj: Any,
+    name: str,
+    original_xyz: tuple[float, float, float] | None,
+    optimizer_xyz: tuple[float, float, float],
+    radius: int,
+    *,
+    camera: bool = False,
+) -> None:
+    if original_xyz is None:
+        return
+    color = get_color(name)
+    final_xy = map_obj.get_map_xy(optimizer_xyz[:2])
+    delta_m = float(np.linalg.norm(np.asarray(optimizer_xyz[:3]) - np.asarray(original_xyz[:3])))
+    if delta_m <= 1e-6:
+        return
+    original_xy = map_obj.get_map_xy(original_xyz[:2])
+    old_color = blend_rgb(color, (255, 255, 255), 0.35)
+    draw.line((original_xy[0], original_xy[1], final_xy[0], final_xy[1]), fill=(*color, 110), width=1)
+    if camera:
+        draw_delta_camera_marker(draw, original_xy, old_color, radius, alpha=85)
+    else:
+        draw_delta_marker(draw, original_xy, old_color, radius, alpha=85)
+
+
+def draw_delta_current_position(
+    draw: ImageDraw.ImageDraw,
+    map_obj: Any,
+    name: str,
+    optimizer_xyz: tuple[float, float, float],
+    radius: int,
+    *,
+    camera: bool = False,
+) -> None:
+    color = get_color(name)
+    final_xy = map_obj.get_map_xy(optimizer_xyz[:2])
+    if camera:
+        draw_delta_camera_marker(draw, final_xy, color, radius, alpha=235)
+    else:
+        draw_delta_marker(draw, final_xy, color, radius, alpha=235)
+
+
+def render_optimizer_delta_map(
+    rows: list[list[Any]],
+    output_dir: Path,
+    map_name: str,
+    scale: float,
+) -> Path:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    patch_missing_map_image(map_name)
+    map_obj = get_map(map_name).open(scale=scale)
+    image = map_obj.image.convert("RGBA")
+    overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay, "RGBA")
+
+    positions: list[dict[str, Any]] = []
+    landmarks = row_xyz_by_type(rows, "landmark")
+    cameras = row_xyz_by_type(rows, "camera")
+    for name, xyz in landmarks.items():
+        positions.append(
+            {
+                "name": name,
+                "xyz": xyz,
+                "original_xyz": original_landmark_xyz(name),
+                "camera": False,
+            }
+        )
+    for name, xyz in cameras.items():
+        if name.endswith(FAKE_CAMERA_SUFFIX):
+            continue
+        positions.append(
+            {
+                "name": name,
+                "xyz": xyz,
+                "original_xyz": original_camera_xyz(name),
+                "camera": True,
+            }
+        )
+    positions.sort(key=lambda row: (row["xyz"][2], row["xyz"][1], row["xyz"][0], row["name"]))
+
+    for row in positions:
+        draw_delta_original_position(
+            draw,
+            map_obj,
+            row["name"],
+            row["original_xyz"],
+            row["xyz"],
+            radius=4,
+            camera=row["camera"],
+        )
+    for row in positions:
+        draw_delta_current_position(
+            draw,
+            map_obj,
+            row["name"],
+            row["xyz"],
+            radius=4,
+            camera=row["camera"],
+        )
+
+    image = Image.alpha_composite(image, overlay).convert("RGB")
+    output = output_dir / "delta.jpg"
+    image.save(output, quality=88, optimize=True)
+    print(f"Writing {output} ... Done")
+    return output
+
+
 def render_optimizer_cameras(
     rows: list[list[Any]],
     output_dir: Path,
@@ -2423,6 +2730,7 @@ def render_optimizer_result(
     _batch_id, rows = report["global"]["next_prior_batch"]
     rendered: list[Path] = []
     rendered.extend(render_optimizer_maps(rows, output_dir / "maps", map_name, sections, ray_distance, camera_names))
+    rendered.append(render_optimizer_delta_map(rows, output_dir / "maps", map_name, DEFAULT_DELTA_MAP_SCALE))
     rendered.extend(render_optimizer_cameras(rows, output_dir / "cameras", sorted(camera_names), camera_scale))
     return rendered
 
@@ -2446,6 +2754,10 @@ def load_import_extras() -> dict[str, Any]:
 
 def write_optimizer_result_snapshot(report: dict[str, Any], result_path: Path) -> None:
     result_path = result_path.resolve()
+    try:
+        source_result = str(result_path.relative_to(ROOT))
+    except ValueError:
+        source_result = str(result_path)
     global_report = report["global"]
     final_cameras = {
         row["name"]: row["final"]
@@ -2508,7 +2820,7 @@ def write_optimizer_result_snapshot(report: dict[str, Any], result_path: Path) -
 
     data = {
         "schema": "gtamaplibvc-world-v1",
-        "source_result": str(result_path.relative_to(ROOT)),
+        "source_result": source_result,
         "camera_name": report["camera_name"],
         "prior_batch_id": report["prior_batch_id"],
         "counts": {
@@ -2522,6 +2834,67 @@ def write_optimizer_result_snapshot(report: dict[str, Any], result_path: Path) -
     }
     OPTIMIZER_RESULT_PATH.write_text(json.dumps(data, indent=4, ensure_ascii=False) + "\n")
     print(f"Wrote {OPTIMIZER_RESULT_PATH}")
+
+
+def world_snapshot_render_rows(path: Path) -> list[list[Any]]:
+    data = json.loads(path.read_text())
+    rows: list[list[Any]] = []
+    for camera_name, camera in data.get("cameras", {}).items():
+        if camera.get("xyz") is None:
+            continue
+        rows.append(
+            [
+                "camera",
+                camera_name,
+                camera.get("player"),
+                [float(value) for value in camera["xyz"]],
+                [float(value) for value in camera["ypr"]],
+                [float(value) for value in camera["fov"]],
+                [int(value) for value in camera["size"]],
+                None,
+                None,
+                None,
+            ]
+        )
+    for landmark_name, xyz in data.get("landmarks", {}).items():
+        rows.append(
+            [
+                "landmark",
+                landmark_name,
+                [float(value) for value in xyz],
+                None,
+            ]
+        )
+    return rows
+
+
+def world_snapshot_cameras(path: Path) -> dict[str, dict[str, Any]]:
+    data = json.loads(path.read_text())
+    cameras: dict[str, dict[str, Any]] = {}
+    for camera_name, camera in data.get("cameras", {}).items():
+        cameras[camera_name] = {
+            "id": camera.get("id", camera_name),
+            "player": tuple(float(value) for value in camera["player"]) if camera.get("player") else None,
+            "xyz": tuple(float(value) for value in camera["xyz"]) if camera.get("xyz") is not None else None,
+            "ypr": tuple(float(value) for value in camera["ypr"]),
+            "fov": tuple(float(value) for value in camera["fov"]),
+            "size": tuple(int(value) for value in camera["size"]),
+            "source": camera.get("source", ""),
+        }
+    return cameras
+
+
+def refresh_ui_overlay_from_world_snapshot(path: Path = OPTIMIZER_RESULT_PATH) -> None:
+    from import_data import write_ui_overlay_data
+
+    original_cameras = md.cameras
+    md.cameras = world_snapshot_cameras(path)
+    get_camera.cache_clear()
+    try:
+        write_ui_overlay_data(md, get_camera, get_point)
+    finally:
+        md.cameras = original_cameras
+        get_camera.cache_clear()
 
 
 def render_source_cameras_for_landmark(landmark_name: str, generated_sources: dict[str, list[str]]) -> list[str]:
@@ -2589,6 +2962,16 @@ def result_path_for_stage(stage_index: int, camera_name: str) -> Path:
     return RESULTS_DIR / f"{stage_index + 1:02d} {camera_name}.json"
 
 
+def latest_chain_result(chain: list[str]) -> tuple[int, dict[str, Any]] | None:
+    latest: tuple[int, dict[str, Any]] | None = None
+    for stage_index, camera_name in enumerate(chain):
+        path = result_path_for_stage(stage_index, camera_name)
+        if not path.exists():
+            continue
+        latest = (stage_index, json.loads(path.read_text()))
+    return latest
+
+
 def solve_from_chain_stage(camera_name: str) -> dict[str, Any]:
     config_path = config_path_for_camera(camera_name)
     config = load_optimizer_config(config_path)
@@ -2642,9 +3025,309 @@ def load_chain_solves(chain: list[str], through_index: int) -> list[dict[str, An
     return [solve_from_chain_stage(stage) for stage in chain[: through_index + 1]]
 
 
+def future_chain_cameras(chain: list[str], stage_index: int) -> set[str]:
+    return set(chain[stage_index + 1 :])
+
+
+def configured_future_camera_references(
+    solve: dict[str, Any],
+    future_cameras: set[str],
+) -> list[tuple[str, str]]:
+    return [
+        (source_camera_name, target_name)
+        for source_camera_name, target_name in solve["rays"]
+        if source_camera_name in future_cameras
+    ]
+
+
+def future_prior_cameras(priors: dict[str, Any], future_cameras: set[str]) -> list[str]:
+    return sorted(set(priors["cameras"]) & future_cameras)
+
+
+def landmark_source_cameras_for_stage(chain: list[str], stage_index: int) -> dict[str, list[str]]:
+    sources: dict[str, list[str]] = {}
+    for previous_index in range(stage_index):
+        camera_name = chain[previous_index]
+        result_path = result_path_for_stage(previous_index, camera_name)
+        if not result_path.exists():
+            continue
+        result = json.loads(result_path.read_text())
+        for row in result.get("global", {}).get("triangulations", []):
+            cameras = [row.get("source_camera"), row.get("target_camera")]
+            known = [camera for camera in cameras if camera]
+            if not known:
+                continue
+            landmark_sources = sources.setdefault(row["name"], [])
+            for camera in known:
+                if camera not in landmark_sources:
+                    landmark_sources.append(camera)
+    return sources
+
+
+def stage_available_landmarks(
+    solve: dict[str, Any],
+    priors: dict[str, Any],
+    landmark_sources: dict[str, list[str]] | None = None,
+    blocked_cameras: set[str] | None = None,
+) -> list[str]:
+    camera = get_camera(solve["camera_name"])
+    landmark_sources = landmark_sources or {}
+    blocked_cameras = blocked_cameras or set()
+    names = []
+    for landmark_name in sorted(camera.landmark_pixels):
+        if any(source in blocked_cameras for source in landmark_sources.get(landmark_name, [])):
+            continue
+        if landmark_name in priors["landmarks"] or camera_location_landmark_prior(landmark_name) is not None:
+            names.append(landmark_name)
+    return names
+
+
+def config_landmark_note(name: str) -> str:
+    if name not in md.landmarks and name in md.cameras:
+        return " [camera]"
+    return ""
+
+
+def landmark_via_note(name: str, sources: dict[str, list[str]]) -> str:
+    if name not in sources:
+        return ""
+    return f" [via {', '.join(sources[name])}]"
+
+
+def stage_available_rays(
+    solve: dict[str, Any],
+    priors: dict[str, Any],
+    blocked_cameras: set[str] | None = None,
+) -> list[tuple[str, str, float]]:
+    camera = get_camera(solve["camera_name"])
+    blocked_cameras = blocked_cameras or set()
+    min_baseline_degrees = min_triangulation_baseline_degrees()
+    target_ypr = tuple(float(value) for value in solve["ypr"])
+    target_fov = camera_fov_from_params(
+        np.asarray([0, 0, 0, 0, target_ypr[1], target_ypr[2], solve["hfov"]], dtype=float),
+        solve["size"],
+    )
+    rows = []
+    for landmark_name, pixel in sorted(camera.landmark_pixels.items()):
+        for source_camera_name, source_prior in sorted(priors["cameras"].items()):
+            if source_camera_name in blocked_cameras:
+                continue
+            if source_camera_name == solve["camera_name"]:
+                continue
+            if source_camera_name not in md.cameras:
+                continue
+            source_camera = get_camera(source_camera_name)
+            if landmark_name not in source_camera.landmark_pixels:
+                continue
+            target_direction = camera_direction_from_pixel(
+                tuple(float(value) for value in pixel),
+                target_ypr,
+                target_fov,
+                solve["size"],
+            )
+            source_direction = camera_direction_from_pixel(
+                tuple(float(value) for value in source_camera.landmark_pixels[landmark_name]),
+                source_prior["ypr"],
+                source_prior["fov"],
+                source_prior["size"],
+            )
+            baseline = ray_baseline_degrees(target_direction, source_direction)
+            if baseline < min_baseline_degrees:
+                continue
+            rows.append((source_camera_name, landmark_name, baseline))
+    return rows
+
+
+def configured_ray_baseline(
+    solve: dict[str, Any],
+    priors: dict[str, Any],
+    source_camera_name: str,
+    landmark_name: str,
+    blocked_cameras: set[str] | None = None,
+) -> float | None:
+    if source_camera_name in (blocked_cameras or set()):
+        return None
+    if source_camera_name not in priors["cameras"]:
+        return None
+    if source_camera_name not in md.cameras:
+        ensure_top_down_fake_camera(source_camera_name, landmark_name, priors)
+    if source_camera_name not in md.cameras:
+        return None
+    camera = get_camera(solve["camera_name"])
+    source_camera = get_camera(source_camera_name)
+    if landmark_name not in camera.landmark_pixels or landmark_name not in source_camera.landmark_pixels:
+        return None
+    target_ypr = tuple(float(value) for value in solve["ypr"])
+    target_fov = camera_fov_from_params(
+        np.asarray([0, 0, 0, 0, target_ypr[1], target_ypr[2], solve["hfov"]], dtype=float),
+        solve["size"],
+    )
+    source_prior = priors["cameras"][source_camera_name]
+    target_direction = camera_direction_from_pixel(
+        tuple(float(value) for value in camera.landmark_pixels[landmark_name]),
+        target_ypr,
+        target_fov,
+        solve["size"],
+    )
+    source_direction = camera_direction_from_pixel(
+        tuple(float(value) for value in source_camera.landmark_pixels[landmark_name]),
+        source_prior["ypr"],
+        source_prior["fov"],
+        source_prior["size"],
+    )
+    return ray_baseline_degrees(target_direction, source_direction)
+
+
+def print_stage_config_report(
+    solve: dict[str, Any],
+    priors: dict[str, Any],
+    landmark_sources: dict[str, list[str]],
+    blocked_cameras: set[str] | None = None,
+) -> None:
+    blocked_cameras = blocked_cameras or set()
+    configured_landmarks = list(solve["landmarks"])
+    configured_rays = [tuple(row) for row in solve["rays"]]
+    available_landmarks = stage_available_landmarks(solve, priors, landmark_sources, blocked_cameras)
+    available_rays = stage_available_rays(solve, priors, blocked_cameras)
+    configured_landmark_set = set(configured_landmarks)
+    configured_ray_set = set(configured_rays)
+    unused_landmarks = [name for name in available_landmarks if name not in configured_landmark_set]
+    unused_rays = [
+        row
+        for row in available_rays
+        if row[1] not in configured_landmark_set and (row[0], row[1]) not in configured_ray_set
+    ]
+
+    print(f"Stage config: {solve['camera_name']}")
+    print(f"Prior batch: {priors['batch_id']}")
+    blocked_prior_cameras = future_prior_cameras(priors, blocked_cameras)
+    if blocked_prior_cameras:
+        print(f"Future cameras in prior batch: {', '.join(blocked_prior_cameras)}")
+    print()
+    print(f"Configured landmarks ({len(configured_landmarks)}):")
+    for name in configured_landmarks:
+        status = "ok" if name in available_landmarks else "missing"
+        print(f"  [{status}] {name}{config_landmark_note(name)}")
+    print()
+    print(f"Configured rays ({len(configured_rays)}):")
+    available_ray_lookup = {
+        (source_camera_name, landmark_name): baseline
+        for source_camera_name, landmark_name, baseline in available_rays
+    }
+    for source_camera_name, landmark_name in configured_rays:
+        baseline = available_ray_lookup.get((source_camera_name, landmark_name))
+        if baseline is None:
+            baseline = configured_ray_baseline(solve, priors, source_camera_name, landmark_name, blocked_cameras)
+        if baseline is None:
+            print(f"  [missing] {source_camera_name} -> {landmark_name}")
+        elif baseline < min_triangulation_baseline_degrees():
+            print(f"  [!! {baseline:.3f}°] {source_camera_name} -> {landmark_name}")
+        else:
+            print(f"  [ok {baseline:.3f}°] {source_camera_name} -> {landmark_name}")
+    print()
+    configured_objects = solve.get("horizontal_objects", [])
+    print(f"Configured objects ({len(configured_objects)}):")
+    for row in configured_objects:
+        print(
+            "  [{orientation}] {point_a} | {point_b} | {length:.3f}m | z={z:.3f}".format(
+                orientation=row["orientation"],
+                point_a=row["point_a"],
+                point_b=row["point_b"],
+                length=float(row["length_m"]),
+                z=float(row["z"]),
+            )
+        )
+    print()
+    print(f"Available unused landmarks ({len(unused_landmarks)}):")
+    for name in unused_landmarks:
+        print(f"  {name}{config_landmark_note(name)}{landmark_via_note(name, landmark_sources)}")
+    print()
+    print(f"Available unused rays ({len(unused_rays)}):")
+    for source_camera_name, landmark_name, baseline in unused_rays:
+        print(f"  [{baseline:.3f}°] {source_camera_name} -> {landmark_name}")
+    print()
+
+
+def print_chain_results_summary(chain: list[str]) -> None:
+    latest = latest_chain_result(chain)
+    if latest is None:
+        print("Chain results")
+        for index, camera_name in enumerate(chain, start=1):
+            print(f"  {index:>2}. {'':>12} | {camera_name}")
+        print()
+        print("Top global observation residuals:")
+        return
+
+    latest_index, result = latest
+    global_report = result["global"]
+    configured_rows_by_camera: dict[str, list[dict[str, Any]]] = {}
+    for row in global_report.get("observations", []):
+        if row.get("configured"):
+            configured_rows_by_camera.setdefault(row["camera"], []).append(row)
+    print("Chain results")
+    print(f"Current world: {latest_index + 1:02d} {chain[latest_index]}")
+    for index, camera_name in enumerate(chain, start=1):
+        path = result_path_for_stage(index - 1, camera_name)
+        if not path.exists():
+            print(f"  {index:>2}. {'':>12} | {camera_name}")
+            continue
+        rows = configured_rows_by_camera.get(camera_name)
+        if rows:
+            values = np.asarray([row["final_error_arcmin"] for row in rows], dtype=float)
+            loss = residual_summary(values)["loss_arcmin2"]
+        else:
+            stage_result = json.loads(path.read_text())
+            rows = current_step_global_rows(stage_result["global"])
+            values = np.asarray([row["final_error_arcmin"] for row in rows], dtype=float)
+            loss = residual_summary(values)["loss_arcmin2"]
+        print(f"  {index:>2}. {loss:12.6f} | {camera_name}")
+
+    print()
+    print("Top global observation residuals:")
+    for row in global_report.get("observations", [])[:20]:
+        details = []
+        if row.get("source_camera") and row["source_camera"] != row["camera"]:
+            details.append(f"via {row['source_camera']}")
+        if row.get("target_camera") and row["target_camera"] != row["camera"]:
+            details.append(f"to {row['target_camera']}")
+        suffix = f" [{' ; '.join(details)}]" if details else ""
+        print(
+            f"  {row['rank']:>2}. {row['final_error_arcmin']:8.3f}' | "
+            f"{row['camera']} | {row['landmark']} | {row['type']}{suffix}"
+        )
+    total_landmarks = sum(1 for row in global_report["next_prior_batch"][1] if row[0] == "landmark")
+    print()
+    print(f"Total landmarks: {total_landmarks}")
+
+
+def validate_stage_order(
+    solve: dict[str, Any],
+    priors: dict[str, Any],
+    future_cameras: set[str],
+) -> None:
+    future_refs = configured_future_camera_references(solve, future_cameras)
+    if future_refs:
+        lines = [
+            f"{source_camera_name} -> {target_name}"
+            for source_camera_name, target_name in future_refs
+        ]
+        raise ValueError(
+            "Configured rays reference later chain cameras:\n  " + "\n  ".join(lines)
+        )
+    prior_cameras = future_prior_cameras(priors, future_cameras)
+    if prior_cameras:
+        raise ValueError(
+            "Prior batch already contains later chain cameras: " + ", ".join(prior_cameras)
+        )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--stage", required=True, help="Camera name or 1-based index from optimizer/chain.json")
+    parser.add_argument("--stage", help="Camera name or 1-based index from optimizer/chain.json")
+    parser.add_argument("--config", action="store_true", help="Print available and configured inputs for the stage.")
+    parser.add_argument("--result", action="store_true", help="Print the saved result summary for the stage.")
+    parser.add_argument("--results", action="store_true", help="Print the latest chain result summary.")
+    parser.add_argument("--run", action="store_true", help="Run the optimizer stage. This is the default mode.")
     parser.add_argument(
         "--max-steps-local",
         type=int,
@@ -2674,11 +3357,31 @@ def main() -> None:
 
     register_synthetic_cameras()
     chain = load_chain()
+    if args.results:
+        print_chain_results_summary(chain)
+        return
+    if not args.stage:
+        parser.error("--stage is required unless --results is used")
     stage_index = stage_index_for_id(chain, args.stage)
     solve = solve_from_chain_stage(chain[stage_index])
     solves = load_chain_solves(chain, stage_index)
     priors = load_optimizer_priors(stage_index, chain)
-    add_required_synthetic_priors(priors, solve)
+    blocked_cameras = future_chain_cameras(chain, stage_index)
+    add_required_synthetic_priors(priors, solve, blocked_cameras)
+    if args.config:
+        print_stage_config_report(
+            solve,
+            priors,
+            landmark_source_cameras_for_stage(chain, stage_index),
+            blocked_cameras,
+        )
+        return
+    if args.result:
+        output = args.output or result_path_for_stage(stage_index, solve["camera_name"])
+        result = json.loads(output.read_text())
+        print_optimizer_camera_report(result["local"], result["global"], local_pass=False)
+        return
+    validate_stage_order(solve, priors, blocked_cameras)
     report = solve_camera(
         solve,
         priors,
@@ -2721,6 +3424,7 @@ def main() -> None:
     print()
     print(f"Wrote {output}")
     write_optimizer_result_snapshot(report, output)
+    refresh_ui_overlay_from_world_snapshot()
     print()
     render_camera_names = render_camera_names_for_step(solves, report)
     rendered = render_optimizer_result(

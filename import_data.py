@@ -147,6 +147,19 @@ IGNORED_TRIANGULATION_PREFIXES = (
 
 EXTRA_FIXED_ELEVATION = [
     {
+        "z": 0.0,
+        "landmarks": [
+            "Broken Keys Bridge (1B)",
+            "Broken Keys Bridge (2B)",
+            "Broken Keys Bridge (3B)",
+            "Broken Keys Bridge (4B)",
+            "Broken Keys Bridge (7B)",
+            "Broken Keys Bridge (8B)",
+            "Small Keys Bridge (NB)",
+            "Small Keys Bridge (SB)",
+        ],
+    },
+    {
         "z": 5.0,
         "landmarks": [
             "Lake Leonida (A)",
