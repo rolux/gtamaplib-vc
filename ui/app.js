@@ -1735,6 +1735,7 @@ function wireControls() {
   window.addEventListener("keydown", (event) => {
     const tag = document.activeElement?.tagName;
     if (tag === "INPUT" && document.activeElement?.type === "search") return;
+    const plainKey = !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;
     if (event.key === "Escape") {
       if (state.editMode || state.renameMode) {
         event.preventDefault();
@@ -1753,32 +1754,32 @@ function wireControls() {
       cancelObservationEditMode();
       return;
     }
-    if (event.key.toLowerCase() === "c") {
+    if (plainKey && event.key.toLowerCase() === "c") {
       event.preventDefault();
       setView("camera");
       return;
     }
-    if (event.key.toLowerCase() === "m") {
+    if (plainKey && event.key.toLowerCase() === "m") {
       event.preventDefault();
       setView("map");
       return;
     }
-    if (event.key.toLowerCase() === "a" && !els.addObservation.hidden) {
+    if (plainKey && event.key.toLowerCase() === "a" && !els.addObservation.hidden) {
       event.preventDefault();
       runObservationAction("add");
       return;
     }
-    if (event.key.toLowerCase() === "e" && !els.editObservation.hidden) {
+    if (plainKey && event.key.toLowerCase() === "e" && !els.editObservation.hidden) {
       event.preventDefault();
       runObservationAction("edit");
       return;
     }
-    if (event.key.toLowerCase() === "r" && !els.renameLandmark.hidden) {
+    if (plainKey && event.key.toLowerCase() === "r" && !els.renameLandmark.hidden) {
       event.preventDefault();
       runObservationAction("rename");
       return;
     }
-    if (event.key === "Delete" && !els.removeObservation.hidden) {
+    if (plainKey && event.key === "Delete" && !els.removeObservation.hidden) {
       event.preventDefault();
       runObservationAction("remove");
       return;
