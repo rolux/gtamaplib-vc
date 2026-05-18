@@ -19,7 +19,8 @@ const state = {
   renameMode: false,
   editingObservation: null,
   settings: {
-    onlyShowCamerasForSelectedLandmark: true,
+    showCameraIDs: false,
+    onlyShowCamerasForSelectedLandmark: false,
     blurLeaks: false,
   },
   map: {
@@ -32,6 +33,7 @@ const state = {
 const STORAGE = {
   sortCameras: "gtamaplibvc.sortCameras",
   sortLandmarks: "gtamaplibvc.sortLandmarks",
+  showCameraIDs: "gtamaplibvc.showCameraIDs",
   onlyShowCamerasForSelectedLandmark: "gtamaplibvc.onlyShowCamerasForSelectedLandmark",
   blurLeaks: "gtamaplibvc.blurLeaks",
 };
@@ -281,6 +283,7 @@ function openSettingsDialog() {
   const content = document.createElement("div");
   content.className = "settings-list";
   content.append(
+    settingCheckbox("Show camera IDs", "showCameraIDs"),
     settingCheckbox("Only show cameras for selected landmark", "onlyShowCamerasForSelectedLandmark"),
     settingCheckbox("Blur leaks", "blurLeaks"),
   );
@@ -341,7 +344,15 @@ function renderCameraList() {
       <span class="item-meta">${cameraObservationCount(camera.name)}</span>
     `;
     row.style.borderLeftColor = camera.color;
-    row.querySelector(".item-name").textContent = cameraLabel(camera);
+    const nameSlot = row.querySelector(".item-name");
+    if (state.settings.showCameraIDs) {
+      const id = document.createElement("span");
+      id.className = "item-id";
+      id.textContent = `[${camera.id}] `;
+      nameSlot.append(id, cameraLabel(camera));
+    } else {
+      nameSlot.textContent = cameraLabel(camera);
+    }
     row.title = camera.name;
     row.addEventListener("mousedown", (event) => {
       state.focus = "cameras";
@@ -1930,7 +1941,8 @@ function restorePreferences() {
   if (landmarkSort && [...els.landmarkSort.options].some((option) => option.value === landmarkSort)) {
     els.landmarkSort.value = landmarkSort;
   }
-  state.settings.onlyShowCamerasForSelectedLandmark = storedBoolean(STORAGE.onlyShowCamerasForSelectedLandmark, true);
+  state.settings.showCameraIDs = storedBoolean(STORAGE.showCameraIDs, false);
+  state.settings.onlyShowCamerasForSelectedLandmark = storedBoolean(STORAGE.onlyShowCamerasForSelectedLandmark, false);
   state.settings.blurLeaks = storedBoolean(STORAGE.blurLeaks, false);
 }
 
