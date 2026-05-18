@@ -104,6 +104,10 @@ button:focus-visible {
   box-shadow: none;
 }
 
+button:hover {
+  background: #282828;
+}
+
 .list {
   min-height: 0;
   overflow: auto;
@@ -205,6 +209,13 @@ body:not(.is-dragging) .item:not(.selected):hover {
 #view-select {
   width: auto;
   min-height: 24px;
+}
+
+#settings-button {
+  width: auto;
+  min-height: 24px;
+  padding: 0 8px;
+  cursor: pointer;
 }
 
 #edit-tools {
@@ -368,6 +379,82 @@ body.is-dragging #viewport {
 
 #camera-image-preview.blurred-leak-preview {
   filter: grayscale(100%) blur(8px);
+}
+
+#dialog-backdrop {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  z-index: 10;
+}
+
+#dialog-backdrop.clicked {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+#dialog-backdrop[hidden] {
+  display: none;
+}
+
+#dialog-panel {
+  width: min(640px, calc(100vw - 48px));
+  height: min(400px, calc(100vh - 48px));
+  display: grid;
+  grid-template-rows: 32px minmax(0, 1fr);
+  background: rgba(5, 5, 5, 0.86);
+  color: #eee;
+  border: 1px solid #333;
+  border-radius: 8px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+#dialog-topbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 4px 8px;
+  border-radius: 8px 8px 0 0;
+}
+
+#dialog-title {
+  color: #fff;
+}
+
+#dialog-close {
+  width: auto;
+  min-height: 24px;
+  margin-left: auto;
+  padding: 0 8px;
+  cursor: pointer;
+}
+
+#dialog-content {
+  min-height: 0;
+  overflow: auto;
+  padding: 16px;
+}
+
+.settings-list {
+  display: grid;
+  gap: 10px;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  cursor: pointer;
+}
+
+.setting-row input {
+  width: auto;
+  min-height: 0;
 }
 
 #guides-overlay {

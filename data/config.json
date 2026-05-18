@@ -1,5 +1,4 @@
 {
     "schema": "gtamaplibvc-config-v1",
-    "blur_leaks": false,
     "min_triangulation_delta_degrees": 10.0
 }

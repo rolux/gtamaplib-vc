@@ -12,6 +12,7 @@
       <header id="topbar">
         <img id="app-logo" src="/ui/gtamaplib-vc.png" alt="">
         <strong>gtamaplib-vc</strong>
+        <button id="settings-button" type="button" title=",">Settings</button>
         <select id="view-select" title="View">
           <option value="camera">View Cameras</option>
           <option value="map">View Map</option>
@@ -73,6 +74,16 @@
         <span id="camera-data"></span>
         <span id="landmark-data"></span>
       </footer>
+
+      <div id="dialog-backdrop" hidden>
+        <section id="dialog-panel" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+          <header id="dialog-topbar">
+            <strong id="dialog-title"></strong>
+            <button id="dialog-close" type="button" title="ESC" aria-label="Close">Close</button>
+          </header>
+          <div id="dialog-content"></div>
+        </section>
+      </div>
     </div>
     <script type="module" src="app.js"></script>
   </body>

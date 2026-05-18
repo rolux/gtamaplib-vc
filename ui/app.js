@@ -18,6 +18,10 @@ const state = {
   editMode: false,
   renameMode: false,
   editingObservation: null,
+  settings: {
+    onlyShowCamerasForSelectedLandmark: true,
+    blurLeaks: false,
+  },
   map: {
     centerX: 0,
     centerY: 0,
@@ -28,6 +32,8 @@ const state = {
 const STORAGE = {
   sortCameras: "gtamaplibvc.sortCameras",
   sortLandmarks: "gtamaplibvc.sortLandmarks",
+  onlyShowCamerasForSelectedLandmark: "gtamaplibvc.onlyShowCamerasForSelectedLandmark",
+  blurLeaks: "gtamaplibvc.blurLeaks",
 };
 
 const MIN_VISIBLE_IMAGE_PX = 64;
@@ -36,6 +42,7 @@ const DISABLE_MAP_SVG_OVERLAY = false;
 
 const els = {
   cameraFind: document.querySelector("#camera-find"),
+  settingsButton: document.querySelector("#settings-button"),
   viewSelect: document.querySelector("#view-select"),
   cameraSort: document.querySelector("#camera-sort"),
   cameraPanel: document.querySelector("#camera-panel"),
@@ -63,6 +70,10 @@ const els = {
   editObservation: document.querySelector("#edit-observation"),
   renameLandmark: document.querySelector("#rename-landmark"),
   removeObservation: document.querySelector("#remove-observation"),
+  dialogBackdrop: document.querySelector("#dialog-backdrop"),
+  dialogTitle: document.querySelector("#dialog-title"),
+  dialogContent: document.querySelector("#dialog-content"),
+  dialogClose: document.querySelector("#dialog-close"),
 };
 
 const byCamera = new Map();
@@ -144,7 +155,7 @@ function cameraObservationCount(name) {
 }
 
 function shouldBlurCamera(camera) {
-  return Boolean(state.data?.config?.blur_leaks && camera?.id?.startsWith("L"));
+  return Boolean(state.settings.blurLeaks && camera?.id?.startsWith("L"));
 }
 
 function svg(tag, attributes = {}) {
@@ -217,12 +228,73 @@ function updateEditTools() {
   els.renameLandmark.textContent = state.renameMode ? "Done" : "Rename";
 }
 
+function storedBoolean(key, fallback) {
+  const value = localStorage.getItem(key);
+  if (value === null) return fallback;
+  return value === "true";
+}
+
+function setStoredBoolean(key, value) {
+  localStorage.setItem(key, value ? "true" : "false");
+}
+
+function refreshSettingsDependentViews() {
+  renderCameraList();
+  if (state.camera) {
+    els.frame.classList.toggle("blurred-leak-frame", shouldBlurCamera(state.camera));
+    renderCameraPreview();
+  }
+  clearPreview();
+  if (state.view === "map") renderMap();
+}
+
+function settingCheckbox(label, key) {
+  const row = document.createElement("label");
+  row.className = "setting-row";
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  input.checked = Boolean(state.settings[key]);
+  input.addEventListener("change", () => {
+    state.settings[key] = input.checked;
+    setStoredBoolean(STORAGE[key], input.checked);
+    refreshSettingsDependentViews();
+  });
+  const text = document.createElement("span");
+  text.textContent = label;
+  row.append(input, text);
+  return row;
+}
+
+function openDialog(title, content) {
+  els.dialogTitle.textContent = title;
+  els.dialogContent.replaceChildren(content);
+  els.dialogBackdrop.hidden = false;
+}
+
+function closeDialog() {
+  els.dialogBackdrop.hidden = true;
+  els.dialogBackdrop.classList.remove("clicked");
+  els.dialogContent.replaceChildren();
+}
+
+function openSettingsDialog() {
+  const content = document.createElement("div");
+  content.className = "settings-list";
+  content.append(
+    settingCheckbox("Only show cameras for selected landmark", "onlyShowCamerasForSelectedLandmark"),
+    settingCheckbox("Blur leaks", "blurLeaks"),
+  );
+  openDialog("Settings", content);
+}
+
 function filteredCameras() {
   const query = els.cameraFind.value.trim().toLowerCase();
   const items = state.data.cameras.filter((camera) => {
     const matchesQuery = !query || camera.name.toLowerCase().includes(query) || camera.id.toLowerCase().includes(query);
     const matchesLandmark =
-      !state.landmark || (byCamera.get(camera.name) || []).some((observation) => observation.landmark === state.landmark);
+      !state.settings.onlyShowCamerasForSelectedLandmark ||
+      !state.landmark ||
+      (byCamera.get(camera.name) || []).some((observation) => observation.landmark === state.landmark);
     return matchesQuery && matchesLandmark;
   });
   const sort = els.cameraSort.value;
@@ -1697,6 +1769,17 @@ function installPan() {
 }
 
 function wireControls() {
+  els.settingsButton.addEventListener("click", openSettingsDialog);
+  els.dialogClose.addEventListener("click", closeDialog);
+  els.dialogBackdrop.addEventListener("mousedown", (event) => {
+    if (event.target === els.dialogBackdrop) els.dialogBackdrop.classList.add("clicked");
+  });
+  els.dialogBackdrop.addEventListener("mouseup", () => {
+    els.dialogBackdrop.classList.remove("clicked");
+  });
+  els.dialogBackdrop.addEventListener("mouseleave", () => {
+    els.dialogBackdrop.classList.remove("clicked");
+  });
   els.viewSelect.addEventListener("change", () => setView(els.viewSelect.value));
   els.cameraFind.addEventListener("input", renderCameraList);
   els.cameraSort.addEventListener("change", () => {
@@ -1740,7 +1823,10 @@ function wireControls() {
     if (tag === "INPUT" && document.activeElement?.type === "search") return;
     const plainKey = !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;
     if (event.key === "Escape") {
-      if (state.editMode || state.renameMode) {
+      if (!els.dialogBackdrop.hidden) {
+        event.preventDefault();
+        closeDialog();
+      } else if (state.editMode || state.renameMode) {
         event.preventDefault();
         cancelObservationEditMode();
       } else if (state.landmark) {
@@ -1765,6 +1851,11 @@ function wireControls() {
     if (plainKey && event.key.toLowerCase() === "m") {
       event.preventDefault();
       setView("map");
+      return;
+    }
+    if (plainKey && event.key === ",") {
+      event.preventDefault();
+      openSettingsDialog();
       return;
     }
     if (plainKey && event.key.toLowerCase() === "a" && !els.addObservation.hidden) {
@@ -1812,6 +1903,8 @@ function restorePreferences() {
   if (landmarkSort && [...els.landmarkSort.options].some((option) => option.value === landmarkSort)) {
     els.landmarkSort.value = landmarkSort;
   }
+  state.settings.onlyShowCamerasForSelectedLandmark = storedBoolean(STORAGE.onlyShowCamerasForSelectedLandmark, true);
+  state.settings.blurLeaks = storedBoolean(STORAGE.blurLeaks, false);
 }
 
 async function init() {
