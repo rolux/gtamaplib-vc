@@ -870,7 +870,7 @@ function renderMap() {
     }));
   }
 
-  const cameras = state.landmark
+  const cameras = state.landmark && state.settings.onlyShowCamerasForSelectedLandmark
     ? state.data.cameras.filter((camera) => cameraObservesLandmark(camera.name, state.landmark))
     : state.data.cameras;
   for (const camera of cameras) {
