@@ -142,6 +142,14 @@ The default local and global optimizer limits are 2000 function evaluations.
 
 Each run writes a numbered result JSON into `optimizer/results/`, updates `optimizer/result.json` as the current complete optimizer world snapshot, and renders the current optimizer state into `optimizer/renders/`.
 
+You can render a local log-loss landscape for a camera with:
+
+```bash
+python3 render_loss.py --camera "Leonida Keys 01 (Airplane) (X)"
+```
+
+The defaults are `--spacing 10`, `--budget 1000`, and `--max-steps 100`.
+
 ## Notes
 
 Inspired by prior work from Neutral_State on the GTA VI Mapping Discord.
