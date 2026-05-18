@@ -435,10 +435,7 @@ function setStageSize(width, height, isMap = false) {
   els.frame.classList.toggle("map-image", isMap);
   els.mapCanvas.style.width = `${isMap ? width : 0}px`;
   els.mapCanvas.style.height = `${isMap ? height : 0}px`;
-  els.previewCanvas.width = isMap ? 0 : width;
-  els.previewCanvas.height = isMap ? 0 : height;
-  els.previewCanvas.style.width = `${isMap ? 0 : width}px`;
-  els.previewCanvas.style.height = `${isMap ? 0 : height}px`;
+  resizePreviewCanvas();
   els.guidesOverlay.setAttribute("width", width);
   els.guidesOverlay.setAttribute("height", height);
   els.guidesOverlay.setAttribute("viewBox", `0 0 ${width} ${height}`);
@@ -579,10 +576,21 @@ function fitMap() {
 function applyTransform() {
   if (state.view === "map") {
     els.stage.style.transform = "translate(0, 0) scale(1)";
+    resizePreviewCanvas();
     return;
   }
   clampPan();
   els.stage.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.scale})`;
+  resizePreviewCanvas();
+  redrawConePreview();
+}
+
+function resizePreviewCanvas() {
+  const rect = els.viewport.getBoundingClientRect();
+  const width = Math.max(1, Math.ceil(rect.width));
+  const height = Math.max(1, Math.ceil(rect.height));
+  els.previewCanvas.style.width = `${width}px`;
+  els.previewCanvas.style.height = `${height}px`;
 }
 
 function clearPreview() {
@@ -603,8 +611,7 @@ function clearStageGeometry() {
   els.mapCanvas.style.height = "0px";
   els.previewCanvas.width = 0;
   els.previewCanvas.height = 0;
-  els.previewCanvas.style.width = "0px";
-  els.previewCanvas.style.height = "0px";
+  resizePreviewCanvas();
   els.guidesOverlay.setAttribute("width", 0);
   els.guidesOverlay.setAttribute("height", 0);
   els.guidesOverlay.setAttribute("viewBox", "0 0 0 0");
@@ -658,13 +665,19 @@ function drawTexturedTriangle(context, image, source, target) {
 function drawConePreview(image, quad) {
   const width = image.naturalWidth || image.width;
   const height = image.naturalHeight || image.height;
-  const backingScale = Math.max(1, Math.min(4, state.scale * (window.devicePixelRatio || 1)));
-  const backingWidth = Math.ceil(state.camera.size[0] * backingScale);
-  const backingHeight = Math.ceil(state.camera.size[1] * backingScale);
+  const rect = els.viewport.getBoundingClientRect();
+  const backingScale = Math.max(1, window.devicePixelRatio || 1);
+  const backingWidth = Math.ceil(rect.width * backingScale);
+  const backingHeight = Math.ceil(rect.height * backingScale);
   if (els.previewCanvas.width !== backingWidth) els.previewCanvas.width = backingWidth;
   if (els.previewCanvas.height !== backingHeight) els.previewCanvas.height = backingHeight;
+  els.previewCanvas.style.width = `${Math.ceil(rect.width)}px`;
+  els.previewCanvas.style.height = `${Math.ceil(rect.height)}px`;
   const context = els.previewCanvas.getContext("2d");
-  const scaledQuad = quad.map((point) => [point[0] * backingScale, point[1] * backingScale]);
+  const scaledQuad = quad.map((point) => [
+    (state.panX + point[0] * state.scale) * backingScale,
+    (state.panY + point[1] * state.scale) * backingScale,
+  ]);
   context.setTransform(1, 0, 0, 1, 0, 0);
   context.clearRect(0, 0, els.previewCanvas.width, els.previewCanvas.height);
   context.globalAlpha = 0.82;
@@ -686,6 +699,20 @@ function showConePreview(cone) {
   const request = ++previewRequest;
   getPreviewImage(previewSource).then((image) => {
     if (request === previewRequest) drawConePreview(image, cone.quad);
+  }).catch(() => {
+    if (request === previewRequest) clearPreview();
+  });
+}
+
+function redrawConePreview() {
+  const cone = state.hoveredCone;
+  if (!cone) return;
+  const camera = cameraByName.get(cone.camera);
+  const previewSource = camera?.frame || camera?.thumbnail;
+  if (!previewSource || !cone.quad || cone.quad.length !== 4) return;
+  const request = previewRequest;
+  getPreviewImage(previewSource).then((image) => {
+    if (request === previewRequest && state.hoveredCone === cone) drawConePreview(image, cone.quad);
   }).catch(() => {
     if (request === previewRequest) clearPreview();
   });

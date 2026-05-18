@@ -340,7 +340,6 @@ body.is-dragging #viewport {
 #frame,
 #map-canvas,
 #guides-overlay,
-#preview-canvas,
 #overlay {
   position: absolute;
   left: 0;
@@ -464,6 +463,9 @@ body.is-dragging #viewport {
 }
 
 #preview-canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
   display: block;
   pointer-events: none;
   z-index: 2;
