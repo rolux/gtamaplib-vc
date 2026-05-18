@@ -9,11 +9,12 @@ untracked/
 
 data/gtamapdata.json
 data/import_extras.json
+# Legacy optimizer overlay path; migrated to optimizer/result.json.
 data/gtamaplib-vc.json
 data/observation_edits.json
 ui/data/overlay.json
 ui/*-bw.jpg
 ui/thumbnails/
-optimizer/current.json
+optimizer/result.json
 optimizer/results/
 optimizer/renders/

@@ -90,6 +90,7 @@ function applyWorldSnapshot(snapshot) {
   if (!snapshot || snapshot.schema !== "gtamaplibvc-world-v1") return;
   const snapshotCameras = snapshot.cameras || {};
   const snapshotLandmarks = snapshot.landmarks || {};
+  const snapshotLandmarkSources = snapshot.landmark_sources || {};
   for (const camera of state.data.cameras) {
     const current = snapshotCameras[camera.name];
     if (!current) continue;
@@ -103,11 +104,13 @@ function applyWorldSnapshot(snapshot) {
   for (const landmark of state.data.landmarks) {
     const xyz = snapshotLandmarks[landmark.name];
     if (!xyz) continue;
+    if (!landmark.xyz && snapshotLandmarkSources[landmark.name] === "gtamaplib") continue;
     landmark.xyz = xyz;
     landmark.map = mapPointFromXyz(xyz);
   }
   for (const [name, xyz] of Object.entries(snapshotLandmarks)) {
     if (existingLandmarks.has(name)) continue;
+    if (snapshotLandmarkSources[name] === "gtamaplib") continue;
     state.data.landmarks.push({
       name,
       order: state.data.landmarks.length,
@@ -1824,7 +1827,7 @@ async function init() {
     if (!byLandmark.has(observation.landmark)) byLandmark.set(observation.landmark, []);
     byLandmark.get(observation.landmark).push(observation);
   }
-  const worldResponse = await fetch("/data/gtamaplib-vc.json");
+  const worldResponse = await fetch("/optimizer/result.json");
   if (worldResponse.ok) {
     applyWorldSnapshot(await worldResponse.json());
   }

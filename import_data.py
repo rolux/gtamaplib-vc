@@ -173,6 +173,8 @@ EXTRA_FIXED_ELEVATION = [
             "Lake Leonida (V)",
             "Lake Leonida (W)",
             "Lake Leonida (X)",
+            "Ambrosia Bridge (3B)",
+            "Ambrosia Bridge (4B)",
         ],
     },
     {

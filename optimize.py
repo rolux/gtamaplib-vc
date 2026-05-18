@@ -19,7 +19,7 @@ PRIORS_PATH = OPTIMIZER_DIR / "priors.json"
 RESULTS_DIR = OPTIMIZER_DIR / "results"
 RENDERS_DIR = OPTIMIZER_DIR / "renders"
 IMPORT_EXTRAS_PATH = ROOT / "data" / "import_extras.json"
-GTAMAPLIBVC_PATH = ROOT / "data" / "gtamaplib-vc.json"
+OPTIMIZER_RESULT_PATH = OPTIMIZER_DIR / "result.json"
 
 sys.path.insert(0, str(ROOT))
 
@@ -2444,7 +2444,7 @@ def load_import_extras() -> dict[str, Any]:
     return json.loads(IMPORT_EXTRAS_PATH.read_text())
 
 
-def write_gtamaplibvc_snapshot(report: dict[str, Any], result_path: Path) -> None:
+def write_optimizer_result_snapshot(report: dict[str, Any], result_path: Path) -> None:
     result_path = result_path.resolve()
     global_report = report["global"]
     final_cameras = {
@@ -2520,8 +2520,8 @@ def write_gtamaplibvc_snapshot(report: dict[str, Any], result_path: Path) -> Non
         "landmarks": landmarks,
         "landmark_sources": landmark_sources,
     }
-    GTAMAPLIBVC_PATH.write_text(json.dumps(data, indent=4, ensure_ascii=False) + "\n")
-    print(f"Wrote {GTAMAPLIBVC_PATH}")
+    OPTIMIZER_RESULT_PATH.write_text(json.dumps(data, indent=4, ensure_ascii=False) + "\n")
+    print(f"Wrote {OPTIMIZER_RESULT_PATH}")
 
 
 def render_source_cameras_for_landmark(landmark_name: str, generated_sources: dict[str, list[str]]) -> list[str]:
@@ -2720,7 +2720,7 @@ def main() -> None:
     output.write_text(json.dumps(report, indent=4, ensure_ascii=False) + "\n")
     print()
     print(f"Wrote {output}")
-    write_gtamaplibvc_snapshot(report, output)
+    write_optimizer_result_snapshot(report, output)
     print()
     render_camera_names = render_camera_names_for_step(solves, report)
     rendered = render_optimizer_result(

@@ -64,11 +64,10 @@ Generated files are intentionally not tracked:
 ```text
 data/gtamapdata.json
 data/import_extras.json
-data/gtamaplib-vc.json
 ui/data/overlay.json
 ui/*-bw.jpg
 ui/thumbnails/
-optimizer/current.json
+optimizer/result.json
 optimizer/results/
 optimizer/renders/
 ```
@@ -133,7 +132,7 @@ The default local and global optimizer limits are 2000 function evaluations. The
 python3 optimize.py --stage 1 --max-steps-local 2000 --max-steps-global 2000
 ```
 
-Each run writes a numbered result JSON into `optimizer/results/`, updates `data/gtamaplib-vc.json` as the current complete VC world snapshot, and renders the current optimizer state into `optimizer/renders/`.
+Each run writes a numbered result JSON into `optimizer/results/`, updates `optimizer/result.json` as the current complete optimizer world snapshot, and renders the current optimizer state into `optimizer/renders/`.
 
 ## Notes
 
