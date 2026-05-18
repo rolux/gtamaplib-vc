@@ -136,6 +136,7 @@ function applyWorldSnapshot(snapshot) {
 }
 
 function cameraLabel(camera) {
+  if (state.settings.showCameraIDs && camera?.id) return `[${camera.id}] ${camera.name}`;
   return camera.name;
 }
 
@@ -199,7 +200,7 @@ function renderStatus(target, name, fields) {
 
 function updateGlobalStatus() {
   if (state.camera) {
-    renderStatus(els.cameraData, state.camera.name, [
+    renderStatus(els.cameraData, cameraLabel(state.camera), [
       ["XYZ", formatTuple(state.camera.xyz)],
       ["YPR", formatTuple(state.camera.ypr)],
       ["FOV", formatTuple(state.camera.fov)],
@@ -242,6 +243,7 @@ function setStoredBoolean(key, value) {
 
 function refreshSettingsDependentViews() {
   renderCameraList();
+  updateGlobalStatus();
   if (state.camera) {
     els.frame.classList.toggle("blurred-leak-frame", shouldBlurCamera(state.camera));
     renderCameraPreview();
@@ -345,14 +347,7 @@ function renderCameraList() {
     `;
     row.style.borderLeftColor = camera.color;
     const nameSlot = row.querySelector(".item-name");
-    if (state.settings.showCameraIDs) {
-      const id = document.createElement("span");
-      id.className = "item-id";
-      id.textContent = `[${camera.id}] `;
-      nameSlot.append(id, cameraLabel(camera));
-    } else {
-      nameSlot.textContent = cameraLabel(camera);
-    }
+    nameSlot.textContent = cameraLabel(camera);
     row.title = camera.name;
     row.addEventListener("mousedown", (event) => {
       state.focus = "cameras";
