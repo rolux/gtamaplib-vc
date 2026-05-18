@@ -530,7 +530,10 @@ body.is-dragging #viewport {
   vector-effect: non-scaling-stroke;
 }
 
-.marker:hover,
+.marker:hover {
+  stroke-width: 3px;
+}
+
 .marker.selected {
   stroke-width: 4px;
 }

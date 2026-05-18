@@ -808,7 +808,7 @@ function renderOverlay() {
         startObservationDrag(event, observation);
         return;
       }
-      selectLandmark(observation.landmark, false);
+      selectLandmark(observation.landmark, false, event.metaKey || event.ctrlKey);
     });
     const title = svg("title");
     title.textContent = observation.landmark;
