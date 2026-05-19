@@ -783,25 +783,51 @@ function redrawConePreview() {
 
 function renderGuides(layer) {
   const guides = state.data.uiOverlay?.guides?.[state.camera.name];
-  if (!guides) return;
-  for (const segment of guides.verticals || []) {
+  if (guides) {
+    for (const segment of guides.verticals || []) {
+      layer.append(svg("line", {
+        class: "vertical-guide",
+        x1: segment[0][0],
+        y1: segment[0][1],
+        x2: segment[1][0],
+        y2: segment[1][1],
+      }));
+    }
+    if (guides.horizon) {
+      const horizonY = guides.horizon[0][1];
+      const horizonExtent = state.camera.size[0] * 1000;
+      layer.append(svg("line", {
+        class: "horizon-guide",
+        x1: -horizonExtent,
+        y1: horizonY,
+        x2: horizonExtent,
+        y2: horizonY,
+      }));
+    }
+  }
+
+  const player = state.data.uiOverlay?.players?.[state.camera.name];
+  if (!player) return;
+  for (const item of player.cross || []) {
+    const segment = item.segment;
     layer.append(svg("line", {
-      class: "vertical-guide",
+      class: "player-cross",
       x1: segment[0][0],
       y1: segment[0][1],
       x2: segment[1][0],
       y2: segment[1][1],
+      stroke: item.color,
     }));
   }
-  if (guides.horizon) {
-    const horizonY = guides.horizon[0][1];
-    const horizonExtent = state.camera.size[0] * 1000;
+  for (const item of player.box || []) {
+    const segment = item.segment;
     layer.append(svg("line", {
-      class: "horizon-guide",
-      x1: -horizonExtent,
-      y1: horizonY,
-      x2: horizonExtent,
-      y2: horizonY,
+      class: "player-confidence-box",
+      x1: segment[0][0],
+      y1: segment[0][1],
+      x2: segment[1][0],
+      y2: segment[1][1],
+      stroke: item.color,
     }));
   }
 }

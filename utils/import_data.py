@@ -29,6 +29,9 @@ UI_OVERLAY_JSON_PATH = UI_DATA_DIR / "overlay.json"
 MAP_NAME = "yanis"
 CAMERA_CONE_DISTANCE_M = 25
 VERTICAL_GUIDE_SPACING_DEGREES = 1.0
+PLAYER_CROSS_RADIUS_M = 1.0
+PLAYER_CONFIDENCE_HALF_SIZE_M = 0.1
+PLAYER_TIER3_CONFIDENCE_HALF_SIZE_M = 0.001
 THUMBNAIL_SCALE = 4
 
 
@@ -551,6 +554,67 @@ def camera_guides(cam: Any) -> dict[str, Any]:
     return guides
 
 
+def is_tier3_camera(cam: Any) -> bool:
+    return re.match(r"^[A-Z]3(?:/|$)", str(cam.id)) is not None
+
+
+def camera_player_overlay(cam: Any) -> dict[str, Any] | None:
+    if not cam.player:
+        return None
+    px, py, pz = (float(value) for value in cam.player)
+    axes = [
+        (
+            "x",
+            "#ff0000",
+            (px - PLAYER_CROSS_RADIUS_M, py, pz),
+            (px + PLAYER_CROSS_RADIUS_M, py, pz),
+        ),
+        (
+            "y",
+            "#00ff00",
+            (px, py - PLAYER_CROSS_RADIUS_M, pz),
+            (px, py + PLAYER_CROSS_RADIUS_M, pz),
+        ),
+        (
+            "z",
+            "#0000ff",
+            (px, py, pz - PLAYER_CROSS_RADIUS_M),
+            (px, py, pz + PLAYER_CROSS_RADIUS_M),
+        ),
+    ]
+    cross = []
+    for axis, color, start, end in axes:
+        segment = project_line(cam, start, end)
+        if segment:
+            cross.append({"axis": axis, "color": color, "segment": segment})
+
+    half_size = PLAYER_TIER3_CONFIDENCE_HALF_SIZE_M if is_tier3_camera(cam) else PLAYER_CONFIDENCE_HALF_SIZE_M
+    box = []
+    for dz in (-half_size, half_size):
+        for dy in (-half_size, half_size):
+            segment = project_line(cam, (px - half_size, py + dy, pz + dz), (px + half_size, py + dy, pz + dz))
+            if segment:
+                box.append({"axis": "x", "color": "#ff0000", "segment": segment})
+    for dz in (-half_size, half_size):
+        for dx in (-half_size, half_size):
+            segment = project_line(cam, (px + dx, py - half_size, pz + dz), (px + dx, py + half_size, pz + dz))
+            if segment:
+                box.append({"axis": "y", "color": "#00ff00", "segment": segment})
+    for dy in (-half_size, half_size):
+        for dx in (-half_size, half_size):
+            segment = project_line(cam, (px + dx, py + dy, pz - half_size), (px + dx, py + dy, pz + half_size))
+            if segment:
+                box.append({"axis": "z", "color": "#0000ff", "segment": segment})
+
+    if not cross and not box:
+        return None
+    return {
+        "tier3": is_tier3_camera(cam),
+        "cross": cross,
+        "box": box,
+    }
+
+
 def write_ui_overlay_data(md: Any, get_camera: Any, get_point: Any) -> None:
     UI_DATA_DIR.mkdir(parents=True, exist_ok=True)
     camera_names = list(md.cameras)
@@ -564,11 +628,20 @@ def write_ui_overlay_data(md: Any, get_camera: Any, get_point: Any) -> None:
             guides[camera_name] = camera_guides(get_camera(camera_name))
         except Exception:
             guides[camera_name] = {"horizon": None, "verticals": []}
+    players = {}
+    for camera_name in camera_names:
+        try:
+            player = camera_player_overlay(get_camera(camera_name))
+        except Exception:
+            player = None
+        if player:
+            players[camera_name] = player
     overlay = {
         "schema": "gtamaplibvc-ui-overlay-v1",
         "camera_cone_distance_m": CAMERA_CONE_DISTANCE_M,
         "cones": cones,
         "guides": guides,
+        "players": players,
     }
     UI_OVERLAY_JSON_PATH.write_text(json.dumps(overlay, indent=4, ensure_ascii=False) + "\n")
     print(f"Wrote {UI_OVERLAY_JSON_PATH}")

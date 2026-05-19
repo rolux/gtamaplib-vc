@@ -531,6 +531,24 @@ body.is-dragging #viewport {
   stroke-dasharray: 8 8;
 }
 
+.player-cross,
+.player-confidence-box {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.player-cross {
+  stroke-opacity: 0.75;
+  stroke-width: var(--horizon-guide-width, 1px);
+}
+
+.player-confidence-box {
+  stroke-opacity: 0.45;
+  stroke-width: var(--horizon-guide-width, 1px);
+}
+
 .camera-cone {
   cursor: pointer;
   pointer-events: visiblePainted;
