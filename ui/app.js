@@ -166,6 +166,29 @@ function cameraObservationCount(name) {
   return byCamera.get(name)?.length ?? cameraByName.get(name)?.observation_count ?? 0;
 }
 
+function cameraIdSortKey(id) {
+  const match = String(id || "").match(/^([A-Z])(\d+)(?:\/(\d+))?/i);
+  if (!match) return [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, String(id || "")];
+  const letterOrder = { L: 0, T: 1, S: 2 };
+  const letter = match[1].toUpperCase();
+  return [
+    Number(match[2]),
+    letterOrder[letter] ?? Number.POSITIVE_INFINITY,
+    match[3] === undefined ? Number.POSITIVE_INFINITY : Number(match[3]),
+    String(id || ""),
+  ];
+}
+
+function compareCameraIds(a, b) {
+  const aKey = cameraIdSortKey(a.id);
+  const bKey = cameraIdSortKey(b.id);
+  for (let i = 0; i < aKey.length; i += 1) {
+    if (aKey[i] < bKey[i]) return -1;
+    if (aKey[i] > bKey[i]) return 1;
+  }
+  return a.order - b.order;
+}
+
 function shouldBlurCamera(camera) {
   return Boolean(state.settings.blurLeaks && camera?.id?.startsWith("L"));
 }
@@ -321,7 +344,7 @@ function filteredCameras() {
   items.sort((a, b) => {
     if (sort === "name") return a.name.localeCompare(b.name);
     if (sort === "observations") return b.observation_count - a.observation_count || a.order - b.order;
-    if (sort === "ID") return a.id.localeCompare(b.id, undefined, { numeric: true }) || a.order - b.order;
+    if (sort === "ID") return compareCameraIds(a, b);
     return a.order - b.order;
   });
   return items;
