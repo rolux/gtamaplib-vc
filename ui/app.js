@@ -44,6 +44,7 @@ const DISABLE_MAP_SVG_OVERLAY = false;
 
 const els = {
   cameraFind: document.querySelector("#camera-find"),
+  cameraFindClear: document.querySelector("#camera-find-clear"),
   settingsButton: document.querySelector("#settings-button"),
   viewSelect: document.querySelector("#view-select"),
   cameraSort: document.querySelector("#camera-sort"),
@@ -51,6 +52,7 @@ const els = {
   cameraList: document.querySelector("#camera-list"),
   cameraStatus: document.querySelector("#camera-status"),
   landmarkFind: document.querySelector("#landmark-find"),
+  landmarkFindClear: document.querySelector("#landmark-find-clear"),
   landmarkSort: document.querySelector("#landmark-sort"),
   landmarkPanel: document.querySelector("#landmark-panel"),
   landmarkList: document.querySelector("#landmark-list"),
@@ -336,6 +338,7 @@ function selectedObservations() {
 
 function renderCameraList() {
   const cameras = filteredCameras();
+  els.cameraFindClear.hidden = !els.cameraFind.value;
   els.cameraList.replaceChildren();
   for (const camera of cameras) {
     const row = document.createElement("div");
@@ -365,6 +368,7 @@ function cameraRows() {
 
 function renderLandmarkList() {
   const observations = selectedObservations();
+  els.landmarkFindClear.hidden = !els.landmarkFind.value;
   els.landmarkList.replaceChildren();
   for (const observation of observations) {
     const isSelected = state.landmark === observation.landmark;
@@ -1815,11 +1819,21 @@ function wireControls() {
   });
   els.viewSelect.addEventListener("change", () => setView(els.viewSelect.value));
   els.cameraFind.addEventListener("input", renderCameraList);
+  els.cameraFindClear.addEventListener("click", () => {
+    els.cameraFind.value = "";
+    renderCameraList();
+    els.cameraFind.focus();
+  });
   els.cameraSort.addEventListener("change", () => {
     localStorage.setItem(STORAGE.sortCameras, els.cameraSort.value);
     renderCameraList();
   });
   els.landmarkFind.addEventListener("input", renderLandmarkList);
+  els.landmarkFindClear.addEventListener("click", () => {
+    els.landmarkFind.value = "";
+    renderLandmarkList();
+    els.landmarkFind.focus();
+  });
   els.landmarkSort.addEventListener("change", () => {
     localStorage.setItem(STORAGE.sortLandmarks, els.landmarkSort.value);
     renderLandmarkList();
