@@ -142,7 +142,7 @@ def apply_observation_edits(
 def exported_world() -> dict[str, Any]:
     gtamapdata = load_json(GTAMAPDATA_PATH, None)
     if gtamapdata is None:
-        raise FileNotFoundError(f"Missing {GTAMAPDATA_PATH}; run python3 import_data.py first.")
+        raise FileNotFoundError(f"Missing {GTAMAPDATA_PATH}; run python3 utils/import_data.py first.")
 
     camera_order = [camera["name"] for camera in gtamapdata.get("cameras", [])]
     cameras = {camera["name"]: camera for camera in gtamapdata.get("cameras", [])}

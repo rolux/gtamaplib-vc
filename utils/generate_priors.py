@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 OPTIMIZER_DIR = ROOT / "optimizer"
 PRIORS_PATH = OPTIMIZER_DIR / "priors.json"
 
@@ -17,7 +17,7 @@ sys.path.insert(0, str(ROOT))
 from gtamaplib import gtamapdata as md
 from gtamaplib.gtamaplib import FourSeasons, get_camera, get_vfov, intersect_ray_and_ray, intersect_rays
 
-from import_data import (
+from utils.import_data import (
     CONFIG_JSON_PATH,
     IMPORT_EXTRAS_JSON_PATH,
     SPECIAL_JSON_PATH,

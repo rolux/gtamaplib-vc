@@ -16,6 +16,8 @@ data/observation_edits.json
 ui/data/overlay.json
 ui/*-bw.jpg
 ui/thumbnails/
+optimizer/chain.json
+optimizer/configs/
 optimizer/result.json
 optimizer/results/
 optimizer/renders/

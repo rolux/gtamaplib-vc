@@ -2902,7 +2902,7 @@ def world_snapshot_cameras(path: Path) -> dict[str, dict[str, Any]]:
 
 
 def refresh_ui_overlay_from_world_snapshot(path: Path = OPTIMIZER_RESULT_PATH) -> None:
-    from import_data import write_ui_overlay_data
+    from utils.import_data import write_ui_overlay_data
 
     original_cameras = md.cameras
     md.cameras = world_snapshot_cameras(path)

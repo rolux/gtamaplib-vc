@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from utils.optimizer_defaults import ensure_optimizer_defaults
+
 
 ROOT = Path(__file__).resolve().parent
 GTAMAPLIB = ROOT / "gtamaplib"
@@ -29,8 +31,9 @@ def main() -> None:
     print("Note: updating gtamaplib may change imported cameras, landmarks, observations, and optimizer inputs.")
     update_repo(GTAMAPLIB, "gtamaplib")
     update_repo(GTADB, "gtadb.org")
-    run([sys.executable, "import_data.py"])
-    run([sys.executable, "generate_priors.py"])
+    ensure_optimizer_defaults()
+    run([sys.executable, "utils/import_data.py"])
+    run([sys.executable, "utils/generate_priors.py"])
 
 
 if __name__ == "__main__":

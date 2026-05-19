@@ -14,7 +14,7 @@ import numpy as np
 from PIL import Image
 
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 UPSTREAM = ROOT / "gtamaplib"
 DATA_DIR = ROOT / "data"
 UI_DIR = ROOT / "ui"

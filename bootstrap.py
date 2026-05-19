@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from utils.optimizer_defaults import ensure_optimizer_defaults
+
 
 ROOT = Path(__file__).resolve().parent
 GTAMAPLIB = ROOT / "gtamaplib"
@@ -61,10 +63,11 @@ def ensure_gtadb_tiles() -> None:
 
 
 def main() -> None:
+    ensure_optimizer_defaults()
     ensure_gtamaplib()
     ensure_gtadb_tiles()
-    run([sys.executable, "import_data.py"])
-    run([sys.executable, "generate_priors.py"])
+    run([sys.executable, "utils/import_data.py"])
+    run([sys.executable, "utils/generate_priors.py"])
 
 
 if __name__ == "__main__":

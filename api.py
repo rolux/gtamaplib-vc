@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from import_data import (
+from utils.import_data import (
     DATA_DIR,
     OBSERVATION_EDITS_JSON_PATH,
     add_import_path,

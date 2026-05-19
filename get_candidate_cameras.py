@@ -6,7 +6,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from import_data import (
+from utils.import_data import (
     IMPORT_EXTRAS_JSON_PATH,
     add_import_path,
     is_ignored_triangulation_landmark,

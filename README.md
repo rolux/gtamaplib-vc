@@ -43,18 +43,18 @@ git pull
 python3 update.py
 ```
 
-This first updates **gtamaplib-vc** itself, then runs `git pull --ff-only` in the external dependency checkouts and runs `import_data.py`.
+This first updates **gtamaplib-vc** itself, then runs `git pull --ff-only` in the external dependency checkouts and runs `utils/import_data.py`.
 
 Updating **gtamaplib** may change imported cameras, landmarks, observations, and pre-triangulated points. Existing optimizer results may no longer describe exactly the same starting data after an update. The same is true for updating **gtamaplib-vc** itself, which may change the behavior of the optimizer.
 
 ## Regenerating Data
 
-`bootstrap.py` already runs the importer. `update.py` also runs the importer after pulling dependencies. You do not need to run `import_data.py` after either command.
+`bootstrap.py` already runs the importer. `update.py` also runs the importer after pulling dependencies. You do not need to run `utils/import_data.py` after either command.
 
 During development, if you only want to regenerate local browser data without pulling external repositories, run:
 
 ```bash
-python3 import_data.py
+python3 utils/import_data.py
 ```
 
 The importer writes `data/gtamapdata.json` from **gtamaplib**, creates editable `data/special.json` and `data/config.json` files if missing, writes generated VC additions to `data/import_extras.json`, creates `ui/data/overlay.json`, and generates thumbnails in `ui/thumbnails/`.
@@ -67,6 +67,8 @@ data/import_extras.json
 ui/data/overlay.json
 ui/*-bw.jpg
 ui/thumbnails/
+optimizer/chain.json
+optimizer/configs/
 optimizer/result.json
 optimizer/results/
 optimizer/renders/
@@ -101,7 +103,7 @@ The UI allows you to add, move, rename, and remove observations. These edits are
 If **gtamaplib** changes and you want to rebuild the generated upstream browser data, run:
 
 ```bash
-python3 import_data.py
+python3 utils/import_data.py
 ```
 
 This keeps **gtamaplib** as the upstream source of cameras, landmarks, frames, and initial observations, while allowing private local annotation edits in **gtamaplib-vc**. The optimizer uses the same model: load the imported **gtamaplib** data, then explicitly apply local observation edits on top.
@@ -114,9 +116,12 @@ The optimizer chain lives in `optimizer/`:
 optimizer/chain.json
 optimizer/priors.json
 optimizer/configs/
+optimizer/defaults/
 optimizer/results/
 optimizer/renders/
 ```
+
+`optimizer/defaults/` contains the checked-in default chain and stage configs. `bootstrap.py` and `update.py` copy these into `optimizer/chain.json` and `optimizer/configs/` if they are missing, but never overwrite existing local files. The live chain and configs are intentionally ignored by git, so you can edit them freely.
 
 `optimizer/chain.json` is a plain ordered list of camera names. Each camera has a matching config file in `optimizer/configs/` that lists the landmarks, rays, and objects used for that calibration stage.
 
