@@ -41,6 +41,7 @@ const STORAGE = {
 const MIN_VISIBLE_IMAGE_PX = 64;
 const MAP_FOCUS_ZOOM = 3.05;
 const DISABLE_MAP_SVG_OVERLAY = false;
+const FAKE_CAMERA_SUFFIX = " Fake Cam";
 
 const els = {
   cameraFind: document.querySelector("#camera-find"),
@@ -99,6 +100,10 @@ function mapPointFromXyz(xyz) {
     x: map.zero[0] + xyz[0] * map.scale,
     y: map.zero[1] - xyz[1] * map.scale,
   };
+}
+
+function isUserFacingCameraName(name) {
+  return !name.endsWith(FAKE_CAMERA_SUFFIX);
 }
 
 function applyWorldSnapshot(snapshot) {
@@ -756,6 +761,7 @@ function renderGuides(layer) {
 function renderCameraCones(layer) {
   const cones = state.data.uiOverlay?.cones?.[state.camera.name] || [];
   for (const cone of cones) {
+    if (!isUserFacingCameraName(cone.camera)) continue;
     const coneCamera = cameraByName.get(cone.camera);
     const group = svg("g", { class: "camera-cone" });
     const title = svg("title");
@@ -1959,6 +1965,7 @@ async function init() {
   const response = await fetch("/data/gtamapdata.json");
   if (!response.ok) throw new Error(`Could not load gtamapdata: ${response.status}`);
   state.data = await response.json();
+  state.data.cameras = state.data.cameras.filter((camera) => isUserFacingCameraName(camera.name));
   const configResponse = await fetch("/data/config.json");
   state.data.config = configResponse.ok ? await configResponse.json() : {};
   replayObservationEdits(await loadObservationEdits());
