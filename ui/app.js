@@ -1781,6 +1781,12 @@ function moveCameraSelection(delta) {
   selectCamera(cameras[next].name);
 }
 
+function selectCameraEdge(index) {
+  const cameras = cameraRows();
+  if (!cameras.length) return;
+  selectCamera(cameras[index].name);
+}
+
 function moveLandmarkSelection(delta) {
   const observations = landmarkRows();
   if (!observations.length) return;
@@ -1789,6 +1795,12 @@ function moveLandmarkSelection(delta) {
     : -1;
   const next = Math.min(observations.length - 1, Math.max(0, current + delta));
   selectLandmark(observations[next].landmark, true);
+}
+
+function selectLandmarkEdge(index) {
+  const observations = landmarkRows();
+  if (!observations.length) return;
+  selectLandmark(observations[index].landmark, true);
 }
 
 function zoomAt(mouseX, mouseY, factor) {
@@ -2148,6 +2160,18 @@ function wireControls() {
     if (plainKey && state.focus === "map" && ["ArrowDown", "ArrowLeft", "ArrowRight", "ArrowUp"].includes(event.key)) {
       event.preventDefault();
       startKeyboardNavigation(event.key);
+      return;
+    }
+    if (plainKey && ["ArrowLeft", "ArrowRight"].includes(event.key) && state.focus !== "map") {
+      event.preventDefault();
+      const index = event.key === "ArrowLeft" ? 0 : Number.POSITIVE_INFINITY;
+      if (state.focus === "landmarks") {
+        const observations = landmarkRows();
+        selectLandmarkEdge(index === 0 ? 0 : observations.length - 1);
+      } else {
+        const cameras = cameraRows();
+        selectCameraEdge(index === 0 ? 0 : cameras.length - 1);
+      }
       return;
     }
     if (plainKey && event.key.toLowerCase() === "a" && !els.addObservation.hidden) {
