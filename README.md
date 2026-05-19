@@ -155,6 +155,16 @@ python3 render_loss.py --camera "Leonida Keys 01 (Airplane) (X)"
 
 The defaults are `--spacing 10`, `--budget 1000`, and `--max-steps 100`.
 
+You can also render projection helpers into `optimizer/renders/projections/`:
+
+```bash
+python3 project.py cam-onto-map "Leonida Keys 01 (Airplane) (X)" --output cam-onto-map.png
+python3 project.py cam-onto-map "Keys" "Leonida Keys 01 (Airplane) (X)" "Leonida Keys Postcard (X)" --output cams-onto-map.png
+python3 project.py map-into-cam "Leonida Keys 01 (Airplane) (X)" --output map-into-cam.png
+python3 project.py cam-into-cam "Leonida Keys Postcard (X)" "Leonida Keys 01 (Airplane) (X)" --output cam-into-cam.png
+python3 project.py map -5220 5580 200 135 -10 0 60 --output map.png
+```
+
 ## Notes
 
 Inspired by prior work from Neutral_State on the GTA VI Mapping Discord.
