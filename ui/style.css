@@ -169,8 +169,13 @@ body:not(.is-dragging) .item:not(.selected):hover {
 }
 
 .item.selected {
-  background: #fff;
+  background: #dfdfdf;
   color: #000;
+}
+
+body[data-focus="cameras"] #camera-list .item.selected,
+body[data-focus="landmarks"] #landmark-list .item.selected {
+  background: #fff;
 }
 
 .item-name {

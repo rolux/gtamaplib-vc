@@ -42,8 +42,12 @@ const STORAGE = {
 
 const MIN_VISIBLE_IMAGE_PX = 64;
 const MAP_FOCUS_ZOOM = 3.05;
+const KEYBOARD_PAN_AMOUNT = 0.025;
+const KEYBOARD_ZOOM_AMOUNT = 0.025;
+const KEYBOARD_FRAME_MS = 1000 / 60;
 const DISABLE_MAP_SVG_OVERLAY = false;
 const FAKE_CAMERA_SUFFIX = " Fake Cam";
+const FOCUS_ORDER = ["cameras", "map", "landmarks"];
 
 const els = {
   cameraFind: document.querySelector("#camera-find"),
@@ -89,6 +93,11 @@ const cameraByName = new Map();
 const landmarkByName = new Map();
 const previewImages = new Map();
 let previewRequest = 0;
+const keyboardNavigation = {
+  keys: new Set(),
+  frame: null,
+  timestamp: null,
+};
 const tileMap = new GtaTileMap();
 tileMap.onLoad = () => {
   if (state.view === "map") renderMap();
@@ -273,8 +282,15 @@ function setStoredBoolean(key, value) {
   localStorage.setItem(key, value ? "true" : "false");
 }
 
+function setFocus(zone) {
+  if (!FOCUS_ORDER.includes(zone)) return;
+  state.focus = zone;
+  document.body.dataset.focus = zone;
+}
+
 function applyGlobalSettings() {
   document.body.classList.toggle("use-monospace-font", state.settings.useMonospaceFont);
+  document.body.dataset.focus = state.focus;
 }
 
 function refreshSettingsDependentViews() {
@@ -389,7 +405,7 @@ function renderCameraList() {
     nameSlot.textContent = cameraLabel(camera);
     row.title = camera.name;
     row.addEventListener("mousedown", (event) => {
-      state.focus = "cameras";
+      setFocus("cameras");
       selectCamera(camera.name, event.metaKey || event.ctrlKey, true);
     });
     els.cameraList.append(row);
@@ -458,7 +474,7 @@ function renderLandmarkList() {
     }
     row.title = observation.landmark;
     row.addEventListener("mousedown", (event) => {
-      state.focus = "landmarks";
+      setFocus("landmarks");
       if (isEditing && event.target.classList.contains("item-name-input")) return;
       selectLandmark(observation.landmark, true, event.metaKey || event.ctrlKey);
     });
@@ -817,7 +833,7 @@ function renderCameraCones(layer) {
     }
     group.addEventListener("mousedown", (event) => {
       event.stopPropagation();
-      state.focus = "cameras";
+      setFocus("cameras");
       selectCameraFromCone(cone.camera, event.metaKey || event.ctrlKey);
     });
     group.addEventListener("mouseenter", () => showConePreview(cone));
@@ -851,6 +867,7 @@ function renderOverlay() {
     circle.dataset.landmark = observation.landmark;
     circle.addEventListener("mousedown", (event) => {
       event.stopPropagation();
+      setFocus("landmarks");
       if (isEditing) {
         startObservationDrag(event, observation);
         return;
@@ -950,7 +967,7 @@ function renderMap() {
     group.append(marker);
     group.addEventListener("mousedown", (event) => {
       event.stopPropagation();
-      state.focus = "cameras";
+      setFocus("cameras");
       selectCamera(camera.name, event.metaKey || event.ctrlKey, false);
     });
     coneLayer.append(group);
@@ -975,7 +992,7 @@ function renderMap() {
     marker.append(title);
     marker.addEventListener("mousedown", (event) => {
       event.stopPropagation();
-      state.focus = "landmarks";
+      setFocus("landmarks");
       selectLandmark(landmark.name, false, event.metaKey || event.ctrlKey);
     });
     landmarkLayer.append(marker);
@@ -1737,15 +1754,10 @@ function moveLandmarkSelection(delta) {
   selectLandmark(observations[next].landmark, true);
 }
 
-function onWheel(event) {
+function zoomAt(mouseX, mouseY, factor) {
   if (!currentStageSize()) return;
-  event.preventDefault();
-  const rect = els.viewport.getBoundingClientRect();
-  const mouseX = event.clientX - rect.left;
-  const mouseY = event.clientY - rect.top;
   const imageX = (mouseX - state.panX) / state.scale;
   const imageY = (mouseY - state.panY) / state.scale;
-  const factor = Math.exp(-event.deltaY * 0.001);
   if (state.view === "map") {
     const before = tileMap.screenToWorld(mouseX, mouseY, mapView());
     state.map.zoom = Math.min(6, Math.max(0, state.map.zoom + Math.log2(factor)));
@@ -1766,10 +1778,21 @@ function onWheel(event) {
   applyTransform();
 }
 
+function onWheel(event) {
+  if (!currentStageSize()) return;
+  event.preventDefault();
+  const rect = els.viewport.getBoundingClientRect();
+  zoomAt(
+    event.clientX - rect.left,
+    event.clientY - rect.top,
+    Math.exp(-event.deltaY * 0.001),
+  );
+}
+
 function installPan() {
   let drag = null;
   els.viewport.addEventListener("mousedown", (event) => {
-    state.focus = "viewer";
+    setFocus("map");
     if (!currentStageSize()) return;
     if (event.target.closest?.(".marker, .camera-cone, .map-camera, .map-landmark-marker")) return;
     state.dragging = true;
@@ -1842,6 +1865,124 @@ function installPan() {
   });
 }
 
+function focusFindField() {
+  const input = state.focus === "landmarks" ? els.landmarkFind : state.focus === "cameras" ? els.cameraFind : null;
+  if (!input) return false;
+  input.focus();
+  input.select();
+  return true;
+}
+
+function clearFocusedFindField() {
+  const input = state.focus === "landmarks" ? els.landmarkFind : state.focus === "cameras" ? els.cameraFind : null;
+  if (!input || !input.value) return false;
+  input.value = "";
+  if (state.focus === "landmarks") renderLandmarkList();
+  else renderCameraList();
+  return true;
+}
+
+function cycleFocus(reverse = false) {
+  const current = FOCUS_ORDER.includes(state.focus) ? FOCUS_ORDER.indexOf(state.focus) : 0;
+  const delta = reverse ? -1 : 1;
+  setFocus(FOCUS_ORDER[(current + delta + FOCUS_ORDER.length) % FOCUS_ORDER.length]);
+}
+
+function setMapZoom(zoom) {
+  state.map.zoom = Math.min(6, Math.max(0, zoom));
+  if (state.view === "map") {
+    renderMap();
+    renderCameraPreview();
+  }
+}
+
+function panCameraView(dx, dy) {
+  if (state.view === "map") return;
+  state.panX += dx;
+  state.panY += dy;
+  applyTransform();
+}
+
+function runKeyboardNavigation(timestamp) {
+  if (keyboardNavigation.frame === null) return;
+  const deltaFactor = keyboardNavigation.timestamp === null
+    ? 1
+    : Math.min((timestamp - keyboardNavigation.timestamp) / KEYBOARD_FRAME_MS, 2);
+  keyboardNavigation.timestamp = timestamp;
+
+  const rect = els.viewport.getBoundingClientRect();
+  const centerX = rect.width / 2;
+  const centerY = rect.height / 2;
+  const zoomStep = KEYBOARD_ZOOM_AMOUNT * deltaFactor;
+
+  if (keyboardNavigation.keys.has("-")) {
+    if (state.view === "map") setMapZoom(state.map.zoom - zoomStep);
+    else zoomAt(centerX, centerY, Math.pow(2, -zoomStep));
+  }
+  if (keyboardNavigation.keys.has("=")) {
+    if (state.view === "map") setMapZoom(state.map.zoom + zoomStep);
+    else zoomAt(centerX, centerY, Math.pow(2, zoomStep));
+  }
+
+  if (state.focus === "map") {
+    if (state.view === "map") {
+      const panStep = tileMap.metersPerPixel(state.map.zoom) * rect.height * KEYBOARD_PAN_AMOUNT * deltaFactor;
+      let x = state.map.centerX;
+      let y = state.map.centerY;
+      if (keyboardNavigation.keys.has("ArrowDown")) y -= panStep;
+      if (keyboardNavigation.keys.has("ArrowLeft")) x -= panStep;
+      if (keyboardNavigation.keys.has("ArrowRight")) x += panStep;
+      if (keyboardNavigation.keys.has("ArrowUp")) y += panStep;
+      if (x !== state.map.centerX || y !== state.map.centerY) {
+        state.map.centerX = x;
+        state.map.centerY = y;
+        renderMap();
+        renderCameraPreview();
+      }
+    } else {
+      const panStep = rect.height * KEYBOARD_PAN_AMOUNT * deltaFactor;
+      let dx = 0;
+      let dy = 0;
+      if (keyboardNavigation.keys.has("ArrowDown")) dy -= panStep;
+      if (keyboardNavigation.keys.has("ArrowLeft")) dx += panStep;
+      if (keyboardNavigation.keys.has("ArrowRight")) dx -= panStep;
+      if (keyboardNavigation.keys.has("ArrowUp")) dy += panStep;
+      if (dx || dy) panCameraView(dx, dy);
+    }
+  }
+
+  if (keyboardNavigation.keys.size) {
+    keyboardNavigation.frame = requestAnimationFrame(runKeyboardNavigation);
+  } else {
+    keyboardNavigation.frame = null;
+    keyboardNavigation.timestamp = null;
+  }
+}
+
+function startKeyboardNavigation(key) {
+  keyboardNavigation.keys.add(key);
+  if (keyboardNavigation.frame !== null) return;
+  keyboardNavigation.timestamp = null;
+  keyboardNavigation.frame = requestAnimationFrame(runKeyboardNavigation);
+}
+
+function stopKeyboardNavigation(key) {
+  keyboardNavigation.keys.delete(key);
+  if (keyboardNavigation.keys.size || keyboardNavigation.frame === null) return;
+  cancelAnimationFrame(keyboardNavigation.frame);
+  keyboardNavigation.frame = null;
+  keyboardNavigation.timestamp = null;
+}
+
+function stopAllKeyboardNavigation() {
+  keyboardNavigation.keys.clear();
+  if (keyboardNavigation.frame !== null) {
+    cancelAnimationFrame(keyboardNavigation.frame);
+    keyboardNavigation.frame = null;
+  }
+  keyboardNavigation.timestamp = null;
+}
+
 function wireControls() {
   els.settingsButton.addEventListener("click", openSettingsDialog);
   els.dialogClose.addEventListener("click", closeDialog);
@@ -1876,16 +2017,22 @@ function wireControls() {
     renderLandmarkList();
   });
   els.cameraFind.addEventListener("focus", () => {
-    state.focus = "cameras";
+    setFocus("cameras");
   });
   els.cameraSort.addEventListener("focus", () => {
-    state.focus = "cameras";
+    setFocus("cameras");
   });
   els.landmarkFind.addEventListener("focus", () => {
-    state.focus = "landmarks";
+    setFocus("landmarks");
   });
   els.landmarkSort.addEventListener("focus", () => {
-    state.focus = "landmarks";
+    setFocus("landmarks");
+  });
+  els.cameraPanel.addEventListener("mousedown", () => {
+    setFocus("cameras");
+  });
+  els.landmarkPanel.addEventListener("mousedown", () => {
+    setFocus("landmarks");
   });
   els.addObservation.addEventListener("click", () => runObservationAction("add"));
   els.editObservation.addEventListener("click", () => runObservationAction("edit"));
@@ -1903,9 +2050,10 @@ function wireControls() {
   window.addEventListener("resize", fitStage);
   window.addEventListener("hashchange", applyHash);
   window.addEventListener("keydown", (event) => {
-    const tag = document.activeElement?.tagName;
-    if (tag === "INPUT" && document.activeElement?.type === "search") return;
+    const activeElement = document.activeElement;
+    if (activeElement?.matches?.("input, textarea, select, [contenteditable]")) return;
     const plainKey = !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;
+    const unmodifiedKey = !event.altKey && !event.ctrlKey && !event.metaKey;
     if (event.key === "Escape") {
       if (!els.dialogBackdrop.hidden) {
         event.preventDefault();
@@ -1920,6 +2068,12 @@ function wireControls() {
         event.preventDefault();
         writeHash(null, null);
       }
+      return;
+    }
+    if (!els.dialogBackdrop.hidden) return;
+    if (event.key === "Tab") {
+      event.preventDefault();
+      cycleFocus(event.shiftKey);
       return;
     }
     if (event.key === "Enter" && (state.editMode || state.renameMode)) {
@@ -1940,6 +2094,26 @@ function wireControls() {
     if (plainKey && event.key === ",") {
       event.preventDefault();
       openSettingsDialog();
+      return;
+    }
+    if (unmodifiedKey && event.key.toLowerCase() === "f") {
+      const handled = event.shiftKey ? clearFocusedFindField() : focusFindField();
+      if (handled) event.preventDefault();
+      return;
+    }
+    if (plainKey && "0123456".includes(event.key)) {
+      event.preventDefault();
+      setMapZoom(Number(event.key));
+      return;
+    }
+    if (plainKey && ["-", "="].includes(event.key)) {
+      event.preventDefault();
+      startKeyboardNavigation(event.key);
+      return;
+    }
+    if (plainKey && state.focus === "map" && ["ArrowDown", "ArrowLeft", "ArrowRight", "ArrowUp"].includes(event.key)) {
+      event.preventDefault();
+      startKeyboardNavigation(event.key);
       return;
     }
     if (plainKey && event.key.toLowerCase() === "a" && !els.addObservation.hidden) {
@@ -1971,6 +2145,12 @@ function wireControls() {
       moveCameraSelection(delta);
     }
   });
+  window.addEventListener("keyup", (event) => {
+    if (["-", "=", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowUp"].includes(event.key)) {
+      stopKeyboardNavigation(event.key);
+    }
+  });
+  window.addEventListener("blur", stopAllKeyboardNavigation);
   installPan();
 }
 
