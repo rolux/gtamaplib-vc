@@ -2415,18 +2415,35 @@ def print_new_priors(report: dict[str, Any]) -> None:
         row["name"]: row.get("source")
         for row in report.get("landmarks", [])
     }
+    triangulations_by_name: dict[str, list[dict[str, Any]]] = {}
+    for row in report["triangulations"]:
+        triangulations_by_name.setdefault(row["name"], []).append(row)
+    printed_names: set[str] = set()
     for row in report["triangulations"]:
         if landmark_sources.get(row["name"]) != "triangulated":
             continue
+        if row["name"] in printed_names:
+            continue
+        printed_names.add(row["name"])
         xyz = row["xyz"]
         landmark_line = (
             f'    "{row["name"]}": '
             f"({xyz[0]:.3f}, {xyz[1]:.3f}, {xyz[2]:.3f}),"
         )
         if row["type"] == "ray_triangulation":
+            cameras: list[str] = []
+            distances: list[float] = []
+            for candidate in triangulations_by_name[row["name"]]:
+                if candidate["type"] != "ray_triangulation":
+                    continue
+                distances.append(float(candidate["ray_distance_m"]))
+                for camera_name in (candidate["source_camera"], candidate["target_camera"]):
+                    if camera_name not in cameras:
+                        cameras.append(camera_name)
+            distance = sum(distances) / len(distances) if distances else float(row["ray_distance_m"])
             comment = (
-                f"d={row['ray_distance_m']:.3f} "
-                f"via {row['source_camera']} & {row['target_camera']}"
+                f"d={distance:.3f} "
+                f"via {' & '.join(cameras)}"
             )
         else:
             comment = f"z={row.get('ground_z', GROUND_Z):g} via {row['target_camera']}"
