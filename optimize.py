@@ -524,6 +524,10 @@ def load_prior_batch(path: Path, batch_id: str | None = None) -> dict[str, Any]:
     return prior_rows_to_dict(rows, batch_id)
 
 
+def compact_json(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=False, separators=(", ", ": "))
+
+
 def append_prior_batch(path: Path, batch: list[Any]) -> bool:
     data = json.loads(path.read_text())
     batch_id = batch[0]
@@ -3232,7 +3236,7 @@ def print_stage_config_report(
     print(f"Configured landmarks ({len(configured_landmarks)}):")
     for name in configured_landmarks:
         status = "ok" if name in available_landmarks else "missing"
-        print(f"  [{status}] {name}{config_landmark_note(name)}")
+        print(f"  [{status}] {compact_json(name)}{config_landmark_note(name)}")
     print()
     print(f"Configured rays ({len(configured_rays)}):")
     available_ray_lookup = {
@@ -3244,32 +3248,24 @@ def print_stage_config_report(
         if baseline is None:
             baseline = configured_ray_baseline(solve, priors, source_camera_name, landmark_name, blocked_cameras)
         if baseline is None:
-            print(f"  [missing] {source_camera_name} -> {landmark_name}")
+            print(f"  [missing] {compact_json([source_camera_name, landmark_name])}")
         elif baseline < min_triangulation_baseline_degrees():
-            print(f"  [!! {baseline:.3f}°] {source_camera_name} -> {landmark_name}")
+            print(f"  [!! {baseline:.3f}°] {compact_json([source_camera_name, landmark_name])}")
         else:
-            print(f"  [ok {baseline:.3f}°] {source_camera_name} -> {landmark_name}")
+            print(f"  [ok {baseline:.3f}°] {compact_json([source_camera_name, landmark_name])}")
     print()
     configured_objects = solve.get("horizontal_objects", [])
     print(f"Configured objects ({len(configured_objects)}):")
     for row in configured_objects:
-        print(
-            "  [{orientation}] {point_a} | {point_b} | {length:.3f}m | z={z:.3f}".format(
-                orientation=row["orientation"],
-                point_a=row["point_a"],
-                point_b=row["point_b"],
-                length=float(row["length_m"]),
-                z=float(row["z"]),
-            )
-        )
+        print(f"  {compact_json([row['point_a'], row['point_b'], row['orientation'], row['length_m'], row['z']])}")
     print()
     print(f"Available unused landmarks ({len(unused_landmarks)}):")
     for name in unused_landmarks:
-        print(f"  {name}{config_landmark_note(name)}{landmark_via_note(name, landmark_sources)}")
+        print(f"  {compact_json(name)}{config_landmark_note(name)}{landmark_via_note(name, landmark_sources)}")
     print()
     print(f"Available unused rays ({len(unused_rays)}):")
     for source_camera_name, landmark_name, baseline in unused_rays:
-        print(f"  [{baseline:.3f}°] {source_camera_name} -> {landmark_name}")
+        print(f"  [{baseline:.3f}°] {compact_json([source_camera_name, landmark_name])}")
     print()
 
 
