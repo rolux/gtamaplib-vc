@@ -2989,6 +2989,14 @@ def latest_chain_result(chain: list[str]) -> tuple[int, dict[str, Any]] | None:
     return latest
 
 
+def write_optimizer_stage_result(report: dict[str, Any], output: Path) -> None:
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(report, indent=4, ensure_ascii=False) + "\n")
+    print()
+    print(f"Wrote {output}")
+    write_optimizer_result_snapshot(report, output)
+
+
 def solve_from_chain_stage(camera_name: str) -> dict[str, Any]:
     config_path = config_path_for_camera(camera_name)
     config = load_optimizer_config(config_path)
@@ -3338,9 +3346,78 @@ def validate_stage_order(
         )
 
 
+def run_optimizer_stage(
+    args: argparse.Namespace,
+    chain: list[str],
+    stage_index: int,
+    *,
+    render: bool,
+    output_override: Path | None = None,
+) -> dict[str, Any]:
+    solve = solve_from_chain_stage(chain[stage_index])
+    solves = load_chain_solves(chain, stage_index)
+    priors = load_optimizer_priors(stage_index, chain)
+    blocked_cameras = future_chain_cameras(chain, stage_index)
+    add_required_synthetic_priors(priors, solve, blocked_cameras)
+    validate_stage_order(solve, priors, blocked_cameras)
+    report = solve_camera(
+        solve,
+        priors,
+        max_nfev=args.max_steps_local,
+        loss=args.loss,
+        f_scale=args.f_scale,
+        x_scale=args.x_scale,
+        verbose=0,
+    )
+    global_report = solve_global_system(
+        solve,
+        priors,
+        report,
+        solves,
+        max_nfev=args.max_steps_global or args.max_steps_local,
+        loss=args.loss,
+        f_scale=args.f_scale,
+        x_scale=args.x_scale,
+        verbose=args.verbose,
+    )
+    print_optimizer_camera_report(report, global_report)
+    if args.local_details:
+        print_report(report)
+    print_global_report(global_report)
+    print_new_priors(global_report)
+    pipeline_report = {
+        "schema": "gtamaplib-chain-find-camera-pipeline-result-v1",
+        "solve_id": report["solve_id"],
+        "camera_name": report["camera_name"],
+        "prior_batch_id": report["prior_batch_id"],
+        "local": report,
+        "global": global_report,
+    }
+
+    output = output_override or result_path_for_stage(stage_index, pipeline_report["camera_name"])
+    write_optimizer_stage_result(pipeline_report, output)
+    if render:
+        refresh_ui_overlay_from_world_snapshot()
+        print()
+        render_camera_names = render_camera_names_for_step(solves, pipeline_report)
+        rendered = render_optimizer_result(
+            pipeline_report,
+            RENDERS_DIR,
+            DEFAULT_RENDER_MAP_NAME,
+            None,
+            DEFAULT_RENDER_CAMERA_SCALE,
+            DEFAULT_RENDER_RAY_DISTANCE,
+            render_camera_names,
+        )
+        print(f"Rendered {len(rendered)} image(s) to {RENDERS_DIR}")
+        print()
+    return pipeline_report
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--stage", help="Camera name or 1-based index from optimizer/chain.json")
+    parser.add_argument("--all", action="store_true", help="Run all optimizer stages and render once at the end.")
     parser.add_argument("--config", action="store_true", help="Print available and configured inputs for the stage.")
     parser.add_argument("--result", action="store_true", help="Print the saved result summary for the stage.")
     parser.add_argument("--results", action="store_true", help="Print the latest chain result summary.")
@@ -3377,8 +3454,36 @@ def main() -> None:
     if args.results:
         print_chain_results_summary(chain)
         return
+    if args.all:
+        if args.config or args.result:
+            parser.error("--all cannot be combined with --config or --result")
+        if args.output:
+            parser.error("--output cannot be used with --all")
+        final_report = None
+        for stage_index, camera_name in enumerate(chain):
+            print()
+            print(f"Running stage {stage_index + 1}/{len(chain)}: {camera_name}")
+            final_report = run_optimizer_stage(args, chain, stage_index, render=False)
+        if final_report is None:
+            parser.error("optimizer/chain.json is empty")
+        refresh_ui_overlay_from_world_snapshot()
+        print()
+        solves = load_chain_solves(chain, len(chain) - 1)
+        render_camera_names = render_camera_names_for_step(solves, final_report)
+        rendered = render_optimizer_result(
+            final_report,
+            RENDERS_DIR,
+            DEFAULT_RENDER_MAP_NAME,
+            None,
+            DEFAULT_RENDER_CAMERA_SCALE,
+            DEFAULT_RENDER_RAY_DISTANCE,
+            render_camera_names,
+        )
+        print(f"Rendered {len(rendered)} image(s) to {RENDERS_DIR}")
+        print()
+        return
     if not args.stage:
-        parser.error("--stage is required unless --results is used")
+        parser.error("--stage is required unless --all or --results is used")
     stage_index = stage_index_for_id(chain, args.stage)
     solve = solve_from_chain_stage(chain[stage_index])
     solves = load_chain_solves(chain, stage_index)
@@ -3398,63 +3503,7 @@ def main() -> None:
         result = json.loads(output.read_text())
         print_optimizer_camera_report(result["local"], result["global"], local_pass=False)
         return
-    validate_stage_order(solve, priors, blocked_cameras)
-    report = solve_camera(
-        solve,
-        priors,
-        max_nfev=args.max_steps_local,
-        loss=args.loss,
-        f_scale=args.f_scale,
-        x_scale=args.x_scale,
-        verbose=0,
-    )
-    global_report = solve_global_system(
-        solve,
-        priors,
-        report,
-        solves,
-        max_nfev=args.max_steps_global or args.max_steps_local,
-        loss=args.loss,
-        f_scale=args.f_scale,
-        x_scale=args.x_scale,
-        verbose=args.verbose,
-    )
-    print_optimizer_camera_report(report, global_report)
-    if args.local_details:
-        print_report(report)
-    print_global_report(global_report)
-    print_new_priors(global_report)
-    report = {
-        "schema": "gtamaplib-chain-find-camera-pipeline-result-v1",
-        "solve_id": report["solve_id"],
-        "camera_name": report["camera_name"],
-        "prior_batch_id": report["prior_batch_id"],
-        "local": report,
-        "global": global_report,
-    }
-
-    output = args.output
-    if output is None:
-        output = result_path_for_stage(stage_index, report["camera_name"])
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(report, indent=4, ensure_ascii=False) + "\n")
-    print()
-    print(f"Wrote {output}")
-    write_optimizer_result_snapshot(report, output)
-    refresh_ui_overlay_from_world_snapshot()
-    print()
-    render_camera_names = render_camera_names_for_step(solves, report)
-    rendered = render_optimizer_result(
-        report,
-        RENDERS_DIR,
-        DEFAULT_RENDER_MAP_NAME,
-        None,
-        DEFAULT_RENDER_CAMERA_SCALE,
-        DEFAULT_RENDER_RAY_DISTANCE,
-        render_camera_names,
-    )
-    print(f"Rendered {len(rendered)} image(s) to {RENDERS_DIR}")
-    print()
+    run_optimizer_stage(args, chain, stage_index, render=True, output_override=args.output)
 
 
 if __name__ == "__main__":
