@@ -19,6 +19,7 @@ const state = {
   renameMode: false,
   editingObservation: null,
   settings: {
+    useMonospaceFont: false,
     showCameraIDs: false,
     onlyShowCamerasForSelectedLandmark: false,
     blurLeaks: false,
@@ -33,6 +34,7 @@ const state = {
 const STORAGE = {
   sortCameras: "gtamaplibvc.sortCameras",
   sortLandmarks: "gtamaplibvc.sortLandmarks",
+  useMonospaceFont: "gtamaplibvc.useMonospaceFont",
   showCameraIDs: "gtamaplibvc.showCameraIDs",
   onlyShowCamerasForSelectedLandmark: "gtamaplibvc.onlyShowCamerasForSelectedLandmark",
   blurLeaks: "gtamaplibvc.blurLeaks",
@@ -248,7 +250,12 @@ function setStoredBoolean(key, value) {
   localStorage.setItem(key, value ? "true" : "false");
 }
 
+function applyGlobalSettings() {
+  document.body.classList.toggle("use-monospace-font", state.settings.useMonospaceFont);
+}
+
 function refreshSettingsDependentViews() {
+  applyGlobalSettings();
   renderCameraList();
   updateGlobalStatus();
   if (state.camera) {
@@ -292,6 +299,7 @@ function openSettingsDialog() {
   const content = document.createElement("div");
   content.className = "settings-list";
   content.append(
+    settingCheckbox("Use monospace font", "useMonospaceFont"),
     settingCheckbox("Show camera IDs", "showCameraIDs"),
     settingCheckbox("Only show cameras for selected landmark", "onlyShowCamerasForSelectedLandmark"),
     settingCheckbox("Blur leaks", "blurLeaks"),
@@ -1956,9 +1964,11 @@ function restorePreferences() {
   if (landmarkSort && [...els.landmarkSort.options].some((option) => option.value === landmarkSort)) {
     els.landmarkSort.value = landmarkSort;
   }
+  state.settings.useMonospaceFont = storedBoolean(STORAGE.useMonospaceFont, false);
   state.settings.showCameraIDs = storedBoolean(STORAGE.showCameraIDs, false);
   state.settings.onlyShowCamerasForSelectedLandmark = storedBoolean(STORAGE.onlyShowCamerasForSelectedLandmark, false);
   state.settings.blurLeaks = storedBoolean(STORAGE.blurLeaks, false);
+  applyGlobalSettings();
 }
 
 async function init() {
