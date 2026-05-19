@@ -2533,7 +2533,7 @@ def render_optimizer_maps(
     with registered_render_batch(rows, camera_names) as (cameras, landmarks):
         patch_missing_map_image(map_name)
         selected_sections = sections or list(md.map_sections)
-        map_obj = get_map(map_name).open(scale=1.0, add_padding=True)
+        map_obj = get_map(map_name).open()
         draw_render_rays(map_obj, cameras, landmarks, ray_distance)
         map_obj.draw_cameras()
         map_obj.draw_landmarks()
