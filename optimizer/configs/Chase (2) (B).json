@@ -1,0 +1,11 @@
+{
+    "schema": "gtamaplibvc-optimizer-config-v1",
+    "landmarks": [
+        "Sunshine Skyway Bridge (N)"
+    ],
+    "rays": [
+        ["AI World Editor Map (4K)", "Wildfire Scooters (SE)"],
+        ["AI World Editor Map (4K)", "Wildfire Scooters (W)"]
+    ],
+    "objects": []
+}

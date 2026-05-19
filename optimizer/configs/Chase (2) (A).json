@@ -1,0 +1,13 @@
+{
+    "schema": "gtamaplibvc-optimizer-config-v1",
+    "landmarks": [
+        "Pylon (3)"
+    ],
+    "rays": [
+        ["Gas Station (Lucia)", "Oval Yellow Sign"],
+        ["Diner (W) (A)", "Sunshine Skyway Bridge (N)"],
+        ["AI World Editor Map (4K)", "Wildfire Scooters (NW)"],
+        ["AI World Editor Map (4K)", "Wildfire Scooters (S)"]
+    ],
+    "objects": []
+}
