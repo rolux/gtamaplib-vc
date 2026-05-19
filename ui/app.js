@@ -93,6 +93,7 @@ const cameraByName = new Map();
 const landmarkByName = new Map();
 const previewImages = new Map();
 let previewRequest = 0;
+let pendingMapRender = null;
 const keyboardNavigation = {
   keys: new Set(),
   frame: null,
@@ -100,8 +101,8 @@ const keyboardNavigation = {
 };
 const tileMap = new GtaTileMap();
 tileMap.onLoad = () => {
-  if (state.view === "map") renderMap();
-  renderCameraPreview();
+  if (state.view === "map") scheduleMapRender();
+  else renderCameraPreview();
 };
 
 function mapPointFromXyz(xyz) {
@@ -302,7 +303,7 @@ function refreshSettingsDependentViews() {
     renderCameraPreview();
   }
   clearPreview();
-  if (state.view === "map") renderMap();
+  if (state.view === "map") scheduleMapRender();
 }
 
 function settingCheckbox(label, key) {
@@ -632,7 +633,7 @@ function fitMap() {
   const metersPerPixel = Math.max(20000 / size.width, 20000 / size.height);
   state.map.zoom = Math.max(0, Math.min(6, tileMap.zoomForMetersPerPixel(metersPerPixel)));
   applyTransform();
-  renderMap();
+  scheduleMapRender();
 }
 
 function applyTransform() {
@@ -882,6 +883,10 @@ function renderOverlay() {
 }
 
 function renderMap() {
+  if (pendingMapRender !== null) {
+    cancelAnimationFrame(pendingMapRender);
+    pendingMapRender = null;
+  }
   if (!state.data.map) return;
   const { width, height } = mapViewSize();
   setStageSize(width, height, true);
@@ -967,7 +972,7 @@ function renderMap() {
     group.append(marker);
     group.addEventListener("mousedown", (event) => {
       event.stopPropagation();
-      setFocus("cameras");
+      setFocus("map");
       selectCamera(camera.name, event.metaKey || event.ctrlKey, false);
     });
     coneLayer.append(group);
@@ -992,11 +997,19 @@ function renderMap() {
     marker.append(title);
     marker.addEventListener("mousedown", (event) => {
       event.stopPropagation();
-      setFocus("landmarks");
+      setFocus("map");
       selectLandmark(landmark.name, false, event.metaKey || event.ctrlKey);
     });
     landmarkLayer.append(marker);
   }
+}
+
+function scheduleMapRender() {
+  if (state.view !== "map" || pendingMapRender !== null) return;
+  pendingMapRender = requestAnimationFrame(() => {
+    pendingMapRender = null;
+    renderMap();
+  });
 }
 
 function centerMapSelection(zoom = null) {
@@ -1009,7 +1022,7 @@ function centerMapSelection(zoom = null) {
   state.map.centerX = point.x;
   state.map.centerY = point.y;
   applyTransform();
-  renderMap();
+  scheduleMapRender();
 }
 
 function centerMapOnCamera(camera, zoom = null) {
@@ -1020,7 +1033,7 @@ function centerMapOnCamera(camera, zoom = null) {
   state.map.centerX = point.x;
   state.map.centerY = point.y;
   applyTransform();
-  renderMap();
+  scheduleMapRender();
 }
 
 function renderCurrentView(resetView = false) {
@@ -1683,10 +1696,9 @@ function applyCameraSelection(name, resetView = true) {
     renderOverlay();
   } else {
     if (resetView && state.pendingMapFocus !== false) {
-      renderMap();
       centerMapSelection(Math.max(state.map.zoom, MAP_FOCUS_ZOOM));
     } else {
-      renderMap();
+      scheduleMapRender();
     }
   }
   renderCameraList();
@@ -1716,11 +1728,10 @@ function applyLandmarkSelection(name, focus) {
   renderCameraList();
   renderLandmarkList();
   if (state.view === "map") {
-    renderMap();
+    scheduleMapRender();
   } else {
     renderOverlay();
   }
-  renderCameraPreview();
   updateGlobalStatus();
   scrollSelectedIntoView(els.landmarkList);
   if (state.landmark && focus) {
@@ -1764,8 +1775,7 @@ function zoomAt(mouseX, mouseY, factor) {
     const after = tileMap.screenToWorld(mouseX, mouseY, mapView());
     state.map.centerX += before.x - after.x;
     state.map.centerY += before.y - after.y;
-    renderMap();
-    renderCameraPreview();
+    scheduleMapRender();
     return;
   }
   const minScale = state.view === "map"
@@ -1826,7 +1836,7 @@ function installPan() {
       const nextCenter = tileMap.screenToWorld(view.width / 2 - dx, view.height / 2 - dy, view);
       state.map.centerX = nextCenter.x;
       state.map.centerY = nextCenter.y;
-      renderMap();
+      scheduleMapRender();
       return;
     }
     state.panX = drag.panX + event.clientX - drag.x;
@@ -1891,8 +1901,7 @@ function cycleFocus(reverse = false) {
 function setMapZoom(zoom) {
   state.map.zoom = Math.min(6, Math.max(0, zoom));
   if (state.view === "map") {
-    renderMap();
-    renderCameraPreview();
+    scheduleMapRender();
   }
 }
 
@@ -1936,8 +1945,7 @@ function runKeyboardNavigation(timestamp) {
       if (x !== state.map.centerX || y !== state.map.centerY) {
         state.map.centerX = x;
         state.map.centerY = y;
-        renderMap();
-        renderCameraPreview();
+        scheduleMapRender();
       }
     } else {
       const panStep = rect.height * KEYBOARD_PAN_AMOUNT * deltaFactor;
