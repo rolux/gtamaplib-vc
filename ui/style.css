@@ -112,6 +112,7 @@ select {
   -webkit-appearance: none;
   padding-left: 8px;
   padding-right: 8px;
+  cursor: pointer;
 }
 
 input:focus,
@@ -125,6 +126,7 @@ button:focus-visible {
   box-shadow: none;
 }
 
+select:hover,
 button:hover {
   background: #282828;
 }
