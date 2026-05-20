@@ -832,6 +832,28 @@ function renderGuides(layer) {
   }
 }
 
+function addCameraConeSwitchHandler(element, onSwitch) {
+  element.addEventListener("mousedown", (event) => {
+    if (event.button !== 0) return;
+    event.stopPropagation();
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const shouldToggle = event.metaKey || event.ctrlKey;
+    let moved = false;
+    const onMouseMove = (moveEvent) => {
+      if (Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY) > 4) moved = true;
+    };
+    const onMouseUp = (upEvent) => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+      if (upEvent.button !== 0 || moved) return;
+      onSwitch(shouldToggle);
+    };
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+  });
+}
+
 function renderCameraCones(layer) {
   const cones = state.data.uiOverlay?.cones?.[state.camera.name] || [];
   for (const cone of cones) {
@@ -858,10 +880,9 @@ function renderCameraCones(layer) {
         stroke: coneCamera?.color || "#999",
       }));
     }
-    group.addEventListener("mousedown", (event) => {
-      event.stopPropagation();
+    addCameraConeSwitchHandler(group, (shouldToggle) => {
       setFocus("cameras");
-      selectCameraFromCone(cone.camera, event.metaKey || event.ctrlKey);
+      selectCameraFromCone(cone.camera, shouldToggle);
     });
     group.addEventListener("mouseenter", () => showConePreview(cone));
     group.addEventListener("mouseleave", clearPreview);
