@@ -19,5 +19,6 @@ ui/thumbnails/
 optimizer/chain.json
 optimizer/configs/
 optimizer/result.json
+optimizer/generated/
 optimizer/results/
 optimizer/renders/

@@ -76,7 +76,7 @@ optimizer/renders/
 
 ## Development Helpers
 
-`get_candidate_cameras.py` is an experimental helper for inspecting cameras that may be useful next in the optimization chain. Its ranking logic is still provisional.
+`generate_optimizer_chain.py` is an experimental helper for proposing a greedy optimizer chain from currently available calibration constraints. It writes the proposed chain and configs to `optimizer/generated/`, which can be run with `python3 optimize.py --generated`. Its ranking logic is still provisional.
 
 ## Server
 

@@ -18,10 +18,22 @@ CHAIN_PATH = OPTIMIZER_DIR / "chain.json"
 PRIORS_PATH = OPTIMIZER_DIR / "priors.json"
 RESULTS_DIR = OPTIMIZER_DIR / "results"
 RENDERS_DIR = OPTIMIZER_DIR / "renders"
+GENERATED_OPTIMIZER_DIR = OPTIMIZER_DIR / "generated"
+GENERATED_CHAIN_PATH = GENERATED_OPTIMIZER_DIR / "chain.json"
+GENERATED_CONFIGS_DIR = GENERATED_OPTIMIZER_DIR / "configs"
+GENERATED_RESULTS_DIR = GENERATED_OPTIMIZER_DIR / "results"
+GENERATED_RENDERS_DIR = GENERATED_OPTIMIZER_DIR / "renders"
+GENERATED_RESULT_PATH = GENERATED_OPTIMIZER_DIR / "result.json"
 IMPORT_EXTRAS_PATH = ROOT / "data" / "import_extras.json"
 CONFIG_PATH = ROOT / "data" / "config.json"
 SPECIAL_PATH = ROOT / "data" / "special.json"
 OPTIMIZER_RESULT_PATH = OPTIMIZER_DIR / "result.json"
+
+ACTIVE_CHAIN_PATH = CHAIN_PATH
+ACTIVE_CONFIGS_DIR = OPTIMIZER_DIR / "configs"
+ACTIVE_RESULTS_DIR = RESULTS_DIR
+ACTIVE_RENDERS_DIR = RENDERS_DIR
+ACTIVE_OPTIMIZER_RESULT_PATH = OPTIMIZER_RESULT_PATH
 
 sys.path.insert(0, str(ROOT))
 
@@ -67,6 +79,19 @@ MANUAL_RENDER_LANDMARK_SOURCES = {
 MANUAL_RENDER_LANDMARK_PREFIX_SOURCES = {
     "Four Seasons Hotel Miami": ["Metro (SE) (A) (4K)", "Tennis Stadium (4K)"],
 }
+
+
+def use_generated_optimizer_paths() -> None:
+    global ACTIVE_CHAIN_PATH
+    global ACTIVE_CONFIGS_DIR
+    global ACTIVE_RESULTS_DIR
+    global ACTIVE_RENDERS_DIR
+    global ACTIVE_OPTIMIZER_RESULT_PATH
+    ACTIVE_CHAIN_PATH = GENERATED_CHAIN_PATH
+    ACTIVE_CONFIGS_DIR = GENERATED_CONFIGS_DIR
+    ACTIVE_RESULTS_DIR = GENERATED_RESULTS_DIR
+    ACTIVE_RENDERS_DIR = GENERATED_RENDERS_DIR
+    ACTIVE_OPTIMIZER_RESULT_PATH = GENERATED_RESULT_PATH
 
 
 def unit(vector: np.ndarray) -> np.ndarray | None:
@@ -2898,8 +2923,9 @@ def write_optimizer_result_snapshot(report: dict[str, Any], result_path: Path) -
         "landmarks": landmarks,
         "landmark_sources": landmark_sources,
     }
-    OPTIMIZER_RESULT_PATH.write_text(json.dumps(data, indent=4, ensure_ascii=False) + "\n")
-    print(f"Wrote {OPTIMIZER_RESULT_PATH}")
+    ACTIVE_OPTIMIZER_RESULT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    ACTIVE_OPTIMIZER_RESULT_PATH.write_text(json.dumps(data, indent=4, ensure_ascii=False) + "\n")
+    print(f"Wrote {ACTIVE_OPTIMIZER_RESULT_PATH}")
 
 
 def world_snapshot_render_rows(path: Path) -> list[list[Any]]:
@@ -2950,9 +2976,10 @@ def world_snapshot_cameras(path: Path) -> dict[str, dict[str, Any]]:
     return cameras
 
 
-def refresh_ui_overlay_from_world_snapshot(path: Path = OPTIMIZER_RESULT_PATH) -> None:
+def refresh_ui_overlay_from_world_snapshot(path: Path | None = None) -> None:
     from utils.import_data import write_ui_overlay_data
 
+    path = path or ACTIVE_OPTIMIZER_RESULT_PATH
     original_cameras = md.cameras
     md.cameras = world_snapshot_cameras(path)
     get_camera.cache_clear()
@@ -2993,7 +3020,8 @@ def render_camera_names_for_step(solves: list[dict[str, Any]], report: dict[str,
     return names
 
 
-def load_chain(path: Path = CHAIN_PATH) -> list[str]:
+def load_chain(path: Path | None = None) -> list[str]:
+    path = path or ACTIVE_CHAIN_PATH
     data = json.loads(path.read_text())
     if not isinstance(data, list):
         raise ValueError(f"{path} must contain a JSON list of camera names")
@@ -3021,11 +3049,11 @@ def load_optimizer_config(path: Path) -> dict[str, Any]:
 
 
 def config_path_for_camera(camera_name: str) -> Path:
-    return OPTIMIZER_DIR / "configs" / f"{camera_name}.json"
+    return ACTIVE_CONFIGS_DIR / f"{camera_name}.json"
 
 
 def result_path_for_stage(stage_index: int, camera_name: str) -> Path:
-    return RESULTS_DIR / f"{stage_index + 1:02d} {camera_name}.json"
+    return ACTIVE_RESULTS_DIR / f"{stage_index + 1:02d} {camera_name}.json"
 
 
 def latest_chain_result(chain: list[str]) -> tuple[int, dict[str, Any]] | None:
@@ -3378,6 +3406,66 @@ def print_chain_results_summary(chain: list[str]) -> None:
     print(f"Total landmarks: {total_landmarks}")
 
 
+def print_world_audit(limit: int = 50) -> None:
+    rows: list[dict[str, Any]] = []
+    missing_counts: dict[str, int] = {}
+    for camera_name in sorted(md.pixels):
+        if camera_name not in md.cameras:
+            continue
+        camera = get_camera(camera_name)
+        if camera.xyz is None:
+            continue
+        for landmark_name, pixel in md.pixels[camera_name].items():
+            if landmark_name not in md.landmarks:
+                missing_counts[landmark_name] = missing_counts.get(landmark_name, 0) + 1
+                continue
+            landmark_xyz = np.asarray(md.landmarks[landmark_name], dtype=float)
+            direction = camera_direction_from_pixel(
+                tuple(float(value) for value in pixel),
+                camera.ypr,
+                camera.fov,
+                camera.size,
+            )
+            expected = unit(landmark_xyz - np.asarray(camera.xyz, dtype=float))
+            error = 1e6 if expected is None else angle_arcmin(direction, expected)
+            rows.append(
+                {
+                    "camera": camera_name,
+                    "landmark": landmark_name,
+                    "error_arcmin": float(error),
+                }
+            )
+
+    values = np.asarray([row["error_arcmin"] for row in rows], dtype=float)
+    summary = residual_summary(values)
+    rows.sort(key=lambda row: abs(row["error_arcmin"]), reverse=True)
+
+    print("gtamaplib world audit")
+    print(
+        f"{len(rows)} known-landmark observations, "
+        f"{len(missing_counts)} observed landmark name(s) without XYZ."
+    )
+    print(
+        "Observation residuals: "
+        f"mean {summary['mean_abs_arcmin']:.3f}', "
+        f"median {summary['median_abs_arcmin']:.3f}', "
+        f"max {summary['max_abs_arcmin']:.3f}'."
+    )
+    print()
+    print("Top observation residuals:")
+    for rank, row in enumerate(rows[:limit], 1):
+        print(
+            f"{rank:>4}. {row['error_arcmin']:8.3f}' | "
+            f"{row['camera']} | {row['landmark']}"
+        )
+
+    if missing_counts:
+        print()
+        print("Most common observed names without XYZ:")
+        for name, count in sorted(missing_counts.items(), key=lambda item: (-item[1], item[0]))[:20]:
+            print(f"{count:>4} | {name}")
+
+
 def validate_stage_order(
     solve: dict[str, Any],
     priors: dict[str, Any],
@@ -3399,6 +3487,51 @@ def validate_stage_order(
         )
 
 
+def prune_generated_solve(
+    solve: dict[str, Any],
+    priors: dict[str, Any],
+    blocked_cameras: set[str],
+) -> None:
+    original_landmarks = len(solve["landmarks"])
+    original_rays = len(solve["rays"])
+    solve["landmarks"] = [
+        name
+        for name in solve["landmarks"]
+        if name in priors["landmarks"] or camera_location_landmark_prior(name) is not None
+    ]
+    rays = []
+    min_baseline = min_triangulation_baseline_degrees()
+    for source_camera_name, landmark_name in solve["rays"]:
+        if source_camera_name in blocked_cameras:
+            continue
+        baseline = configured_ray_baseline(
+            solve,
+            priors,
+            source_camera_name,
+            landmark_name,
+            blocked_cameras,
+        )
+        if baseline is None:
+            continue
+        if (
+            baseline < min_baseline
+            and not is_leonida_keys_pin_triangulation(
+                landmark_name,
+                [solve["camera_name"], source_camera_name],
+            )
+        ):
+            continue
+        rays.append([source_camera_name, landmark_name])
+    solve["rays"] = rays
+    removed_landmarks = original_landmarks - len(solve["landmarks"])
+    removed_rays = original_rays - len(solve["rays"])
+    if removed_landmarks or removed_rays:
+        print(
+            f"Pruned generated config: {removed_landmarks} landmark(s), "
+            f"{removed_rays} ray(s)."
+        )
+
+
 def run_optimizer_stage(
     args: argparse.Namespace,
     chain: list[str],
@@ -3413,6 +3546,8 @@ def run_optimizer_stage(
     blocked_cameras = future_chain_cameras(chain, stage_index)
     add_required_synthetic_priors(priors, solve, blocked_cameras)
     validate_stage_order(solve, priors, blocked_cameras)
+    if getattr(args, "generated", False):
+        prune_generated_solve(solve, priors, blocked_cameras)
     report = solve_camera(
         solve,
         priors,
@@ -3455,14 +3590,14 @@ def run_optimizer_stage(
         render_camera_names = render_camera_names_for_step(solves, pipeline_report)
         rendered = render_optimizer_result(
             pipeline_report,
-            RENDERS_DIR,
+            ACTIVE_RENDERS_DIR,
             DEFAULT_RENDER_MAP_NAME,
             None,
             DEFAULT_RENDER_CAMERA_SCALE,
             DEFAULT_RENDER_RAY_DISTANCE,
             render_camera_names,
         )
-        print(f"Rendered {len(rendered)} image(s) to {RENDERS_DIR}")
+        print(f"Rendered {len(rendered)} image(s) to {ACTIVE_RENDERS_DIR}")
         print()
     return pipeline_report
 
@@ -3471,9 +3606,11 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--stage", help="Camera name or 1-based index from optimizer/chain.json")
     parser.add_argument("--all", action="store_true", help="Run all optimizer stages and render once at the end.")
+    parser.add_argument("--generated", action="store_true", help="Run all stages from optimizer/generated/ and write results/renders there.")
     parser.add_argument("--config", action="store_true", help="Print available and configured inputs for the stage.")
     parser.add_argument("--result", action="store_true", help="Print the saved result summary for the stage.")
     parser.add_argument("--results", action="store_true", help="Print the latest chain result summary.")
+    parser.add_argument("--audit", action="store_true", help="Audit raw gtamaplib observation residuals without optimization.")
     parser.add_argument("--run", action="store_true", help="Run the optimizer stage. This is the default mode.")
     parser.add_argument(
         "--max-steps-local",
@@ -3502,7 +3639,16 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    if args.generated:
+        use_generated_optimizer_paths()
+        args.all = True
+
     register_synthetic_cameras()
+    if args.audit:
+        if args.generated:
+            parser.error("--audit cannot be combined with --generated")
+        print_world_audit()
+        return
     chain = load_chain()
     if args.results:
         print_chain_results_summary(chain)
@@ -3518,21 +3664,22 @@ def main() -> None:
             print(f"Running stage {stage_index + 1}/{len(chain)}: {camera_name}")
             final_report = run_optimizer_stage(args, chain, stage_index, render=False)
         if final_report is None:
-            parser.error("optimizer/chain.json is empty")
-        refresh_ui_overlay_from_world_snapshot()
+            parser.error(f"{ACTIVE_CHAIN_PATH} is empty")
+        if not args.generated:
+            refresh_ui_overlay_from_world_snapshot()
         print()
         solves = load_chain_solves(chain, len(chain) - 1)
         render_camera_names = render_camera_names_for_step(solves, final_report)
         rendered = render_optimizer_result(
             final_report,
-            RENDERS_DIR,
+            ACTIVE_RENDERS_DIR,
             DEFAULT_RENDER_MAP_NAME,
             None,
             DEFAULT_RENDER_CAMERA_SCALE,
             DEFAULT_RENDER_RAY_DISTANCE,
             render_camera_names,
         )
-        print(f"Rendered {len(rendered)} image(s) to {RENDERS_DIR}")
+        print(f"Rendered {len(rendered)} image(s) to {ACTIVE_RENDERS_DIR}")
         print()
         return
     if not args.stage:
