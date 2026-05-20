@@ -2799,6 +2799,8 @@ def render_optimizer_cameras(
     with registered_render_batch(rows, set(camera_names) if camera_names else None) as (cameras, _landmarks):
         selected_cameras = camera_names or list(cameras)
         for camera_name in selected_cameras:
+            if camera_name.endswith(FAKE_CAMERA_SUFFIX):
+                continue
             if camera_name not in cameras:
                 continue
             cam = get_camera(camera_name).open(scale=scale)
@@ -3017,7 +3019,7 @@ def render_camera_names_for_step(solves: list[dict[str, Any]], report: dict[str,
             camera_name = row.get(key)
             if camera_name in md.cameras:
                 names.add(camera_name)
-    return names
+    return {name for name in names if not name.endswith(FAKE_CAMERA_SUFFIX)}
 
 
 def load_chain(path: Path | None = None) -> list[str]:
@@ -3612,6 +3614,7 @@ def main() -> None:
     parser.add_argument("--results", action="store_true", help="Print the latest chain result summary.")
     parser.add_argument("--audit", action="store_true", help="Audit raw gtamaplib observation residuals without optimization.")
     parser.add_argument("--run", action="store_true", help="Run the optimizer stage. This is the default mode.")
+    parser.add_argument("--no-render", action="store_true", help="Skip rendering after optimizer run.")
     parser.add_argument(
         "--max-steps-local",
         type=int,
@@ -3665,22 +3668,23 @@ def main() -> None:
             final_report = run_optimizer_stage(args, chain, stage_index, render=False)
         if final_report is None:
             parser.error(f"{ACTIVE_CHAIN_PATH} is empty")
-        if not args.generated:
+        if not args.generated and not args.no_render:
             refresh_ui_overlay_from_world_snapshot()
-        print()
-        solves = load_chain_solves(chain, len(chain) - 1)
-        render_camera_names = render_camera_names_for_step(solves, final_report)
-        rendered = render_optimizer_result(
-            final_report,
-            ACTIVE_RENDERS_DIR,
-            DEFAULT_RENDER_MAP_NAME,
-            None,
-            DEFAULT_RENDER_CAMERA_SCALE,
-            DEFAULT_RENDER_RAY_DISTANCE,
-            render_camera_names,
-        )
-        print(f"Rendered {len(rendered)} image(s) to {ACTIVE_RENDERS_DIR}")
-        print()
+        if not args.no_render:
+            print()
+            solves = load_chain_solves(chain, len(chain) - 1)
+            render_camera_names = render_camera_names_for_step(solves, final_report)
+            rendered = render_optimizer_result(
+                final_report,
+                ACTIVE_RENDERS_DIR,
+                DEFAULT_RENDER_MAP_NAME,
+                None,
+                DEFAULT_RENDER_CAMERA_SCALE,
+                DEFAULT_RENDER_RAY_DISTANCE,
+                render_camera_names,
+            )
+            print(f"Rendered {len(rendered)} image(s) to {ACTIVE_RENDERS_DIR}")
+            print()
         return
     if not args.stage:
         parser.error("--stage is required unless --all or --results is used")
@@ -3703,7 +3707,7 @@ def main() -> None:
         result = json.loads(output.read_text())
         print_optimizer_camera_report(result["local"], result["global"], local_pass=False)
         return
-    run_optimizer_stage(args, chain, stage_index, render=True, output_override=args.output)
+    run_optimizer_stage(args, chain, stage_index, render=not args.no_render, output_override=args.output)
 
 
 if __name__ == "__main__":
