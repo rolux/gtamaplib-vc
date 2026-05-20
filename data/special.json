@@ -293,6 +293,17 @@
                 "Picnic Island A (N)",
                 "Picnic Island B (S)",
                 "Picnic Island C (S)",
+                "Pin E01L (B)",
+                "Pin E01R (B)",
+                "Pin F01L (B)",
+                "Pin F01R (B)",
+                "Pin F02L (B)",
+                "Pin F02R (B)",
+                "Pin F03L (B)",
+                "Pin F03R (B)",
+                "Pin F04L (B)",
+                "Pin F04R (B)",
+                "Pin F05L (B)",
                 "Port (A)",
                 "Port (B)",
                 "Port (C)",
@@ -353,7 +364,10 @@
                 "Park (E)",
                 "Park (W)",
                 "Port (A)",
-                "Port (B)"
+                "Port (B)",
+                "Virginia Key (A)",
+                "Virginia Key (B)",
+                "Virginia Key (C)"
             ]
         },
         {
