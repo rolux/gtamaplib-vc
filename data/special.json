@@ -395,6 +395,19 @@
             ]
         },
         {
+            "z": 40.5,
+            "landmarks": [
+                "CC (1) (BB2)",
+                "CC (2) (BB2)",
+                "CC (3) (BB2)",
+                "CC (3) (BB3)",
+                "CC (4) (BB)",
+                "PTCC (1) (BB2)",
+                "PTCC (2) (BB2)",
+                "PTCC (3) (BB2)"
+            ]
+        },
+        {
             "z": 74.5,
             "landmarks": [
                 "Container Crane (1)",
