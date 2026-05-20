@@ -1,6 +1,8 @@
 {
     "schema": "gtamaplibvc-optimizer-config-v1",
     "landmarks": [
+        "Four Seasons Hotel Miami (BE)",
+        "Four Seasons Hotel Miami (BW)",
         "Four Seasons Hotel Miami (NW)",
         "Four Seasons Hotel Miami (SE)",
         "Prison Tower (1)",
@@ -10,6 +12,9 @@
         "Prison Tower (5)",
         "Prison Tower (6)",
         "Turkey Point Nuclear Power Station (N)",
+        "Turkey Point Nuclear Power Station (S)",
+        "Turkey Point Nuclear Power Station (1)",
+        "Turkey Point Nuclear Power Station (2)",
         "Turkey Point Nuclear Power Station (3)"
     ],
     "rays": [

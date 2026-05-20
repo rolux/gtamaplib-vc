@@ -10,9 +10,14 @@
         "Prison Tower (6)"
     ],
     "rays": [
+        ["Leonida Keys 01 (Airplane) (X)", "Park Grove Condominium (C)"],
+        ["Leonida Keys 01 (Airplane) (X)", "Park Grove Condominium (N)"],
         ["Leonida Keys 01 (Airplane) (X)", "Prison Tower (1)"],
-        ["Leonida Keys 01 (Airplane) (X)", "Turkey Point Nuclear Power Station (N)"],
+        ["Leonida Keys 01 (Airplane) (X)", "Turkey Point Nuclear Power Station (1)"],
+        ["Leonida Keys 01 (Airplane) (X)", "Turkey Point Nuclear Power Station (2)"],
         ["Leonida Keys 01 (Airplane) (X)", "Turkey Point Nuclear Power Station (3)"],
+        ["Leonida Keys 01 (Airplane) (X)", "Turkey Point Nuclear Power Station (N)"],
+        ["Leonida Keys 01 (Airplane) (X)", "Turkey Point Nuclear Power Station (S)"],
         ["Four Seasons Hotel Miami (BNW) Fake Cam", "Four Seasons Hotel Miami (FW)"]
     ],
     "objects": []
