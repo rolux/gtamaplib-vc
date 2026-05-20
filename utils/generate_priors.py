@@ -8,6 +8,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
 ROOT = Path(__file__).resolve().parents[1]
 OPTIMIZER_DIR = ROOT / "optimizer"
 PRIORS_PATH = OPTIMIZER_DIR / "priors.json"
@@ -21,6 +23,7 @@ from utils.import_data import (
     CONFIG_JSON_PATH,
     IMPORT_EXTRAS_JSON_PATH,
     SPECIAL_JSON_PATH,
+    is_leonida_keys_pin_triangulation,
     is_ignored_triangulation_landmark,
     max_ray_pair_angle_degrees,
     mean_pair_delta_m,
@@ -59,6 +62,8 @@ CAMERA_RIGIDITY_BY_LEVEL = {
     2: (0.05, 0.05, 0.05),
     3: (0.0005, 0.0005, 0.0005),
 }
+
+DEFAULT_MIN_FIXED_ELEVATION_INTERSECTION_ANGLE_DEG = 1.0
 
 
 def point(value: Any) -> list[float] | None:
@@ -180,7 +185,10 @@ def triangulated_landmarks(
                 continue
         if len(rays) < 2:
             continue
-        if max_ray_pair_angle_degrees(rays) < min_delta_degrees:
+        if (
+            max_ray_pair_angle_degrees(rays) < min_delta_degrees
+            and not is_leonida_keys_pin_triangulation(landmark_name, ray_cameras)
+        ):
             continue
         try:
             point_xyz, _distances = intersect_rays(rays)
@@ -217,9 +225,18 @@ def intersect_ray_z(origin: Any, direction: Any, z: float) -> list[float] | None
     ]
 
 
+def fixed_elevation_intersection_angle_degrees(direction: Any) -> float:
+    values = np.asarray(direction, dtype=float)
+    norm = float(np.linalg.norm(values))
+    if not np.isfinite(norm) or norm <= 0:
+        return 0.0
+    return float(np.degrees(np.arcsin(np.clip(abs(float(values[2])) / norm, 0.0, 1.0))))
+
+
 def fixed_elevation_landmarks(
     special: dict[str, Any],
     camera_levels: dict[str, int],
+    min_plane_angle_degrees: float,
 ) -> dict[str, list[float]]:
     fixed_elevations = fixed_elevation_lookup(special)
     points_by_name: dict[str, list[list[float]]] = {}
@@ -232,9 +249,12 @@ def fixed_elevation_landmarks(
                 continue
             if is_ignored_triangulation_landmark(landmark_name):
                 continue
+            direction = cam.get_landmark_direction(landmark_name)
+            if fixed_elevation_intersection_angle_degrees(direction) < min_plane_angle_degrees:
+                continue
             point_xyz = intersect_ray_z(
                 cam.xyz,
-                cam.get_landmark_direction(landmark_name),
+                direction,
                 fixed_elevations[landmark_name],
             )
             if point_xyz is not None:
@@ -270,6 +290,12 @@ def camera_location_landmark_rows(camera_levels: dict[str, int]) -> list[list[An
 def landmark_rows(special: dict[str, Any], camera_levels: dict[str, int]) -> list[list[Any]]:
     config = load_json(CONFIG_JSON_PATH, {})
     min_delta_degrees = float(config.get("min_triangulation_delta_degrees", 10.0))
+    min_plane_angle_degrees = float(
+        config.get(
+            "min_fixed_elevation_intersection_angle_degrees",
+            DEFAULT_MIN_FIXED_ELEVATION_INTERSECTION_ANGLE_DEG,
+        )
+    )
     extra_landmarks = import_extra_landmarks()
 
     rows: dict[str, list[Any]] = {}
@@ -277,7 +303,7 @@ def landmark_rows(special: dict[str, Any], camera_levels: dict[str, int]) -> lis
     for name, xyz in triangulated_landmarks(camera_levels, min_delta_degrees).items():
         rows[name] = ["landmark", name, xyz[0], None]
         generated_names.add(name)
-    for name, xyz in fixed_elevation_landmarks(special, camera_levels).items():
+    for name, xyz in fixed_elevation_landmarks(special, camera_levels, min_plane_angle_degrees).items():
         rows.setdefault(name, ["landmark", name, xyz, None])
         generated_names.add(name)
     for name, xyz in extra_landmarks.items():

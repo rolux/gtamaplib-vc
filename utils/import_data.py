@@ -369,6 +369,7 @@ def write_config_if_missing() -> None:
     config = {
         "schema": "gtamaplibvc-config-v1",
         "min_triangulation_delta_degrees": 10.0,
+        "min_fixed_elevation_intersection_angle_degrees": 1.0,
     }
     CONFIG_JSON_PATH.write_text(json.dumps(config, indent=4, ensure_ascii=False) + "\n")
     print(f"Wrote editable {CONFIG_JSON_PATH}")
@@ -426,6 +427,14 @@ def max_ray_pair_angle_degrees(rays: list[tuple[Any, Any]]) -> float:
         for ray_b in rays[index_a + 1 :]:
             angles.append(ray_angle_degrees(ray_a, ray_b))
     return float(max(angles)) if angles else 0.0
+
+
+def is_leonida_keys_pin_triangulation(landmark_name: str, camera_names: list[str]) -> bool:
+    # Hard-coded exception: the Leonida Keys pin pairs are intentionally kept even
+    # when their ray baseline is below the general triangulation threshold.
+    if not landmark_name.lower().startswith("pin "):
+        return False
+    return sum(name.startswith("Leonida Keys ") for name in camera_names) >= 2
 
 
 def jsonable_segment(segment: list[list[float]] | None) -> list[list[float]] | None:
@@ -688,7 +697,10 @@ def triangulate_missing_landmarks(
                 continue
         if len(rays) < 2:
             continue
-        if max_ray_pair_angle_degrees(rays) < min_delta_degrees:
+        if (
+            max_ray_pair_angle_degrees(rays) < min_delta_degrees
+            and not is_leonida_keys_pin_triangulation(landmark_name, ray_cameras)
+        ):
             continue
         try:
             point, _distances = intersect_rays(rays)

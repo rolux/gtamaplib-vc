@@ -181,6 +181,7 @@
                 "East Key (NW)",
                 "East Key (SW)",
                 "Fisher Island (A)",
+                "Fisher Island (Z)",
                 "Flagler Memorial Island (N)",
                 "Island A (W)",
                 "Island F (E)",
@@ -292,6 +293,8 @@
                 "Picnic Island A (N)",
                 "Picnic Island B (S)",
                 "Picnic Island C (S)",
+                "Port (A)",
+                "Port (B)",
                 "Port (C)",
                 "Port (D)",
                 "Port (E)",
@@ -302,6 +305,10 @@
                 "Port (J)",
                 "Port (K)",
                 "Port (L)",
+                "Port (M)",
+                "Port (N)",
+                "Port (O)",
+                "Port (P)",
                 "Rivo Alto Island (N)",
                 "Rivo Alto Island (S)",
                 "Seven Mile Bridge (1B)",
@@ -385,6 +392,23 @@
             "landmarks": [
                 "Red Boxville (BNE)",
                 "Red Boxville (BNW)"
+            ]
+        },
+        {
+            "z": 74.5,
+            "landmarks": [
+                "Container Crane (1)",
+                "Container Crane (2)",
+                "Container Crane (3)",
+                "Container Crane (4)",
+                "Container Crane (5)",
+                "Container Crane (6)",
+                "Container Crane (7)",
+                "Container Crane (8)",
+                "Container Crane (9)",
+                "Port of Tampa Container Crane (1)",
+                "Port of Tampa Container Crane (2)",
+                "Port of Tampa Container Crane (3)"
             ]
         }
     ]

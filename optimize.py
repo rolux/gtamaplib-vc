@@ -53,6 +53,7 @@ FAKE_CAMERA_SUFFIX = " Fake Cam"
 # Pairwise triangulations with very narrow baselines are numerically fragile:
 # the rays can nearly meet while the point is hundreds of meters wrong.
 DEFAULT_MIN_TRIANGULATION_BASELINE_DEG = 10.0
+DEFAULT_MIN_FIXED_ELEVATION_INTERSECTION_ANGLE_DEG = 1.0
 DEFAULT_REFERENCED_CAMERA_RIGIDITY = (0.05, None, 0.05)
 FIXED_ROLL_EPS = 1e-12
 IGNORED_RENDER_RAY_NAMES = {"Player", "Minimap", "AIWE"}
@@ -86,6 +87,14 @@ def ray_baseline_degrees(a: np.ndarray, b: np.ndarray) -> float:
     return min(angle, 180.0 - angle)
 
 
+def is_leonida_keys_pin_triangulation(landmark_name: str, camera_names: list[str]) -> bool:
+    # Hard-coded exception: the Leonida Keys pin pairs are intentionally kept even
+    # when their ray baseline is below the general triangulation threshold.
+    if not landmark_name.lower().startswith("pin "):
+        return False
+    return sum(name.startswith("Leonida Keys ") for name in camera_names) >= 2
+
+
 def min_triangulation_baseline_degrees() -> float:
     if not CONFIG_PATH.exists():
         return DEFAULT_MIN_TRIANGULATION_BASELINE_DEG
@@ -96,6 +105,25 @@ def min_triangulation_baseline_degrees() -> float:
             DEFAULT_MIN_TRIANGULATION_BASELINE_DEG,
         )
     )
+
+
+def min_fixed_elevation_intersection_angle_degrees() -> float:
+    if not CONFIG_PATH.exists():
+        return DEFAULT_MIN_FIXED_ELEVATION_INTERSECTION_ANGLE_DEG
+    config = json.loads(CONFIG_PATH.read_text())
+    return float(
+        config.get(
+            "min_fixed_elevation_intersection_angle_degrees",
+            DEFAULT_MIN_FIXED_ELEVATION_INTERSECTION_ANGLE_DEG,
+        )
+    )
+
+
+def fixed_elevation_intersection_angle_degrees(direction: np.ndarray) -> float:
+    norm = float(np.linalg.norm(direction))
+    if not np.isfinite(norm) or norm <= 0:
+        return 0.0
+    return float(np.degrees(np.arcsin(np.clip(abs(float(direction[2])) / norm, 0.0, 1.0))))
 
 
 def fixed_elevation_lookup() -> dict[str, float]:
@@ -952,6 +980,7 @@ def triangulate_from_local_solution(
     target_fov = tuple(float(value) for value in local_report["final"]["fov"])
     target_size = tuple(int(value) for value in local_report["final"]["size"])
     min_baseline_degrees = min_triangulation_baseline_degrees()
+    min_plane_angle_degrees = min_fixed_elevation_intersection_angle_degrees()
 
     rows = []
     used_names = set(solve["landmarks"]) | {target_name for _, target_name in solve["rays"]}
@@ -986,7 +1015,13 @@ def triangulate_from_local_solution(
             source_prior["size"],
         )
         baseline_degrees = ray_baseline_degrees(target_direction, source_direction)
-        if baseline_degrees < min_baseline_degrees:
+        if (
+            baseline_degrees < min_baseline_degrees
+            and not is_leonida_keys_pin_triangulation(
+                target_name,
+                [solve["camera_name"], source_camera_name],
+            )
+        ):
             continue
         midpoint, point_a, point_b, distance, angle = intersect_ray_and_ray(
             (target_xyz, target_direction),
@@ -1038,7 +1073,13 @@ def triangulate_from_local_solution(
                 source_prior["size"],
             )
             baseline_degrees = ray_baseline_degrees(target_direction, source_direction)
-            if baseline_degrees < min_baseline_degrees:
+            if (
+                baseline_degrees < min_baseline_degrees
+                and not is_leonida_keys_pin_triangulation(
+                    target_name,
+                    [solve["camera_name"], source_camera_name],
+                )
+            ):
                 continue
             midpoint, point_a, point_b, distance, angle = intersect_ray_and_ray(
                 (target_xyz, target_direction),
@@ -1079,6 +1120,9 @@ def triangulate_from_local_solution(
             target_fov,
             target_size,
         )
+        plane_angle_degrees = fixed_elevation_intersection_angle_degrees(target_direction)
+        if plane_angle_degrees < min_plane_angle_degrees:
+            continue
         point = intersect_ray_z(target_xyz, target_direction, plane_z)
         if point is None:
             continue
@@ -1090,6 +1134,7 @@ def triangulate_from_local_solution(
                 "xyz": [float(value) for value in point],
                 "target_pixel": [float(value) for value in target_pixel],
                 "ground_z": float(plane_z),
+                "plane_angle_degrees": float(plane_angle_degrees),
                 "xyz_rigidity_m": None,
                 "explicit": False,
             }
@@ -3161,7 +3206,13 @@ def stage_available_rays(
                 source_prior["size"],
             )
             baseline = ray_baseline_degrees(target_direction, source_direction)
-            if baseline < min_baseline_degrees:
+            if (
+                baseline < min_baseline_degrees
+                and not is_leonida_keys_pin_triangulation(
+                    landmark_name,
+                    [solve["camera_name"], source_camera_name],
+                )
+            ):
                 continue
             rows.append((source_camera_name, landmark_name, baseline))
     return rows
@@ -3249,7 +3300,13 @@ def print_stage_config_report(
             baseline = configured_ray_baseline(solve, priors, source_camera_name, landmark_name, blocked_cameras)
         if baseline is None:
             print(f"  [missing] {compact_json([source_camera_name, landmark_name])}")
-        elif baseline < min_triangulation_baseline_degrees():
+        elif (
+            baseline < min_triangulation_baseline_degrees()
+            and not is_leonida_keys_pin_triangulation(
+                landmark_name,
+                [solve["camera_name"], source_camera_name],
+            )
+        ):
             print(f"  [!! {baseline:.3f}°] {compact_json([source_camera_name, landmark_name])}")
         else:
             print(f"  [ok {baseline:.3f}°] {compact_json([source_camera_name, landmark_name])}")
