@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 
 import argparse
+import json
 import math
+from contextlib import contextmanager
 from pathlib import Path
 
+from gtamaplib import gtamapdata as md
 from gtamaplib.gtamaplib import Camera, get_camera, get_map, get_point
 
 
 OUTPUT_DIR = Path("optimizer/renders/projections")
+OPTIMIZER_RESULT_PATH = Path("optimizer/result.json")
 MAP_NAME = "yanis"
 DEFAULT_DISTANCE = 10000.0
 DEFAULT_MARGIN = 500.0
@@ -22,6 +26,44 @@ def output_path(filename):
         raise ValueError("output must be a filename, not a path")
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     return OUTPUT_DIR / filename
+
+
+def world_snapshot_cameras(path):
+    data = json.loads(path.read_text())
+    if data.get("schema") != "gtamaplibvc-world-v1":
+        return None
+    cameras = {}
+    for camera_name, camera in data.get("cameras", {}).items():
+        cameras[camera_name] = {
+            "id": camera.get("id", camera_name),
+            "player": tuple(float(value) for value in camera["player"]) if camera.get("player") else None,
+            "xyz": tuple(float(value) for value in camera["xyz"]) if camera.get("xyz") is not None else None,
+            "ypr": tuple(float(value) for value in camera["ypr"]),
+            "fov": tuple(float(value) for value in camera["fov"]),
+            "size": tuple(int(value) for value in camera["size"]),
+            "source": camera.get("source", ""),
+        }
+    return cameras
+
+
+@contextmanager
+def using_optimizer_result():
+    if not OPTIMIZER_RESULT_PATH.exists():
+        yield
+        return
+    cameras = world_snapshot_cameras(OPTIMIZER_RESULT_PATH)
+    if not cameras:
+        yield
+        return
+    original_cameras = md.cameras
+    md.cameras = cameras
+    get_camera.cache_clear()
+    try:
+        print(f"Using {OPTIMIZER_RESULT_PATH}")
+        yield
+    finally:
+        md.cameras = original_cameras
+        get_camera.cache_clear()
 
 
 def edge_ray_points(camera_names, distance):
@@ -232,7 +274,8 @@ def main():
     parser = build_parser()
     args = parser.parse_args()
     try:
-        args.func(args)
+        with using_optimizer_result():
+            args.func(args)
     except ValueError as exc:
         parser.error(str(exc))
 
