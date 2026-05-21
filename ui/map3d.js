@@ -902,6 +902,36 @@ function zoomBy(factor) {
   render();
 }
 
+function groundPointUnderClient(clientX, clientY) {
+  const rect = scene.getBoundingClientRect();
+  if (!rect.width || !rect.height) return null;
+  const ndcX = ((clientX - rect.left) / rect.width) * 2 - 1;
+  const ndcY = 1 - ((clientY - rect.top) / rect.height) * 2;
+  const eye = cameraEye();
+  const forward = normalize(subtract(state.target, eye));
+  let right = cross(forward, [0, 1, 0]);
+  if (Math.hypot(right[0], right[1], right[2]) < 1e-6) return null;
+  right = normalize(right);
+  const up = normalize(cross(right, forward));
+  const vf = Math.tan((state.vfov * Math.PI / 180) / 2);
+  const hf = vf * (state.width / state.height);
+  const direction = normalize(add(add(forward, scale(right, ndcX * hf)), scale(up, ndcY * vf)));
+  if (Math.abs(direction[1]) < 1e-6) return null;
+  const t = -eye[1] / direction[1];
+  if (t <= 0) return null;
+  return add(eye, scale(direction, t));
+}
+
+function zoomAt(clientX, clientY, factor) {
+  const before = groundPointUnderClient(clientX, clientY);
+  state.distance = Math.max(700, Math.min(50000, state.distance * factor));
+  if (before) {
+    const after = groundPointUnderClient(clientX, clientY);
+    if (after) state.target = add(state.target, subtract(before, after));
+  }
+  render();
+}
+
 function installControls() {
   scene.tabIndex = 0;
   tourStartButton.addEventListener("click", startTour);
@@ -941,7 +971,7 @@ function installControls() {
   scene.addEventListener("wheel", (event) => {
     event.preventDefault();
     if (state.tour.active) return;
-    zoomBy(Math.exp(event.deltaY * 0.001));
+    zoomAt(event.clientX, event.clientY, Math.exp(event.deltaY * 0.001));
   }, { passive: false });
   window.addEventListener("keydown", (event) => {
     if (event.metaKey || event.ctrlKey || event.altKey) return;
