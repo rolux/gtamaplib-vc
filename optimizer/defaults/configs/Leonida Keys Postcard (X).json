@@ -1,11 +1,6 @@
 {
     "schema": "gtamaplibvc-optimizer-config-v1",
     "landmarks": [
-        "Key Lento (A)",
-        "Key Lento (J)",
-        "House D (SW)",
-        "Island A (W)",
-        "102180 Overseas Hwy",
         "Portofino Tower (NW)"
     ],
     "rays": [
