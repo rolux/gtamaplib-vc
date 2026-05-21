@@ -3060,6 +3060,22 @@ def result_path_for_stage(stage_index: int, camera_name: str) -> Path:
 
 
 def latest_chain_result(chain: list[str]) -> tuple[int, dict[str, Any]] | None:
+    if ACTIVE_OPTIMIZER_RESULT_PATH.exists():
+        try:
+            world = json.loads(ACTIVE_OPTIMIZER_RESULT_PATH.read_text())
+            source_result = world.get("source_result")
+            if source_result:
+                source_path = Path(source_result)
+                if not source_path.is_absolute():
+                    source_path = ROOT / source_path
+                source_path = source_path.resolve()
+                for stage_index, camera_name in enumerate(chain):
+                    path = result_path_for_stage(stage_index, camera_name).resolve()
+                    if path == source_path and path.exists():
+                        return stage_index, json.loads(path.read_text())
+        except Exception:
+            pass
+
     latest: tuple[int, dict[str, Any]] | None = None
     for stage_index, camera_name in enumerate(chain):
         path = result_path_for_stage(stage_index, camera_name)
@@ -3376,6 +3392,9 @@ def print_chain_results_summary(chain: list[str]) -> None:
     print("Chain results")
     print(f"Current world: {latest_index + 1:02d} {chain[latest_index]}")
     for index, camera_name in enumerate(chain, start=1):
+        if index - 1 > latest_index:
+            print(f"  {index:>2}. {'':>12} | {camera_name}")
+            continue
         path = result_path_for_stage(index - 1, camera_name)
         if not path.exists():
             print(f"  {index:>2}. {'':>12} | {camera_name}")
