@@ -50,6 +50,7 @@ from gtamaplib.gtamaplib import (
     get_point,
     get_pixel_direction,
     get_q,
+    get_rotation,
     get_vfov,
     intersect_ray_and_ray,
     normalize_name,
@@ -2986,7 +2987,7 @@ def refresh_ui_overlay_from_world_snapshot(path: Path | None = None) -> None:
     md.cameras = world_snapshot_cameras(path)
     get_camera.cache_clear()
     try:
-        write_ui_overlay_data(md, get_camera, get_point)
+        write_ui_overlay_data(md, get_camera, get_point, get_rotation)
     finally:
         md.cameras = original_cameras
         get_camera.cache_clear()

@@ -507,6 +507,56 @@ def cone_intersects_frame(segments: list[list[list[float]]], quad: list[list[flo
     return any(segment_intersects_frame(segment, width, height) for segment in segments)
 
 
+def pixel_to_ndc_x(x: float, width: float) -> float:
+    return 2.0 * ((x + 0.5) / width) - 1.0
+
+
+def pixel_to_ndc_y(y: float, height: float) -> float:
+    return 2.0 * ((y + 0.5) / height) - 1.0
+
+
+def ndc_to_pixel_x(ndc_x: float, width: float) -> float:
+    return (ndc_x + 1.0) * width * 0.5 - 0.5
+
+
+def ndc_to_pixel_y(ndc_y: float, height: float) -> float:
+    return (ndc_y + 1.0) * height * 0.5 - 0.5
+
+
+def camera_horizon_segment(cam: Any, get_rotation: Any) -> list[list[float]] | None:
+    rot = get_rotation(tuple(cam.q))
+    world_x_z = float(rot.apply([1.0, 0.0, 0.0])[2])
+    world_y_z = float(rot.apply([0.0, 1.0, 0.0])[2])
+    world_z_z = float(rot.apply([0.0, 0.0, 1.0])[2])
+    tan_h = float(np.tan(np.radians(cam.hfov / 2.0)))
+    tan_v = float(np.tan(np.radians(cam.vfov / 2.0)))
+    a = world_x_z * tan_h
+    b = -world_z_z * tan_v
+    c = world_y_z
+    points: list[list[float]] = []
+
+    def add_point(x: float, y: float) -> None:
+        if -1e-6 <= x <= cam.w + 1e-6 and -1e-6 <= y <= cam.h + 1e-6:
+            point = [float(x), float(y)]
+            if not any(np.hypot(point[0] - other[0], point[1] - other[1]) < 1e-6 for other in points):
+                points.append(point)
+
+    if abs(b) > 1e-12:
+        for x in (0.0, float(cam.w)):
+            ndc_x = pixel_to_ndc_x(x, cam.w)
+            ndc_y = -(a * ndc_x + c) / b
+            add_point(x, ndc_to_pixel_y(ndc_y, cam.h))
+    if abs(a) > 1e-12:
+        for y in (0.0, float(cam.h)):
+            ndc_y = pixel_to_ndc_y(y, cam.h)
+            ndc_x = -(b * ndc_y + c) / a
+            add_point(ndc_to_pixel_x(ndc_x, cam.w), y)
+    if len(points) < 2:
+        return None
+    points.sort(key=lambda point: (point[0], point[1]))
+    return [points[0], points[-1]]
+
+
 def camera_cones_for_viewer(viewer_name: str, camera_names: list[str], get_camera: Any, get_point: Any) -> list[dict[str, Any]]:
     viewer = get_camera(viewer_name)
     cones = []
@@ -545,10 +595,10 @@ def camera_cones_for_viewer(viewer_name: str, camera_names: list[str], get_camer
     return cones
 
 
-def camera_guides(cam: Any) -> dict[str, Any]:
-    horizon_y = float(cam.get_horizon())
+def camera_guides(cam: Any, get_rotation: Any) -> dict[str, Any]:
+    horizon = camera_horizon_segment(cam, get_rotation)
     guides: dict[str, Any] = {
-        "horizon": [[0.0, horizon_y], [float(cam.w), horizon_y]],
+        "horizon": horizon,
         "verticals": [],
     }
     start = int(cam.yaw - 60)
@@ -624,7 +674,7 @@ def camera_player_overlay(cam: Any) -> dict[str, Any] | None:
     }
 
 
-def write_ui_overlay_data(md: Any, get_camera: Any, get_point: Any) -> None:
+def write_ui_overlay_data(md: Any, get_camera: Any, get_point: Any, get_rotation: Any) -> None:
     UI_DATA_DIR.mkdir(parents=True, exist_ok=True)
     camera_names = list(md.cameras)
     cones = {
@@ -634,7 +684,7 @@ def write_ui_overlay_data(md: Any, get_camera: Any, get_point: Any) -> None:
     guides = {}
     for camera_name in camera_names:
         try:
-            guides[camera_name] = camera_guides(get_camera(camera_name))
+            guides[camera_name] = camera_guides(get_camera(camera_name), get_rotation)
         except Exception:
             guides[camera_name] = {"horizon": None, "verticals": []}
     players = {}
@@ -801,7 +851,7 @@ def write_import_extras(md: Any, get_camera: Any, intersect_rays: Any, intersect
 def main() -> None:
     add_import_path()
     from gtamaplib import gtamapdata as md
-    from gtamaplib.gtamaplib import get_camera, get_point, intersect_ray_and_ray, intersect_rays
+    from gtamaplib.gtamaplib import get_camera, get_point, get_rotation, intersect_ray_and_ray, intersect_rays
 
     map_info = md.maps[MAP_NAME]
     map_image, map_size = map_image_path(map_info)
@@ -904,7 +954,7 @@ def main() -> None:
     GTAMAPDATA_JSON_PATH.write_text(json.dumps(gtamapdata, indent=4, ensure_ascii=False) + "\n")
     write_special_if_missing(md)
     write_import_extras(md, get_camera, intersect_rays, intersect_ray_and_ray)
-    write_ui_overlay_data(md, get_camera, get_point)
+    write_ui_overlay_data(md, get_camera, get_point, get_rotation)
     print(
         "Wrote {path} with {cameras} cameras, {landmarks} landmarks, "
         "{observations} observations.".format(path=GTAMAPDATA_JSON_PATH, **gtamapdata["counts"])

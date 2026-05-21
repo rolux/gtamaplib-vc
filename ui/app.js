@@ -794,15 +794,22 @@ function renderGuides(layer) {
       }));
     }
     if (guides.horizon) {
-      const horizonY = guides.horizon[0][1];
-      const horizonExtent = state.camera.size[0] * 1000;
-      layer.append(svg("line", {
-        class: "horizon-guide",
-        x1: -horizonExtent,
-        y1: horizonY,
-        x2: horizonExtent,
-        y2: horizonY,
-      }));
+      const [horizonA, horizonB] = guides.horizon;
+      const dx = horizonB[0] - horizonA[0];
+      const dy = horizonB[1] - horizonA[1];
+      const length = Math.hypot(dx, dy);
+      if (length) {
+        const horizonExtent = state.camera.size[0] * 1000;
+        const ux = dx / length;
+        const uy = dy / length;
+        layer.append(svg("line", {
+          class: "horizon-guide",
+          x1: horizonA[0] - ux * horizonExtent,
+          y1: horizonA[1] - uy * horizonExtent,
+          x2: horizonB[0] + ux * horizonExtent,
+          y2: horizonB[1] + uy * horizonExtent,
+        }));
+      }
     }
   }
 
