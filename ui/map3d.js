@@ -14,6 +14,7 @@ const SUNSHINE_SKYWAY_WIREFRAME = "/ui/data/map3d-sunshine-skyway.json";
 const HANKS_WAFFLES_WIREFRAME = "/ui/data/map3d-hanks-waffles.json";
 const FAKE_CAMERA_SUFFIX = " Fake Cam";
 const AIWE_CAMERA_NAME = "AI World Editor Map (4K)";
+const YANIS_WATER_COLOR = [44 / 255, 103 / 255, 164 / 255, 1];
 const CAMERA_CONE_DISTANCE = 100;
 const CAMERA_THUMBNAIL_DISTANCE = CAMERA_CONE_DISTANCE * 0.995;
 const TOUR_DWELL_MS = 1200;
@@ -146,6 +147,7 @@ void main() {
 
 const tileBuffer = gl.createBuffer();
 const lineBuffer = gl.createBuffer();
+const solidBuffer = gl.createBuffer();
 const tileLoc = {
   position: gl.getAttribLocation(tileProgram, "a_position"),
   uv: gl.getAttribLocation(tileProgram, "a_uv"),
@@ -435,6 +437,31 @@ function drawLines(points, color, matrix) {
   gl.enableVertexAttribArray(colorLoc.position);
   gl.vertexAttribPointer(colorLoc.position, 3, gl.FLOAT, false, 0, 0);
   gl.drawArrays(gl.LINES, 0, points.length / 3);
+}
+
+function drawSolidTriangles(points, color, matrix) {
+  if (!points.length) return;
+  gl.useProgram(colorProgram);
+  gl.uniformMatrix4fv(colorLoc.matrix, false, matrix);
+  gl.uniform4f(colorLoc.color, color[0], color[1], color[2], color[3]);
+  gl.bindBuffer(gl.ARRAY_BUFFER, solidBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(points), gl.STREAM_DRAW);
+  gl.enableVertexAttribArray(colorLoc.position);
+  gl.vertexAttribPointer(colorLoc.position, 3, gl.FLOAT, false, 0, 0);
+  gl.drawArrays(gl.TRIANGLES, 0, points.length / 3);
+}
+
+function drawWaterPlane(matrix) {
+  const extent = 250000;
+  const z = -10;
+  drawSolidTriangles([
+    -extent, z, -extent,
+    extent, z, -extent,
+    extent, z, extent,
+    -extent, z, -extent,
+    extent, z, extent,
+    -extent, z, extent,
+  ], YANIS_WATER_COLOR, matrix);
 }
 
 function thickenLines(points, offsets = [0, 0.18]) {
@@ -804,9 +831,11 @@ function render() {
   gl.viewport(0, 0, state.width, state.height);
   gl.clearColor(0.83, 0.81, 0.75, 1);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  gl.enable(gl.DEPTH_TEST);
   gl.lineWidth(1);
   const matrix = viewProjection();
+  gl.disable(gl.DEPTH_TEST);
+  drawWaterPlane(matrix);
+  gl.enable(gl.DEPTH_TEST);
   for (const tile of state.tiles) drawTile(tile, matrix);
   gl.disable(gl.DEPTH_TEST);
   gl.enable(gl.BLEND);
