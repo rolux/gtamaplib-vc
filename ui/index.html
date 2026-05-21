@@ -6,6 +6,7 @@
     <title>gtamaplib-vc</title>
     <link rel="icon" type="image/png" href="/ui/gtamaplib-vc.png">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/ui/map3d.css">
   </head>
   <body>
     <div id="app">
@@ -17,6 +18,7 @@
           <option value="camera">View Cameras</option>
           <option value="map">View Map</option>
         </select>
+        <button id="map3d-button" type="button">3D Map</button>
         <span id="selection-title"></span>
         <nav id="edit-tools" aria-label="Observation tools">
           <button id="add-observation" type="button" title="A" hidden>Add</button>
@@ -89,6 +91,20 @@
           </header>
           <div id="dialog-content"></div>
         </section>
+      </div>
+
+      <div id="map3d-root" hidden>
+        <canvas id="map3d-scene"></canvas>
+        <canvas id="map3d-overlay"></canvas>
+        <button id="map3d-exit" type="button">Exit 3D</button>
+        <div id="map3d-tour-controls">
+          <button id="map3d-tour-start" type="button">Start Tour</button>
+          <button id="map3d-tour-back" type="button" hidden>Back</button>
+          <button id="map3d-tour-pause" type="button" hidden>Pause</button>
+          <button id="map3d-tour-forward" type="button" hidden>Forward</button>
+          <button id="map3d-tour-stop" type="button" hidden>Stop</button>
+        </div>
+        <div id="map3d-view-data"></div>
       </div>
     </div>
     <script type="module" src="app.js"></script>

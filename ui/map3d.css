@@ -1,0 +1,91 @@
+#map3d-root {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  overflow: hidden;
+  background: #111;
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+}
+
+#map3d-root[hidden] {
+  display: none;
+}
+
+#map3d-scene,
+#map3d-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+}
+
+#map3d-scene {
+  background: #d4d0c3;
+}
+
+#map3d-overlay {
+  pointer-events: none;
+}
+
+#map3d-exit,
+#map3d-view-data,
+#map3d-tour-controls,
+#map3d-tour-controls button {
+  position: fixed;
+  display: flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.58);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 13px;
+  line-height: 32px;
+}
+
+#map3d-exit {
+  top: 12px;
+  left: 12px;
+  right: auto;
+  width: auto;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+#map3d-tour-controls {
+  top: 12px;
+  right: 12px;
+  gap: 6px;
+  padding: 0;
+  background: transparent;
+}
+
+#map3d-tour-controls button {
+  position: static;
+  border: 0;
+  font: inherit;
+  line-height: 30px;
+  padding-bottom: 1px;
+  cursor: pointer;
+}
+
+#map3d-exit:hover,
+#map3d-tour-controls button:hover {
+  background: rgba(18, 18, 18, 0.64);
+  color: #fff;
+}
+
+#map3d-tour-controls button[hidden] {
+  display: none;
+}
+
+#map3d-view-data {
+  bottom: 12px;
+  left: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+}

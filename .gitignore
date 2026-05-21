@@ -14,6 +14,7 @@ data/import_extras.json
 data/gtamaplib-vc.json
 data/observation_edits.json
 ui/data/overlay.json
+ui/data/map3d-*.json
 ui/*-bw.jpg
 ui/thumbnails/
 optimizer/chain.json

@@ -26,6 +26,10 @@ CONFIG_JSON_PATH = DATA_DIR / "config.json"
 IMPORT_EXTRAS_JSON_PATH = DATA_DIR / "import_extras.json"
 OBSERVATION_EDITS_JSON_PATH = DATA_DIR / "observation_edits.json"
 UI_OVERLAY_JSON_PATH = UI_DATA_DIR / "overlay.json"
+MAP3D_COLORS_JSON_PATH = UI_DATA_DIR / "map3d-colors.json"
+MAP3D_FOUR_SEASONS_JSON_PATH = UI_DATA_DIR / "map3d-four-seasons.json"
+MAP3D_SUNSHINE_SKYWAY_JSON_PATH = UI_DATA_DIR / "map3d-sunshine-skyway.json"
+MAP3D_HANKS_WAFFLES_JSON_PATH = UI_DATA_DIR / "map3d-hanks-waffles.json"
 MAP_NAME = "yanis"
 CAMERA_CONE_DISTANCE_M = 25
 VERTICAL_GUIDE_SPACING_DEGREES = 1.0
@@ -848,6 +852,179 @@ def write_import_extras(md: Any, get_camera: Any, intersect_rays: Any, intersect
     )
 
 
+def map3d_point(value: Any) -> list[float]:
+    return [float(coord) for coord in value]
+
+
+def map3d_segment(a: Any, b: Any, style: str = "thin") -> dict[str, Any]:
+    return {"points": [map3d_point(a), map3d_point(b)], "style": style}
+
+
+def map3d_four_seasons_wireframe() -> dict[str, Any]:
+    from gtamaplib.gtamaplib import FourSeasons
+
+    fs = FourSeasons()
+    segments: list[dict[str, Any]] = []
+    for bottom, top, has_box, has_south in (
+        (-1, 0, 0, 1),
+        (0, 8, 1, 1),
+        (8, 16, 0, 1),
+        (16, 24, 1, 1),
+        (24, 32, 0, 1),
+        (32, 40, 1, 1),
+        (40, 56, 0, 1),
+        (56, 57, 0, 0),
+    ):
+        for floor in range(bottom, top + 1):
+            ne = fs._get_point_at_floor((fs.fs56ne, fs.fs40ne)[has_box], floor)
+            nw = fs._get_point_at_floor((fs.fs56nw, fs.fs40nw)[has_box], floor)
+            wo = fs._get_point_at_floor((fs.fs56w, fs.fs40w)[has_box], floor)
+            wi = fs._get_point_at_floor(fs.fs56w, floor)
+            hbnw = fs._get_point_at_floor(fs.hb58nw, floor)
+            hbsw = fs._get_hbs_at_floor("w", floor)
+            sw = fs._get_point_at_floor((fs.fs56w, fs.fs56sw)[has_south], floor)
+            se = fs._get_point_at_floor((fs.fs56e, fs.fs56se)[has_south], floor)
+            hbse = fs._get_hbs_at_floor("e", floor)
+            hbne = fs._get_point_at_floor(fs.hb58ne, floor)
+            ei = fs._get_point_at_floor(fs.fs56e, floor)
+            eo = fs._get_point_at_floor((fs.fs56e, fs.fs40e)[has_box], floor)
+            horizontal_style = "bold" if floor % 2 == 0 and has_south else "thin"
+
+            segments.append(map3d_segment(ne, nw))
+            segments.append(map3d_segment(nw, wo))
+            if floor <= 8:
+                segments.append(map3d_segment(wi, sw, horizontal_style))
+            elif floor < 28:
+                segments.append(map3d_segment(wi, hbnw, "bold"))
+                segments.append(map3d_segment(hbsw, sw, horizontal_style))
+            elif has_south:
+                segments.append(map3d_segment(wi, hbnw, "bold"))
+                segments.append(map3d_segment(hbnw, sw, horizontal_style))
+            segments.append(map3d_segment(wo, wi))
+            segments.append(map3d_segment(sw, se, horizontal_style))
+            segments.append(map3d_segment(ei, eo))
+            if floor <= 8:
+                segments.append(map3d_segment(se, ei, horizontal_style))
+            elif floor < 28:
+                segments.append(map3d_segment(se, hbse, horizontal_style))
+                segments.append(map3d_segment(hbne, ei, "bold"))
+            elif has_south:
+                segments.append(map3d_segment(se, hbne, horizontal_style))
+                segments.append(map3d_segment(hbne, ei, "bold"))
+            segments.append(map3d_segment(eo, ne))
+
+            if floor == top:
+                continue
+            segments += [
+                map3d_segment(ne, fs._get_point_at_floor(ne, floor + 1)),
+                map3d_segment(nw, fs._get_point_at_floor(nw, floor + 1)),
+                map3d_segment(wo, fs._get_point_at_floor(wo, floor + 1)),
+                map3d_segment(wi, fs._get_point_at_floor(wi, floor + 1)),
+                map3d_segment(sw, fs._get_point_at_floor(sw, floor + 1)),
+                map3d_segment(se, fs._get_point_at_floor(se, floor + 1)),
+                map3d_segment(ei, fs._get_point_at_floor(ei, floor + 1)),
+                map3d_segment(eo, fs._get_point_at_floor(eo, floor + 1)),
+            ]
+
+        segments += [
+            map3d_segment(fs.hb58nw, fs._get_point_at_floor(fs.hb58nw, 56), "bold"),
+            map3d_segment(fs.hb58nw, fs.hb58ne, "bold"),
+            map3d_segment(fs.hb58ne, fs._get_point_at_floor(fs.hb58ne, 56), "bold"),
+            map3d_segment(fs.hb58sw, fs._get_hbs_at_floor("w", 56), "bold"),
+            map3d_segment(fs.hb58sw, fs.hb58se, "bold"),
+            map3d_segment(fs.hb58se, fs._get_hbs_at_floor("e", 56), "bold"),
+            map3d_segment(fs.hb58nw, fs._get_point_at_floor(fs.hb58nw, 8), "bold"),
+            map3d_segment(fs.hb58sw, fs.hb28sw, "bold"),
+            map3d_segment(fs.hb28sw, fs.hb8sw, "bold"),
+            map3d_segment(fs.hb58ne, fs._get_point_at_floor(fs.hb58ne, 8), "bold"),
+            map3d_segment(fs.hb58se, fs.hb28se, "bold"),
+            map3d_segment(fs.hb28se, fs.hb8se, "bold"),
+        ]
+    return {"schema": "gtamaplibvc-map3d-four-seasons-v1", "segments": segments}
+
+
+def map3d_sunshine_skyway_wireframe() -> dict[str, Any]:
+    from gtamaplib.gtamaplib import SunshineSkywayBridge
+
+    bridge = SunshineSkywayBridge()
+    segments: list[dict[str, Any]] = [
+        map3d_segment(bridge.nt, (bridge.nt[0], bridge.nt[1], 0), "bold"),
+        map3d_segment(bridge.st, (bridge.st[0], bridge.st[1], 0), "bold"),
+    ]
+    for index in range(len(bridge.road) - 1):
+        segments.append(map3d_segment(bridge.road[index], bridge.road[index + 1], "bold"))
+    n_cables = 10
+    gap = (bridge.nt[2] - bridge.nr[2]) / n_cables
+    for pillar in (bridge.nt, bridge.st):
+        for direction in (bridge.direction, -bridge.direction):
+            for index in range(n_cables):
+                base_point = (pillar[0], pillar[1], bridge.nr[2])
+                road_point = bridge._get_road_point(base_point, direction, (index + 1) * gap)
+                pillar_point = (base_point[0], base_point[1], base_point[2] + (index + 1) * gap)
+                segments.append(map3d_segment(road_point, pillar_point, "thin"))
+    return {"schema": "gtamaplibvc-map3d-sunshine-skyway-v1", "segments": segments}
+
+
+def map3d_hanks_waffles_wireframe() -> dict[str, Any]:
+    from gtamaplib.gtamaplib import HanksWaffles
+
+    hw = HanksWaffles()
+    segments: list[dict[str, Any]] = []
+    bz = 14.0
+    rz = 17.0
+    corners = (hw.rne, hw.rse, hw.rsw)
+    for corner in corners:
+        segments.append(map3d_segment(corner, (corner[0], corner[1], bz), "bold"))
+    for index in range(len(corners) - 1):
+        z = bz
+        row = 0
+        while z <= rz + 0.001:
+            style = "bold" if row % 5 == 0 else "thin"
+            segments.append(
+                map3d_segment(
+                    (corners[index][0], corners[index][1], z),
+                    (corners[index + 1][0], corners[index + 1][1], z),
+                    style,
+                )
+            )
+            z += 0.1
+            row += 1
+    return {
+        "schema": "gtamaplibvc-map3d-hanks-waffles-v1",
+        "name": "536 Richard Jackson Blvd",
+        "segments": segments,
+    }
+
+
+def write_map3d_data(md: Any) -> None:
+    from gtamaplib.gtamaplib import get_color as gtamaplib_get_color
+
+    UI_DATA_DIR.mkdir(parents=True, exist_ok=True)
+    names = set(md.cameras) | set(md.landmarks)
+    result_path = ROOT / "optimizer" / "result.json"
+    if result_path.exists():
+        result = json.loads(result_path.read_text())
+        names.update(result.get("cameras", {}))
+        names.update(result.get("landmarks", {}))
+    names.update({"Four Seasons Hotel Miami", "Sunshine Skyway Bridge", "536 Richard Jackson Blvd"})
+    colors = {
+        "schema": "gtamaplibvc-map3d-colors-v1",
+        "colors": {
+            name: [channel / 255 for channel in gtamaplib_get_color(name)]
+            for name in sorted(names)
+        },
+    }
+    payloads = [
+        (MAP3D_COLORS_JSON_PATH, colors),
+        (MAP3D_FOUR_SEASONS_JSON_PATH, map3d_four_seasons_wireframe()),
+        (MAP3D_SUNSHINE_SKYWAY_JSON_PATH, map3d_sunshine_skyway_wireframe()),
+        (MAP3D_HANKS_WAFFLES_JSON_PATH, map3d_hanks_waffles_wireframe()),
+    ]
+    for path, payload in payloads:
+        path.write_text(json.dumps(payload, indent=4, ensure_ascii=False) + "\n")
+        print(f"Wrote {path}.")
+
+
 def main() -> None:
     add_import_path()
     from gtamaplib import gtamapdata as md
@@ -955,6 +1132,7 @@ def main() -> None:
     write_special_if_missing(md)
     write_import_extras(md, get_camera, intersect_rays, intersect_ray_and_ray)
     write_ui_overlay_data(md, get_camera, get_point, get_rotation)
+    write_map3d_data(md)
     print(
         "Wrote {path} with {cameras} cameras, {landmarks} landmarks, "
         "{observations} observations.".format(path=GTAMAPDATA_JSON_PATH, **gtamapdata["counts"])

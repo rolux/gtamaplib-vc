@@ -1,8 +1,10 @@
 import { GtaTileMap } from "/ui/map.js";
+import { activateMap3d, deactivateMap3d, setMap3dSettings } from "/ui/map3d.js";
 
 const state = {
   data: null,
   view: "camera",
+  previous2dView: "camera",
   camera: null,
   landmark: null,
   pendingFocusLandmark: false,
@@ -54,6 +56,7 @@ const els = {
   cameraFindClear: document.querySelector("#camera-find-clear"),
   settingsButton: document.querySelector("#settings-button"),
   viewSelect: document.querySelector("#view-select"),
+  map3dButton: document.querySelector("#map3d-button"),
   cameraSort: document.querySelector("#camera-sort"),
   cameraPanel: document.querySelector("#camera-panel"),
   cameraList: document.querySelector("#camera-list"),
@@ -296,6 +299,7 @@ function applyGlobalSettings() {
 
 function refreshSettingsDependentViews() {
   applyGlobalSettings();
+  setMap3dSettings({ blurLeaks: state.settings.blurLeaks });
   renderCameraList();
   updateGlobalStatus();
   if (state.camera) {
@@ -1596,7 +1600,7 @@ function hashParams() {
 
 function writeHash(cameraName, landmarkName) {
   const params = new URLSearchParams();
-  if (state.view === "map") params.set("view", "map");
+  if (state.view === "map" || state.view === "map3d") params.set("view", state.view);
   if (cameraName) params.set("camera", cameraName);
   if (landmarkName) params.set("landmark", landmarkName);
   const next = params.toString();
@@ -1614,11 +1618,13 @@ function writeHash(cameraName, landmarkName) {
 function applyHash() {
   if (!state.data) return;
   const params = hashParams();
-  const nextView = params.get("view") === "map" ? "map" : "camera";
+  const hashView = params.get("view");
+  const nextView = hashView === "map" || hashView === "map3d" ? hashView : "camera";
   const cameraName = params.get("camera");
   const landmarkName = params.get("landmark");
   const previousCameraName = state.camera?.name || null;
   const previousView = state.view;
+  if (nextView !== "map3d" && previousView !== "map3d") state.previous2dView = nextView;
   state.view = nextView;
   els.viewSelect.value = state.view;
   const cameraChanged = previousCameraName !== cameraName;
@@ -1640,6 +1646,11 @@ function applyHash() {
     applyLandmarkSelection(landmarkName, state.pendingFocusLandmark || preserveLandmarkView);
   } else if (state.landmark) {
     applyLandmarkSelection(null, false);
+  }
+  if (state.view === "map3d") {
+    activateMap3d({ onExit: exitMap3d, blurLeaks: state.settings.blurLeaks });
+  } else {
+    deactivateMap3d();
   }
   if (state.view === "map") {
     renderCurrentView(previousView !== "map");
@@ -1669,9 +1680,20 @@ function selectCameraFromCone(name, shouldToggle) {
 }
 
 function setView(view) {
-  if (view !== "camera" && view !== "map") return;
+  if (view !== "camera" && view !== "map" && view !== "map3d") return;
   if (state.view === view) return;
   cancelObservationEditMode();
+  if (view === "map3d") {
+    state.previous2dView = state.view === "map3d" ? state.previous2dView : state.view;
+    state.view = view;
+    els.viewSelect.value = view;
+    writeHash(state.camera?.name || null, state.landmark || null);
+    activateMap3d({ onExit: exitMap3d, blurLeaks: state.settings.blurLeaks });
+    updateEditTools();
+    return;
+  }
+  deactivateMap3d();
+  state.previous2dView = view;
   const cameraName = state.camera?.name || null;
   const landmarkName = state.landmark || null;
   const focusCameraLandmark = view === "camera" && cameraName && landmarkName && cameraObservesLandmark(cameraName, landmarkName);
@@ -1693,6 +1715,10 @@ function setView(view) {
     renderCameraPreview();
     updateEditTools();
   }
+}
+
+function exitMap3d() {
+  setView(state.previous2dView === "map" ? "map" : "camera");
 }
 
 function clearLandmarkSelection() {
@@ -2059,6 +2085,7 @@ function stopAllKeyboardNavigation() {
 
 function wireControls() {
   els.settingsButton.addEventListener("click", openSettingsDialog);
+  els.map3dButton.addEventListener("click", () => setView("map3d"));
   els.dialogClose.addEventListener("click", closeDialog);
   els.dialogBackdrop.addEventListener("mousedown", (event) => {
     if (event.target === els.dialogBackdrop) els.dialogBackdrop.classList.add("clicked");
@@ -2124,6 +2151,7 @@ function wireControls() {
   window.addEventListener("resize", fitStage);
   window.addEventListener("hashchange", applyHash);
   window.addEventListener("keydown", (event) => {
+    if (state.view === "map3d") return;
     const activeElement = document.activeElement;
     if (activeElement?.matches?.("input, textarea, select, [contenteditable]")) return;
     const plainKey = !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;
@@ -2232,6 +2260,7 @@ function wireControls() {
     }
   });
   window.addEventListener("keyup", (event) => {
+    if (state.view === "map3d") return;
     if (["-", "=", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowUp"].includes(event.key)) {
       stopKeyboardNavigation(event.key);
     }
