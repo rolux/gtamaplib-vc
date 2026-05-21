@@ -3085,6 +3085,36 @@ def latest_chain_result(chain: list[str]) -> tuple[int, dict[str, Any]] | None:
     return latest
 
 
+def format_result_values(values: list[float] | tuple[float, ...] | np.ndarray | None) -> str:
+    if values is None:
+        return ""
+    return "(" + ", ".join(f"{float(value):.3f}" for value in values) + ")"
+
+
+def format_result_camera_values(camera_row: dict[str, Any]) -> str:
+    if not camera_row:
+        return ""
+    xyz = format_result_values(camera_row.get("xyz"))
+    ypr = format_result_values(camera_row.get("ypr"))
+    hfov = "" if "hfov" not in camera_row else f"{camera_row['hfov']:.3f}"
+    return f"{xyz} | {ypr} | {hfov}"
+
+
+def chain_result_camera_values(result: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    rows = result.get("global", {}).get("next_prior_batch", [None, []])[1]
+    values: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        if row[0] != "camera":
+            continue
+        _, name, _player, xyz, ypr, fov, *_rest = row
+        values[name] = {
+            "xyz": xyz,
+            "ypr": ypr,
+            "hfov": float(fov[0]),
+        }
+    return values
+
+
 def write_optimizer_stage_result(report: dict[str, Any], output: Path) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, indent=4, ensure_ascii=False) + "\n")
@@ -3385,6 +3415,7 @@ def print_chain_results_summary(chain: list[str]) -> None:
 
     latest_index, result = latest
     global_report = result["global"]
+    camera_values = chain_result_camera_values(result)
     configured_rows_by_camera: dict[str, list[dict[str, Any]]] = {}
     for row in global_report.get("observations", []):
         if row.get("configured"):
@@ -3408,7 +3439,9 @@ def print_chain_results_summary(chain: list[str]) -> None:
             rows = current_step_global_rows(stage_result["global"])
             values = np.asarray([row["final_error_arcmin"] for row in rows], dtype=float)
             loss = residual_summary(values)["loss_arcmin2"]
-        print(f"  {index:>2}. {loss:12.6f} | {camera_name}")
+        values_column = format_result_camera_values(camera_values.get(camera_name, {}))
+        suffix = f" | {values_column}" if values_column else ""
+        print(f"  {index:>2}. {loss:12.6f} | {camera_name}{suffix}")
 
     print()
     print("Top global observation residuals:")
