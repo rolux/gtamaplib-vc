@@ -22,11 +22,14 @@ const THROTTLE_FORCE = 46;
 const DIVE_ACCEL = 7;
 const DRAG = 0.9862;
 const BULLET_SPEED = 520;
+const PRISON_DEFENSE_RADIUS = 500;
+const PRISON_SHOT_SPEED = 185;
 const CAMERA_CHASE = 46;
 const CAMERA_UP = 15;
 const CAMERA_THUMBNAIL_DISTANCE = 100;
-const TURBULENCE_NORTH_START = 5600;
-const TURBULENCE_NORTH_FULL = 7000;
+const TURBULENCE_NORTH_START = 6100;
+const TURBULENCE_NORTH_FULL = 7500;
+const ICON_TEXTURE = "../ui/gtamaplib-vc.png";
 const WATER_COLOR = [44 / 255, 103 / 255, 164 / 255, 1];
 const NIGHT_MAP_BRIGHTNESS = 0.15;
 const RADIO_LINES = [
@@ -191,8 +194,13 @@ const RADIO_LINES = [
   "frequency change approved. new frequency is one-two-three-decimal-four-five. they're friendlier there. different vibe.",
   "tower is experiencing a brief philosophical crisis. expect minor delays.",
   "this is a reminder that VFR flight following is a service and not a guarantee and definitely not a friendship. although. you know.",
-  "Leonida departure, be advised - actually, just. be advised. generally. as a practice.",
+  "Leonida departure, be advised — actually, just. be advised. generally. as a practice.",
   "#39 is lowkey my favorite",
+  "Yorktown at 3 o'clock. Sober up, ladies.",
+  "You are NOT on approach. This airfield is PURE SPECULATION.",
+  "What do you mean \"where is the panhandle?\"",
+  "Roger. I mean, no... not you!",
+  "Delta Alpha Foxtrott. I repeat: Foxtrott!",
 ];
 const DEBUG_COLORS = [
   "rgba(245,245,245,0.92)",
@@ -239,11 +247,22 @@ const BOAT_LINES = [
   "wrong canal!",
   "five stars on boat trip",
   "we are scuba brothers now",
-  "Bunny is a rider",
+  "bunny is a rider",
 ];
 const MAP_LABELS = [
   { text: "LTF Airfield", pos: [-2850, -4300, 0.08], width: 980, color: "#40ff4f" },
   { text: "Scree Hill", pos: [-6350, 6100, 0.08], width: 820, color: "#ff3fb6" },
+  {
+    text: "THE GREAT PAYWALL OF GLORIANA",
+    pos: [-4200, ZERO_Y, 0],
+    width: MAP_W,
+    color: "#ff1f1f",
+    vertical: true,
+    textureWidth: 4096,
+    textureHeight: 320,
+    fontSize: 220,
+    lineWidth: 24,
+  },
 ];
 
 const canvas = document.querySelector("#scene");
@@ -251,13 +270,15 @@ const overlay = document.querySelector("#overlay");
 const gl = canvas.getContext("webgl", { antialias: true, alpha: false });
 const ctx = overlay.getContext("2d");
 const speedEl = document.querySelector("#speed");
+const latitudeEl = document.querySelector("#latitude");
+const longitudeEl = document.querySelector("#longitude");
 const altitudeEl = document.querySelector("#altitude");
 const scoreEl = document.querySelector("#score");
 const statusEl = document.querySelector("#status");
 const modeEl = document.querySelector("#mode");
 const tilesEl = document.querySelector("#tiles");
 const radioEl = document.querySelector("#radio");
-const soundButton = document.querySelector("#sound");
+const radioButton = document.querySelector("#radio-button");
 const weatherButton = document.querySelector("#weather");
 const dayNightButton = document.querySelector("#day-night");
 const resetButton = document.querySelector("#reset");
@@ -279,6 +300,9 @@ const state = {
   wireframes: [],
   targets: [],
   bullets: [],
+  prisonTowers: [],
+  prisonShots: [],
+  iconTexture: null,
   screenshotHits: new Set(),
   particles: [],
   birds: [],
@@ -323,6 +347,8 @@ const state = {
     tremolo: null,
     tremoloGain: null,
     playing: false,
+    tracks: ["radio/track_01.mp3", "radio/track_02.mp3", "radio/track_03.mp3", "radio/track_04.mp3"],
+    trackIndex: 0,
   },
   gamepad: {
     pad: null,
@@ -337,6 +363,7 @@ const state = {
     throttleDown: 0,
     shoot: false,
     missile: false,
+    iconMissile: false,
     brake: false,
     stickPressed: false,
   },
@@ -366,6 +393,16 @@ const state = {
     pos: [-2640, 4550, 180],
     yaw: 0,
     t: 0,
+  },
+  keysSeaplane: {
+    active: false,
+    direction: 1,
+    t: 0,
+    next: 18,
+    pos: [-6400, -7800, 4],
+    yaw: 0.7,
+    pitch: 0,
+    roll: 0,
   },
   camera: {
     eye: [0, 0, 0],
@@ -623,19 +660,19 @@ const fogTexture = createCanvasTexture(128, (fogCtx, size) => {
   fogCtx.fillRect(0, 0, size, size);
 });
 
-function createTextTexture(text, color) {
-  const width = 1024;
-  const height = 180;
+function createTextTexture(text, color, options = {}) {
+  const width = options.width || 1024;
+  const height = options.height || 180;
   const offscreen = document.createElement("canvas");
   offscreen.width = width;
   offscreen.height = height;
   const labelCtx = offscreen.getContext("2d");
   labelCtx.clearRect(0, 0, width, height);
-  labelCtx.font = "bold 112px -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif";
+  labelCtx.font = `bold ${options.fontSize || 112}px -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif`;
   labelCtx.textAlign = "center";
   labelCtx.textBaseline = "middle";
   labelCtx.lineJoin = "round";
-  labelCtx.lineWidth = 14;
+  labelCtx.lineWidth = options.lineWidth || 14;
   labelCtx.strokeStyle = "rgba(0,0,0,0.65)";
   labelCtx.strokeText(text, width / 2, height / 2 + 4);
   labelCtx.fillStyle = color;
@@ -776,6 +813,19 @@ function mapLabelVertices(label) {
   const halfW = width / 2;
   const halfH = height / 2;
   const [x, y, z] = label.pos;
+  if (label.vertical) {
+    const west = x - halfW;
+    const east = x + halfW;
+    const top = z + height;
+    return [
+      ...worldToGl(west, y, top), 0, 1,
+      ...worldToGl(east, y, top), 1, 1,
+      ...worldToGl(east, y, z), 1, 0,
+      ...worldToGl(west, y, top), 0, 1,
+      ...worldToGl(east, y, z), 1, 0,
+      ...worldToGl(west, y, z), 0, 0,
+    ];
+  }
   const west = x - halfW;
   const east = x + halfW;
   const north = y + halfH;
@@ -801,7 +851,12 @@ function drawMapLabels(matrix) {
 
 function initializeMapLabels() {
   state.mapLabels = MAP_LABELS.map((label) => {
-    const texture = createTextTexture(label.text, label.color);
+    const texture = createTextTexture(label.text, label.color, {
+      width: label.textureWidth,
+      height: label.textureHeight,
+      fontSize: label.fontSize,
+      lineWidth: label.lineWidth,
+    });
     return {
       ...label,
       texture,
@@ -829,7 +884,6 @@ function resetPlane() {
     hp: 100,
   });
   statusEl.textContent = "fresh floatplane, highly legal";
-  state.blockedPopupNext = state.weatherTime + 5;
 }
 
 function shoot(now) {
@@ -846,12 +900,12 @@ function shoot(now) {
   spawnParticles(add(state.plane.pos, scale(forward, 16)), [1, 0.86, 0.32, 1], 8, 22);
 }
 
-function launchMissile(now) {
+function launchMissile(now, variant = "missile") {
   if (now - state.lastMissile < 650) return;
   state.lastMissile = now;
   const { forward, up } = planeBasis();
   state.bullets.push({
-    type: "missile",
+    type: variant,
     pos: add(add(state.plane.pos, scale(forward, 20)), scale(up, -2)),
     vel: add(state.plane.vel, scale(forward, 310)),
     life: 4.5,
@@ -930,6 +984,7 @@ function updatePlane(dt, now) {
   if (state.keys.has("b") || state.keys.has("B") || state.gamepad.brake) p.vel = scale(p.vel, 0.965);
   if (state.keys.has(" ") || state.gamepad.shoot) shoot(now);
   if (state.keys.has("m") || state.keys.has("M") || state.gamepad.missile) launchMissile(now);
+  if (state.gamepad.iconMissile) launchMissile(now, "icon-missile");
   p.roll *= Math.pow(0.86, dt * 5);
   p.pitch = clamp(p.pitch, -0.85, 0.82);
   const { forward, up } = planeBasis();
@@ -1013,6 +1068,7 @@ function pollGamepad() {
     state.gamepad.throttleDown = 0;
     state.gamepad.shoot = false;
     state.gamepad.missile = false;
+    state.gamepad.iconMissile = false;
     state.gamepad.brake = false;
     state.gamepad.stickPressed = false;
     return;
@@ -1028,7 +1084,8 @@ function pollGamepad() {
   state.gamepad.throttleDown = Math.max(pad.buttons[4]?.value || 0, pad.buttons[6]?.value || 0);
   state.gamepad.throttleUp = Math.max(pad.buttons[5]?.value || 0, pad.buttons[7]?.value || 0);
   state.gamepad.shoot = Boolean(pad.buttons[0]?.pressed);
-  state.gamepad.missile = Boolean(pad.buttons[1]?.pressed || pad.buttons[2]?.pressed || pad.buttons[3]?.pressed);
+  state.gamepad.missile = Boolean(pad.buttons[1]?.pressed || pad.buttons[2]?.pressed);
+  state.gamepad.iconMissile = Boolean(pad.buttons[3]?.pressed);
   state.gamepad.brake = false;
   const stickPressed = Boolean(pad.buttons[10]?.pressed || pad.buttons[11]?.pressed);
   if (stickPressed && !state.gamepad.stickPressed) {
@@ -1083,9 +1140,42 @@ function updateBullets(dt) {
   if (state.targets.every((target) => target.dead)) makeTargets();
 }
 
+function updatePrisonDefense(dt) {
+  if (!state.prisonTowers.length) return;
+  const plane = state.plane.pos;
+  for (const tower of state.prisonTowers) {
+    const horizontal = Math.hypot(plane[0] - tower.pos[0], plane[1] - tower.pos[1]);
+    if (horizontal > PRISON_DEFENSE_RADIUS) continue;
+    tower.cooldown -= dt;
+    if (tower.cooldown > 0) continue;
+    const aim = add(plane, scale(state.plane.vel, 0.42));
+    const dir = normalize(subtract(aim, tower.pos));
+    state.prisonShots.push({
+      pos: [...tower.pos],
+      vel: scale(dir, PRISON_SHOT_SPEED + Math.random() * 45),
+      life: 3.4,
+    });
+    tower.cooldown = 0.32 + Math.random() * 1.1;
+    if (Math.random() < 0.4) spawnParticles(tower.pos, [0.05, 0.12, 0.42, 0.8], 4, 14);
+  }
+  for (const shot of state.prisonShots) {
+    shot.life -= dt;
+    shot.pos = add(shot.pos, scale(shot.vel, dt));
+    if (Math.random() < dt * 18) spawnParticles(shot.pos, [0.05, 0.1, 0.38, 0.55], 1, 5);
+    if (Math.hypot(shot.pos[0] - plane[0], shot.pos[1] - plane[1], shot.pos[2] - plane[2]) < 22) {
+      shot.life = 0;
+      state.plane.vel = add(state.plane.vel, scale(normalize(subtract(plane, shot.pos)), 18));
+      spawnParticles(plane, [0.04, 0.12, 0.55, 0.9], 24, 40);
+      statusEl.textContent = "prison tower says no";
+      rumbleGamepad(120, 0.16, 0.42);
+    }
+  }
+  state.prisonShots = state.prisonShots.filter((shot) => shot.life > 0);
+}
+
 function spawnBirdFlock() {
   const { forward, right, up } = planeBasis();
-  const count = 2 + Math.floor(Math.random() * 3);
+  const count = 2 + Math.floor(Math.random() * 4);
   const center = add(add(add(state.plane.pos, scale(forward, 260 + Math.random() * 480)), scale(right, (Math.random() - 0.5) * 520)), scale(up, 60 + Math.random() * 140));
   const direction = normalize(add(scale(forward, -0.25 + Math.random() * 0.5), scale(right, Math.random() < 0.5 ? -1 : 1)));
   for (let i = 0; i < count; i++) {
@@ -1100,7 +1190,7 @@ function spawnBirdFlock() {
 }
 
 function updateBirds(dt) {
-  if (state.birds.length < 10 && Math.random() < dt * 0.045) spawnBirdFlock();
+  if (state.birds.length < 14 && Math.random() < dt * 0.062) spawnBirdFlock();
   for (const bird of state.birds) {
     bird.life -= dt;
     bird.phase += dt * 8;
@@ -1206,7 +1296,7 @@ function updateAirliner(dt) {
   jet.pos = [x, y, z];
   jet.yaw = Math.atan2(-dx, dy);
   jet.pitch = Math.sin(angle * 2.0 + Math.PI / 2) * 0.025;
-  jet.roll = 0.26;
+  jet.roll = -0.26;
 }
 
 function updateAmbientActors(dt) {
@@ -1218,6 +1308,8 @@ function updateAmbientActors(dt) {
   const chopperAngle = state.chopper.t * 0.42;
   state.chopper.pos = [-2640 + Math.cos(chopperAngle) * 110, 4550 + Math.sin(chopperAngle) * 80, 175 + Math.sin(state.chopper.t * 1.6) * 7];
   state.chopper.yaw = chopperAngle + Math.PI / 2;
+
+  updateKeysSeaplane(dt);
 
   for (const boat of state.boats) {
     boat.t = (boat.t + dt * boat.speed) % 1;
@@ -1233,6 +1325,47 @@ function updateAmbientActors(dt) {
       boat.messageUntil = state.weatherTime + 3.5;
     }
   }
+}
+
+function keysSeaplanePoint(t, direction) {
+  const west = [-6500, -7850, 4];
+  const east = [-2200, -6280, 4];
+  const a = direction > 0 ? west : east;
+  const b = direction > 0 ? east : west;
+  const cruise = Math.sin(Math.PI * t);
+  const wiggle = Math.sin(t * Math.PI * 2.4) * 70;
+  return [
+    lerp(a[0], b[0], t),
+    lerp(a[1], b[1], t) + wiggle,
+    5 + cruise * 88,
+  ];
+}
+
+function updateKeysSeaplane(dt) {
+  const plane = state.keysSeaplane;
+  if (!plane.active) {
+    plane.next -= dt;
+    if (plane.next > 0) return;
+    plane.active = true;
+    plane.direction = Math.random() < 0.5 ? 1 : -1;
+    plane.t = 0;
+  }
+  plane.t += dt * 0.018;
+  if (plane.t >= 1) {
+    plane.active = false;
+    plane.next = 80 + Math.random() * 110;
+    return;
+  }
+  const p0 = keysSeaplanePoint(Math.max(0, plane.t - 0.01), plane.direction);
+  const p1 = keysSeaplanePoint(plane.t, plane.direction);
+  const p2 = keysSeaplanePoint(Math.min(1, plane.t + 0.01), plane.direction);
+  const dx = p2[0] - p0[0];
+  const dy = p2[1] - p0[1];
+  const dz = p2[2] - p0[2];
+  plane.pos = p1;
+  plane.yaw = Math.atan2(-dx, dy);
+  plane.pitch = clamp(Math.atan2(dz, Math.hypot(dx, dy)), -0.18, 0.18);
+  plane.roll = Math.sin(plane.t * Math.PI * 2) * 0.08;
 }
 
 function updateRadio(dt) {
@@ -1326,17 +1459,19 @@ function update(dt, now) {
   updateDetailTiles();
   updateScreenshotFlyThroughs();
   updateBullets(dt);
+  updatePrisonDefense(dt);
   updateParticles(dt);
   updateDebugOverlay();
   updateBlockedPopup();
   updateCamera(dt);
   speedEl.textContent = `SPD ${length(state.plane.vel).toFixed(0)}`;
+  latitudeEl.textContent = `LAT ${Math.round(state.plane.pos[1])}`;
+  longitudeEl.textContent = `LNG ${Math.round(state.plane.pos[0])}`;
   altitudeEl.textContent = `ALT ${state.plane.pos[2].toFixed(0)}`;
   scoreEl.textContent = `SCORE ${state.score}`;
   modeEl.textContent = state.storm ? "STORM MODE" : "SUNNY CHAOS";
-  weatherButton.textContent = state.storm ? "clear" : "storm";
+  weatherButton.textContent = state.storm ? "sunny" : "storm";
   dayNightButton.textContent = state.night ? "day" : "night";
-  dayNightButton.classList.toggle("active", state.night);
   const padText = state.gamepad.connected ? " / pad" : "";
   const tileCount = state.tiles.filter((tile) => tile?.loaded).length;
   const landmarkCount = state.landmarkModels.filter((model) => model.texture?.loaded).length;
@@ -1355,6 +1490,53 @@ function matrix() {
 
 function modelPoint(local, basis, origin = state.plane.pos) {
   return add(add(add(origin, scale(basis.right, local[0])), scale(basis.forward, local[1])), scale(basis.up, local[2]));
+}
+
+function pushTri(mesh, a, b, c) {
+  mesh.push(a, b, c);
+}
+
+function pushQuad(mesh, a, b, c, d) {
+  pushTri(mesh, a, b, c);
+  pushTri(mesh, a, c, d);
+}
+
+function pushBox(mesh, min, max) {
+  const [x0, y0, z0] = min;
+  const [x1, y1, z1] = max;
+  pushQuad(mesh, [x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0]);
+  pushQuad(mesh, [x0, y0, z1], [x0, y1, z1], [x1, y1, z1], [x1, y0, z1]);
+  pushQuad(mesh, [x0, y0, z0], [x0, y0, z1], [x1, y0, z1], [x1, y0, z0]);
+  pushQuad(mesh, [x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1]);
+  pushQuad(mesh, [x0, y0, z0], [x0, y1, z0], [x0, y1, z1], [x0, y0, z1]);
+  pushQuad(mesh, [x1, y0, z0], [x1, y0, z1], [x1, y1, z1], [x1, y1, z0]);
+}
+
+function pushEllipsoid(mesh, center, radii, rings = 7, segments = 14) {
+  const [cx, cy, cz] = center;
+  const [rx, ry, rz] = radii;
+  const points = [];
+  for (let r = 0; r <= rings; r++) {
+    const v = r / rings * Math.PI;
+    const y = Math.cos(v) * ry;
+    const ringRadius = Math.sin(v);
+    const ring = [];
+    for (let s = 0; s < segments; s++) {
+      const a = s / segments * Math.PI * 2;
+      ring.push([cx + Math.cos(a) * rx * ringRadius, cy + y, cz + Math.sin(a) * rz * ringRadius]);
+    }
+    points.push(ring);
+  }
+  for (let r = 0; r < rings; r++) {
+    for (let s = 0; s < segments; s++) {
+      const next = (s + 1) % segments;
+      pushQuad(mesh, points[r][s], points[r][next], points[r + 1][next], points[r + 1][s]);
+    }
+  }
+}
+
+function meshVertices(mesh, basis, origin) {
+  return mesh.flatMap((p) => worldToGl(...modelPoint(p, basis, origin)));
 }
 
 function drawPlane(m) {
@@ -1380,20 +1562,70 @@ function drawPlane(m) {
   drawColor(prop, [0.05, 0.06, 0.07, 0.45], m, gl.LINES);
 }
 
+function drawKeysSeaplane(m) {
+  const plane = state.keysSeaplane;
+  if (!plane.active) return;
+  const b = actorBasis(plane);
+  const tri = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, plane.pos)));
+  const line = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, plane.pos)));
+  const fuselage = [];
+  pushEllipsoid(fuselage, [0, 1, 0], [4.4, 22, 5.2], 6, 12);
+  drawColor(meshVertices(fuselage, b, plane.pos), [0.98, 0.95, 0.84, 1], m);
+  const nose = [];
+  pushEllipsoid(nose, [0, 21, -0.4], [4.9, 6.5, 4.8], 5, 12);
+  drawColor(meshVertices(nose, b, plane.pos), [0.96, 0.74, 0.12, 1], m);
+  drawColor(tri([-4.2, 16, 1.6], [4.2, 16, 1.6], [0, 25, 1.2]), [0.04, 0.05, 0.055, 1], m);
+  const wings = [];
+  pushBox(wings, [-40, -4, 4.8], [40, 6, 6.3]);
+  pushBox(wings, [-17, -19, 2.6], [17, -13, 4.0]);
+  drawColor(meshVertices(wings, b, plane.pos), [1, 0.97, 0.87, 1], m);
+  drawColor(tri([-30, -4.2, 6.4], [-12, -4.2, 6.4], [-12, 5.8, 6.4], [-30, -4.2, 6.4], [-12, 5.8, 6.4], [-30, 5.8, 6.4], [12, -4.2, 6.4], [30, -4.2, 6.4], [30, 5.8, 6.4], [12, -4.2, 6.4], [30, 5.8, 6.4], [12, 5.8, 6.4]), [0.96, 0.74, 0.12, 1], m);
+  const floats = [];
+  pushBox(floats, [-8.8, -18, -7.5], [-4.2, 18, -4.4]);
+  pushBox(floats, [4.2, -18, -7.5], [8.8, 18, -4.4]);
+  drawColor(meshVertices(floats, b, plane.pos), [0.35, 0.31, 0.22, 1], m);
+  drawColor(tri([0, -17, 0], [0, -30, 12], [0, -19, 1.6]), [0.96, 0.74, 0.12, 1], m);
+  drawColor(line([-8, 9, -4.4], [-16, 2, 4.8], [8, 9, -4.4], [16, 2, 4.8], [-8, -10, -4.4], [-13, -5, 3.0], [8, -10, -4.4], [13, -5, 3.0]), [0.08, 0.08, 0.075, 0.95], m, gl.LINES);
+  const prop = [];
+  const center = modelPoint([0, 27, -0.5], b, plane.pos);
+  for (let i = 0; i < 10; i++) {
+    const a = i * Math.PI / 5 + performance.now() * 0.026;
+    const p1 = add(center, add(scale(b.right, Math.cos(a) * 6), scale(b.up, Math.sin(a) * 6)));
+    const p2 = add(center, add(scale(b.right, Math.cos(a + Math.PI) * 6), scale(b.up, Math.sin(a + Math.PI) * 6)));
+    prop.push(...worldToGl(...p1), ...worldToGl(...p2));
+  }
+  drawColor(prop, [0.03, 0.035, 0.04, 0.45], m, gl.LINES);
+}
+
 function drawAirliner(m) {
   const jet = state.airliner;
   const b = actorBasis(jet);
   const tri = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, jet.pos)));
   const line = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, jet.pos)));
   const twoSided = (color, ...points) => drawColor(tri(...points, ...[...points].reverse()), color, m);
-  twoSided([0.96, 0.94, 0.86, 1], [-9, 82, 0], [9, 82, 0], [0, -92, 2.5]);
+  const fuselage = [];
+  pushEllipsoid(fuselage, [0, -4, 0], [10, 96, 8.5], 8, 16);
+  drawColor(meshVertices(fuselage, b, jet.pos), [0.96, 0.94, 0.86, 1], m);
+  const belly = [];
+  pushEllipsoid(belly, [0, -18, -2.8], [7.5, 62, 4.2], 5, 12);
+  drawColor(meshVertices(belly, b, jet.pos), [0.78, 0.76, 0.68, 1], m);
   drawColor(tri([-7, 84, -1.5], [7, 84, -1.5], [0, 104, -0.5]), [0.92, 0.91, 0.84, 1], m);
-  twoSided([0.86, 0.83, 0.73, 1], [-88, 8, 0], [88, 8, 0], [13, -26, 1.8], [-88, 8, 0], [13, -26, 1.8], [-13, -26, 1.8]);
-  twoSided([0.86, 0.84, 0.76, 1], [-36, -80, 1], [36, -80, 1], [0, -112, 2.4]);
-  twoSided([0.08, 0.12, 0.2, 1], [0, -84, 1], [0, -112, 38], [0, -95, 5]);
-  drawColor(tri([-8, 78, -3], [8, 78, -3], [0, 88, -4.4]), [0.72, 0.12, 0.08, 1], m);
-  drawColor(tri([-54, -2, -5], [-44, -2, -5], [-49, 14, -5], [44, -2, -5], [54, -2, -5], [49, 14, -5]), [0.18, 0.17, 0.15, 1], m);
-  drawColor(tri([-30, 2, -5], [-22, 2, -5], [-26, 16, -5], [22, 2, -5], [30, 2, -5], [26, 16, -5]), [0.18, 0.17, 0.15, 1], m);
+  const wings = [];
+  pushBox(wings, [-88, -20, -1.6], [-8, 18, 1.4]);
+  pushBox(wings, [8, -20, -1.6], [88, 18, 1.4]);
+  drawColor(meshVertices(wings, b, jet.pos), [0.86, 0.83, 0.73, 1], m);
+  twoSided([0.86, 0.83, 0.73, 1], [-88, 18, 0], [-88, -20, 0], [-104, -8, 1.2], [88, 18, 0], [104, -8, 1.2], [88, -20, 0]);
+  const tailplane = [];
+  pushBox(tailplane, [-36, -96, 0], [-4, -78, 3.2]);
+  pushBox(tailplane, [4, -96, 0], [36, -78, 3.2]);
+  drawColor(meshVertices(tailplane, b, jet.pos), [0.86, 0.84, 0.76, 1], m);
+  twoSided([0.08, 0.12, 0.2, 1], [-4, -84, 3], [4, -84, 3], [0, -111, 39], [-4, -94, 4], [4, -94, 4], [0, -111, 39]);
+  drawColor(tri([-8, 78, -4], [8, 78, -4], [0, 90, -5.6]), [0.72, 0.12, 0.08, 1], m);
+  for (const engine of [[-51, 2, -6], [51, 2, -6], [-26, 4, -6], [26, 4, -6]]) {
+    const pod = [];
+    pushEllipsoid(pod, engine, [5.8, 9.5, 5.2], 5, 12);
+    drawColor(meshVertices(pod, b, jet.pos), [0.18, 0.17, 0.15, 1], m);
+  }
   drawColor(line([-9, 82, 0], [9, 82, 0], [9, 82, 0], [0, -92, 2.5], [0, -92, 2.5], [-9, 82, 0], [-88, 8, 0], [88, 8, 0], [-36, -80, 1], [36, -80, 1], [0, -84, 1], [0, -112, 38], [-5, 72, 1.8], [5, 72, 1.8], [-5, 52, 2.1], [5, 52, 2.1], [-5, 32, 2.3], [5, 32, 2.3], [-5, 12, 2.4], [5, 12, 2.4]), [0.16, 0.18, 0.2, 0.72], m, gl.LINES);
 }
 
@@ -1401,9 +1633,16 @@ function drawBlimp(m) {
   const b = actorBasis({ yaw: state.blimp.yaw, pitch: 0, roll: 0 });
   const tri = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, state.blimp.pos)));
   const line = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, state.blimp.pos)));
-  drawColor(tri([-52, 0, 0], [0, 72, 20], [52, 0, 0], [-52, 0, 0], [52, 0, 0], [0, -72, 20], [-52, 0, 0], [0, 72, -20], [52, 0, 0], [-52, 0, 0], [52, 0, 0], [0, -72, -20]), [0.92, 0.95, 0.93, 0.96], m);
-  drawColor(tri([-10, -8, -25], [10, -8, -25], [0, 24, -32], [0, -70, 0], [0, -95, 24], [0, -72, 4]), [0.78, 0.82, 0.78, 1], m);
-  drawColor(line([-52, 0, 0], [52, 0, 0], [0, 72, 20], [0, -72, 20], [0, 72, -20], [0, -72, -20]), [0.55, 0.62, 0.64, 0.72], m, gl.LINES);
+  const twoSided = (color, ...points) => drawColor(tri(...points, ...[...points].reverse()), color, m);
+  const envelope = [];
+  pushEllipsoid(envelope, [0, 0, 0], [54, 84, 27], 9, 18);
+  drawColor(meshVertices(envelope, b, state.blimp.pos), [0.92, 0.95, 0.93, 0.96], m);
+  drawColor(tri([0, -84, 0], [0, -112, 10], [0, -112, -10], [-14, -79, 0], [-42, -104, 8], [-42, -104, -8], [14, -79, 0], [42, -104, 8], [42, -104, -8]), [0.74, 0.8, 0.78, 1], m);
+  twoSided([0.72, 0.78, 0.76, 1], [0, -62, 22], [0, -104, 45], [0, -86, 12]);
+  twoSided([0.72, 0.78, 0.76, 1], [0, -62, -22], [0, -104, -45], [0, -86, -12]);
+  twoSided([0.72, 0.78, 0.76, 1], [-42, -58, 0], [-72, -96, 0], [-28, -82, 8]);
+  twoSided([0.72, 0.78, 0.76, 1], [42, -58, 0], [72, -96, 0], [28, -82, 8]);
+  drawColor(line([-54, 0, 0], [54, 0, 0], [0, 84, 27], [0, -84, 27], [0, 84, -27], [0, -84, -27], [0, -84, 0], [0, -112, 10], [0, -84, 0], [0, -112, -10], [-14, -79, 0], [-42, -104, 8], [14, -79, 0], [42, -104, 8]), [0.55, 0.62, 0.64, 0.72], m, gl.LINES);
 }
 
 function drawChopper(m) {
@@ -1411,9 +1650,18 @@ function drawChopper(m) {
   const b = actorBasis(actor);
   const tri = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, state.chopper.pos)));
   const line = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, state.chopper.pos)));
-  drawColor(tri([-10, 18, 0], [10, 18, 0], [0, -24, 4], [-9, 18, -2], [9, 18, -2], [0, 6, -8]), [0.78, 0.08, 0.07, 1], m);
-  drawColor(tri([-7, 15, 1], [7, 15, 1], [0, 28, 2]), [0.04, 0.05, 0.06, 1], m);
-  drawColor(line([0, -20, 4], [0, -58, 8], [-10, -58, 8], [10, -58, 8], [-14, 0, -9], [14, 0, -9], [-14, -18, -9], [14, -18, -9]), [0.07, 0.07, 0.06, 1], m, gl.LINES);
+  const body = [];
+  pushBox(body, [-10, -18, -5], [10, 18, 8]);
+  pushBox(body, [-7, 14, -3], [7, 29, 6]);
+  drawColor(meshVertices(body, b, state.chopper.pos), [0.78, 0.08, 0.07, 1], m);
+  const cabin = [];
+  pushBox(cabin, [-7, 12, 0], [7, 27, 8]);
+  drawColor(meshVertices(cabin, b, state.chopper.pos), [0.04, 0.05, 0.06, 1], m);
+  const tail = [];
+  pushBox(tail, [-2.2, -60, 4], [2.2, -18, 8]);
+  drawColor(meshVertices(tail, b, state.chopper.pos), [0.42, 0.05, 0.05, 1], m);
+  drawColor(tri([0, -55, 8], [0, -70, 22], [0, -60, 7], [-2, -58, 7], [-18, -69, 8], [-2, -62, 11], [2, -58, 7], [18, -69, 8], [2, -62, 11]), [0.08, 0.08, 0.07, 1], m);
+  drawColor(line([-16, 3, -10], [16, 3, -10], [-16, -20, -10], [16, -20, -10], [-13, 2, -10], [-13, 2, -3], [13, 2, -10], [13, 2, -3], [-13, -19, -10], [-13, -19, -3], [13, -19, -10], [13, -19, -3]), [0.07, 0.07, 0.06, 1], m, gl.LINES);
   const rotor = [];
   const center = modelPoint([0, 4, 14], b, state.chopper.pos);
   const spin = performance.now() * 0.018;
@@ -1497,13 +1745,25 @@ function drawSprites(m) {
 function drawBullets(m) {
   const lines = [];
   const missileLines = [];
+  const prisonLines = [];
+  const iconMissiles = [];
+  const { right, up } = cameraBillboardBasis();
   for (const bullet of state.bullets) {
     const tail = subtract(bullet.pos, scale(normalize(bullet.vel), bullet.type === "missile" ? 36 : 18));
-    if (bullet.type === "missile") missileLines.push(...worldToGl(...tail), ...worldToGl(...bullet.pos));
+    if (bullet.type === "missile" || bullet.type === "icon-missile") missileLines.push(...worldToGl(...tail), ...worldToGl(...bullet.pos));
     else lines.push(...worldToGl(...tail), ...worldToGl(...bullet.pos));
+    if (bullet.type === "icon-missile") iconMissiles.push(...billboardQuad(bullet.pos, 12, right, up));
+  }
+  for (const shot of state.prisonShots) {
+    const tail = subtract(shot.pos, scale(normalize(shot.vel), 26));
+    prisonLines.push(...worldToGl(...tail), ...worldToGl(...shot.pos));
   }
   drawColor(lines, [1, 0.9, 0.32, 1], m, gl.LINES);
   drawColor(missileLines, [1, 0.28, 0.08, 1], m, gl.LINES);
+  drawColor(thickenLines(prisonLines, [0, 0.1, -0.1]), [0.04, 0.12, 0.46, 0.92], m, gl.LINES);
+  if (state.iconTexture?.loaded && iconMissiles.length) {
+    drawTextured(iconMissiles, state.iconTexture.texture, m, 1);
+  }
 }
 
 function drawBirds(m) {
@@ -1517,7 +1777,7 @@ function drawBirds(m) {
     const beak = add(bird.pos, scale(direction, bird.size * 0.45));
     lines.push(...worldToGl(...left), ...worldToGl(...beak), ...worldToGl(...beak), ...worldToGl(...right));
   }
-  drawColor(lines, [0.92, 0.9, 0.82, 0.78], m, gl.LINES);
+  drawColor(thickenLines(lines, [0, 0.12]), [0.92, 0.9, 0.82, 0.78], m, gl.LINES);
 }
 
 function thickenLines(lines, offsets) {
@@ -1698,15 +1958,15 @@ function drawOverlay(m) {
     const p = transformPoint(m, worldToGl(...boat.pos));
     if (p[2] < -1 || p[2] > 1) continue;
     const x = (p[0] * 0.5 + 0.5) * state.width;
-    const y = (-p[1] * 0.5 + 0.5) * state.height - 26;
+    const y = (-p[1] * 0.5 + 0.5) * state.height - 32;
     ctx.save();
-    ctx.font = "13px -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif";
-    const w = ctx.measureText(boat.message).width + 18;
+    ctx.font = "16px -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif";
+    const w = ctx.measureText(boat.message).width + 22;
     ctx.fillStyle = "rgba(255,255,255,0.86)";
     ctx.strokeStyle = "rgba(0,0,0,0.42)";
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.roundRect(x - w / 2, y - 12, w, 24, 8);
+    ctx.roundRect(x - w / 2, y - 15, w, 30, 10);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = "rgba(0,0,0,0.78)";
@@ -1874,6 +2134,7 @@ function render() {
   drawBlimp(m);
   drawChopper(m);
   drawAirliner(m);
+  drawKeysSeaplane(m);
   drawPlane(m);
   drawSprites(m);
   gl.disable(gl.BLEND);
@@ -1921,6 +2182,7 @@ function initializeAmbientActors() {
 
 async function loadData() {
   initializeMapLabels();
+  state.iconTexture = loadImageTexture(ICON_TEXTURE);
   const [base, result, colors, fourSeasons, sunshineSkyway, landmarkModels] = await Promise.all([
     fetch(VC_DATA).then((r) => r.json()),
     fetch(VC_RESULT).then((r) => r.ok ? r.json() : null).catch(() => null),
@@ -1954,6 +2216,13 @@ async function loadData() {
     landmarkMap.set(name, { ...(landmarkMap.get(name) || { name }), xyz });
   }
   state.landmarks = [...landmarkMap.values()].filter((item) => item.xyz);
+  state.prisonTowers = state.landmarks
+    .filter((item) => /^Prison Tower \([1-6]\)$/.test(item.name))
+    .map((item) => ({
+      name: item.name,
+      pos: [item.xyz[0], item.xyz[1], item.xyz[2] + 20],
+      cooldown: Math.random() * 1.2,
+    }));
   if (landmarkModels?.schema === "gtamaplib-vvc-landmarks-v1") {
     state.landmarkModels = (landmarkModels.landmarks || []).map((model) => ({
       ...model,
@@ -1990,10 +2259,20 @@ function distortionCurve(amount = 95) {
 async function toggleSound() {
   const sound = state.sound;
   if (!sound.audio) {
-    sound.audio = new Audio("music/custom.mp3");
-    sound.audio.loop = true;
+    sound.audio = new Audio(sound.tracks[sound.trackIndex]);
+    sound.audio.loop = false;
     sound.audio.preload = "auto";
     sound.audio.crossOrigin = "anonymous";
+    sound.audio.addEventListener("ended", () => {
+      if (!sound.playing) return;
+      sound.trackIndex = (sound.trackIndex + 1) % sound.tracks.length;
+      sound.audio.src = sound.tracks[sound.trackIndex];
+      sound.audio.playbackRate = 0.96;
+      sound.audio.play().catch(() => {
+        sound.playing = false;
+        radioButton.textContent = "radio";
+      });
+    });
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     sound.context = new AudioCtx();
     sound.source = sound.context.createMediaElementSource(sound.audio);
@@ -2044,28 +2323,40 @@ async function toggleSound() {
   if (sound.playing) {
     sound.audio.pause();
     sound.playing = false;
-    soundButton.classList.remove("active");
-    soundButton.textContent = "sound";
+    radioButton.textContent = "radio";
     return;
   }
   try {
     sound.audio.playbackRate = 0.96;
     await sound.audio.play();
     sound.playing = true;
-    soundButton.classList.add("active");
-    soundButton.textContent = "sound on";
-    statusEl.textContent = "custom.mp3: busted distant radio";
+    radioButton.textContent = "mute";
+    statusEl.textContent = "radio: busted distant signal";
   } catch (_error) {
-    soundButton.classList.remove("active");
-    soundButton.textContent = "sound";
-    statusEl.textContent = "missing music/custom.mp3";
+    radioButton.textContent = "radio";
+    statusEl.textContent = "missing radio tracks";
   }
+}
+
+function skipRadioTrack(direction) {
+  const sound = state.sound;
+  sound.trackIndex = (sound.trackIndex + direction + sound.tracks.length) % sound.tracks.length;
+  if (!sound.audio) return;
+  sound.audio.src = sound.tracks[sound.trackIndex];
+  sound.audio.playbackRate = 0.96;
+  if (!sound.playing) return;
+  sound.audio.play().catch(() => {
+    sound.playing = false;
+    radioButton.textContent = "radio";
+  });
 }
 
 function installControls() {
   window.addEventListener("keydown", (event) => {
     if (event.metaKey || event.ctrlKey || event.altKey) return;
     if (event.key === " ") event.preventDefault();
+    if (event.key === ",") skipRadioTrack(-1);
+    if (event.key === ".") skipRadioTrack(1);
     if (event.key === "r" || event.key === "R") resetPlane();
     if (event.key === "t" || event.key === "T") state.storm = !state.storm;
     state.keys.add(event.key);
@@ -2079,7 +2370,7 @@ function installControls() {
   dayNightButton.addEventListener("click", () => {
     state.night = !state.night;
   });
-  soundButton.addEventListener("click", toggleSound);
+  radioButton.addEventListener("click", toggleSound);
   resetButton.addEventListener("click", resetPlane);
   exitButton.addEventListener("click", () => {
     window.location.href = "/#view=map3d";

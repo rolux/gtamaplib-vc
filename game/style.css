@@ -44,6 +44,7 @@ canvas {
   left: 0;
   bottom: 0;
   right: 0;
+  gap: 5px;
 }
 
 #hud-top strong {
@@ -64,11 +65,13 @@ canvas {
 
 #hud-bottom span {
   min-width: 78px;
+  margin-right: 5px;
 }
 
 #status {
   flex: 1;
   min-width: 0;
+  margin-right: 0;
 }
 
 #radio {
