@@ -105,7 +105,7 @@
         46.771276
       ],
       "shape": "box",
-      "width": 25.0,
+      "width": 50.0,
       "height": 46.771276,
       "texture": "landmarks/textures/L187,ig.jpg",
       "faces": [
@@ -944,6 +944,52 @@
       ]
     },
     {
+      "name": "Park Grove Condominium (C)",
+      "id": "L442",
+      "photo_kind": "ig",
+      "xyz": [
+        -1314.117114,
+        -2056.58581,
+        96.542958
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 96.542958,
+      "texture": "landmarks/textures/L442,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Park Grove Condominium (C)"
+      ]
+    },
+    {
+      "name": "Park Grove Condominium (N)",
+      "id": "L443",
+      "photo_kind": "ig",
+      "xyz": [
+        -1320.024814,
+        -1994.722166,
+        97.437546
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 97.437546,
+      "texture": "landmarks/textures/L443,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Park Grove Condominium (N)"
+      ]
+    },
+    {
       "name": "Venetian Isle Condominium",
       "id": "L151",
       "photo_kind": "ig",
@@ -1297,6 +1343,665 @@
       ]
     },
     {
+      "name": "Asia Brickell Key",
+      "id": "L383",
+      "photo_kind": "ig",
+      "xyz": [
+        -106.769808,
+        -841.043171,
+        205.492681
+      ],
+      "shape": "box",
+      "width": 5.0,
+      "height": 205.492681,
+      "texture": "landmarks/textures/L383,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Asia Brickell Key",
+        "Asia Brickell Key (CC1)",
+        "Asia Brickell Key (CC2)"
+      ]
+    },
+    {
+      "name": "Three Tequesta Point",
+      "id": "L131",
+      "photo_kind": "ig",
+      "xyz": [
+        -0.535892,
+        -946.082671,
+        204.993897
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 204.993897,
+      "texture": "landmarks/textures/L131,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Three Tequesta Point"
+      ]
+    },
+    {
+      "name": "One Miami Condominium West",
+      "id": "L462",
+      "photo_kind": "ig",
+      "xyz": [
+        -315.40957,
+        -569.142183,
+        188.300665
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 188.300665,
+      "texture": "landmarks/textures/L462,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "One Miami Condominium West (NE)",
+        "One Miami Condominium West (SE)"
+      ]
+    },
+    {
+      "name": "One Miami Condominium East",
+      "id": "L732",
+      "photo_kind": "ig",
+      "xyz": [
+        -231.914856,
+        -536.56412,
+        183.306367
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 183.306367,
+      "texture": "landmarks/textures/L732,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "One Miami Condominium East (NE)",
+        "One Miami Condominium East (SE)"
+      ]
+    },
+    {
+      "name": "Vizcayne North Condominium",
+      "id": "L205",
+      "photo_kind": "rl",
+      "xyz": [
+        -528.491795,
+        137.15441,
+        177.165686
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 177.165686,
+      "texture": "landmarks/textures/L205,rl.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Vizcayne North Condominium (NE)",
+        "Vizcayne North Condominium (SE)"
+      ]
+    },
+    {
+      "name": "Marina Blue",
+      "id": "L189",
+      "photo_kind": "ig",
+      "xyz": [
+        -455.678597,
+        414.967013,
+        177.132727
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 177.132727,
+      "texture": "landmarks/textures/L189,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Marina Blue (NE)"
+      ]
+    },
+    {
+      "name": "Infinity at Brickell",
+      "id": "L242",
+      "photo_kind": "ig",
+      "xyz": [
+        -1183.043,
+        -1370.105,
+        169.573
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 169.573,
+      "texture": "landmarks/textures/L242,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Infinity at Brickell"
+      ]
+    },
+    {
+      "name": "Two Tequesta Point",
+      "id": "L130",
+      "photo_kind": "ig",
+      "xyz": [
+        58.829419,
+        -1049.386107,
+        159.514121
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 159.514121,
+      "texture": "landmarks/textures/L130,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Two Tequesta Point"
+      ]
+    },
+    {
+      "name": "Icon at South Beach",
+      "id": "L118",
+      "photo_kind": "ig",
+      "xyz": [
+        1355.981,
+        -13.762,
+        154.798
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 154.798,
+      "texture": "landmarks/textures/L118,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Icon at South Beach"
+      ]
+    },
+    {
+      "name": "Citigroup Center",
+      "id": "L224",
+      "photo_kind": "ig",
+      "xyz": [
+        -382.356627,
+        -480.264247,
+        152.116147
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 152.116147,
+      "texture": "landmarks/textures/L224,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Citigroup Center (NE)",
+        "Citigroup Center (NW)",
+        "Citigroup Center (SE)"
+      ]
+    },
+    {
+      "name": "50 Biscayne Blvd",
+      "id": "L523",
+      "photo_kind": "ig",
+      "xyz": [
+        -434.636708,
+        -246.370594,
+        146.712423
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 146.712423,
+      "texture": "landmarks/textures/L523,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "50 Biscayne Blvd (SE)"
+      ]
+    },
+    {
+      "name": "Ten Museum Park",
+      "id": "L191",
+      "photo_kind": "rl",
+      "xyz": [
+        -455.333021,
+        468.569462,
+        138.149926
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 138.149926,
+      "texture": "landmarks/textures/L191,rl.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Ten Museum Park (SE)"
+      ]
+    },
+    {
+      "name": "InterContinental Miami",
+      "id": "L569",
+      "photo_kind": "ig",
+      "xyz": [
+        -255.83838,
+        -466.238046,
+        133.464284
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 133.464284,
+      "texture": "landmarks/textures/L569,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "InterContinental Miami (N)"
+      ]
+    },
+    {
+      "name": "Murano Grande",
+      "id": "L119",
+      "photo_kind": "ig",
+      "xyz": [
+        1415.059397,
+        -58.771609,
+        126.35658
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 126.35658,
+      "texture": "landmarks/textures/L119,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Murano Grande"
+      ]
+    },
+    {
+      "name": "Loft Downtown II",
+      "id": "L206",
+      "photo_kind": "rl",
+      "xyz": [
+        -539.523499,
+        50.154394,
+        126.043633
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 126.043633,
+      "texture": "landmarks/textures/L206,rl.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Loft Downtown II"
+      ]
+    },
+    {
+      "name": "Carbonell Brickell",
+      "id": "L385",
+      "photo_kind": "rl",
+      "xyz": [
+        -228.326904,
+        -787.078852,
+        125.227525
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 125.227525,
+      "texture": "landmarks/textures/L385,rl.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Carbonell Brickell"
+      ]
+    },
+    {
+      "name": "The Crimson",
+      "id": "L474",
+      "photo_kind": "ig",
+      "xyz": [
+        -458.377196,
+        1238.372013,
+        122.885256
+      ],
+      "shape": "box",
+      "width": 5.0,
+      "height": 122.885256,
+      "texture": "landmarks/textures/L474,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "The Crimson (CC)"
+      ]
+    },
+    {
+      "name": "Nine at Mary Brickell Village",
+      "id": "L231",
+      "photo_kind": "ig",
+      "xyz": [
+        -1034.514022,
+        -1009.580498,
+        118.242495
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 118.242495,
+      "texture": "landmarks/textures/L231,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Nine at Mary Brickell Village (A)",
+        "Nine at Mary Brickell Village (B)",
+        "Nine at Mary Brickell Village (C)",
+        "Nine at Mary Brickell Village (D)",
+        "Nine at Mary Brickell Village (E)"
+      ]
+    },
+    {
+      "name": "New Wave Condominiums",
+      "id": "L176",
+      "photo_kind": "ig",
+      "xyz": [
+        -341.105996,
+        1419.480159,
+        114.503919
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 114.503919,
+      "texture": "landmarks/textures/L176,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "New Wave Condominiums"
+      ]
+    },
+    {
+      "name": "The Waverly South Beach",
+      "id": "L114",
+      "photo_kind": "ig",
+      "xyz": [
+        1249.00052,
+        602.571259,
+        110.946134
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 110.946134,
+      "texture": "landmarks/textures/L114,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "The Waverly South Beach (NW)",
+        "The Waverly South Beach (SE)"
+      ]
+    },
+    {
+      "name": "Pelican Harbor Radio Tower",
+      "id": "L593",
+      "photo_kind": "rl",
+      "xyz": [
+        1101.798285,
+        1868.995343,
+        113.356058
+      ],
+      "shape": "box",
+      "width": 5.0,
+      "height": 113.356058,
+      "texture": "landmarks/textures/L593,rl.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Pelican Harbor Radio Tower"
+      ]
+    },
+    {
+      "name": "Palazzo del Sol",
+      "id": "L124",
+      "photo_kind": "rl",
+      "xyz": [
+        1918.276399,
+        -1330.008012,
+        51.451527
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 51.451527,
+      "texture": "landmarks/textures/L124,rl.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Palazzo del Sol"
+      ]
+    },
+    {
+      "name": "Sherry Frontenac Oceanfront Hotel",
+      "id": "L3",
+      "photo_kind": "ig",
+      "xyz": [
+        1491.729682,
+        2544.326623,
+        49.292619
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 49.292619,
+      "texture": "landmarks/textures/L3,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Sherry Frontenac Oceanfront Hotel (N)",
+        "Sherry Frontenac Oceanfront Hotel (S)"
+      ]
+    },
+    {
+      "name": "St. Moritz Hotel",
+      "id": "L21",
+      "photo_kind": "ig",
+      "xyz": [
+        1983.508,
+        1107.575,
+        49.354
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 49.354,
+      "texture": "landmarks/textures/L21,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "St. Moritz Hotel (SW)"
+      ]
+    },
+    {
+      "name": "Uptown Lofts",
+      "id": "L177",
+      "photo_kind": "ig",
+      "xyz": [
+        -349.033561,
+        1316.420557,
+        46.153571
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 46.153571,
+      "texture": "landmarks/textures/L177,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Uptown Lofts",
+        "Uptown Lofts (NE)",
+        "Uptown Lofts (SE)"
+      ]
+    },
+    {
+      "name": "Knight Concert Hall",
+      "id": "L436",
+      "photo_kind": "ig",
+      "xyz": [
+        -353.554066,
+        687.212415,
+        46.160593
+      ],
+      "shape": "box",
+      "width": 50.0,
+      "height": 46.160593,
+      "texture": "landmarks/textures/L436,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Knight Concert Hall (NE)"
+      ]
+    },
+    {
+      "name": "New World Center",
+      "id": "L103",
+      "photo_kind": "ig",
+      "xyz": [
+        1653.414286,
+        1432.415589,
+        45.175346
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 45.175346,
+      "texture": "landmarks/textures/L103,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "New World Center"
+      ]
+    },
+    {
+      "name": "Office in the Grove",
+      "id": "L251",
+      "photo_kind": "ig",
+      "xyz": [
+        -1167.236725,
+        -2091.502095,
+        40.666859
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 40.666859,
+      "texture": "landmarks/textures/L251,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Office in the Grove"
+      ]
+    },
+    {
       "name": "Mount Waffles",
       "id": "L528",
       "photo_kind": "ig",
@@ -1375,6 +2080,42 @@
     {
       "name": "Continuum on South Beach (S)",
       "id": "L61",
+      "photo_kind": "rl",
+      "reason": "in-game photo unavailable"
+    },
+    {
+      "name": "Vizcayne North Condominium",
+      "id": "L205",
+      "photo_kind": "rl",
+      "reason": "in-game photo unavailable"
+    },
+    {
+      "name": "Ten Museum Park",
+      "id": "L191",
+      "photo_kind": "rl",
+      "reason": "in-game photo unavailable"
+    },
+    {
+      "name": "Loft Downtown II",
+      "id": "L206",
+      "photo_kind": "rl",
+      "reason": "in-game photo unavailable"
+    },
+    {
+      "name": "Carbonell Brickell",
+      "id": "L385",
+      "photo_kind": "rl",
+      "reason": "in-game photo unavailable"
+    },
+    {
+      "name": "Pelican Harbor Radio Tower",
+      "id": "L593",
+      "photo_kind": "rl",
+      "reason": "in-game photo unavailable"
+    },
+    {
+      "name": "Palazzo del Sol",
+      "id": "L124",
       "photo_kind": "rl",
       "reason": "in-game photo unavailable"
     }

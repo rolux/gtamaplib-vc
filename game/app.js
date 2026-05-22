@@ -19,6 +19,7 @@ const LANDMARK_MODELS = "landmarks/landmarks.json";
 const FOUR_SEASONS_NAME = "Four Seasons Hotel Miami (NW)";
 const GRAVITY = 9.8;
 const THROTTLE_FORCE = 46;
+const DIVE_ACCEL = 7;
 const DRAG = 0.9862;
 const BULLET_SPEED = 520;
 const CAMERA_CHASE = 46;
@@ -150,6 +151,48 @@ const RADIO_LINES = [
   "Leonida approach, request lower. request denied. request noted. request denied again.",
   "aircraft on the beach heading, say callsign. ...say callsign. we're going to call you Boat Guy.",
   "altimeter two-niner-niner-two. that's probably fine.",
+  "...and the mayor confirmed he has never been to Florida, has always been to Florida, and will not be taking further questions.",
+  "roger, radar contact, two miles east of where you think you are.",
+  "climb and maintain four thousand. or three thousand. we're having a conversation about it internally.",
+  "traffic in your vicinity is squawking twelve hundred and appears to be having a great time.",
+  "Leonida tower, say again, you're breaking up. Leonida tower, you were never breaking up, we just needed a moment.",
+  "correction, correction, disregard last, disregard disregard, stand by.",
+  "number two for the approach behind a Cessna, a flamingo, and something we're still classifying.",
+  "cleared ILS runway two-four. the glideslope is suggestive rather than authoritative today.",
+  "say aircraft type. ...we don't have that in the database. we're adding it now. under \"misc.\"",
+  "expect vectors for sequencing. do not expect an explanation.",
+  "all aircraft, be advised, sunset is occurring. this is not a drill.",
+  "the yellow seaplane, say altitude again. the yellow seaplane, we are going to need you to pick a number.",
+  "you are in controlled airspace. you appear unbothered by this information.",
+  "negative, that is not an approved approach. that was incredible, but it is not approved.",
+  "say fuel state. ...say fuel state in units we recognize.",
+  "you are now outside radar coverage. you are on your own. godspeed. we mean that genuinely.",
+  "Boat Guy, climb to VFR cruising altitude. Boat Guy you are skimming the water. Boat Guy.",
+  "be advised you just flew through a camera position. this has been logged.",
+  "lost sight of your aircraft. regained sight of your aircraft. we need a minute.",
+  "November niner-niner whiskey, say intentions. ...that's not an intention, that's a direction, and it's straight down.",
+  "squawk VFR and remain clear of - you know what, just try not to hit anything sentimental.",
+  "all aircraft, SIGMET issued for the Keys area. phenomenon described as \"a lot.\"",
+  "be advised, a runway incursion has been reported on the taxiway. the incursion has a jetski.",
+  "Leonida ground, aircraft on the ramp is refusing to file a flight plan. says he knows where he's going. we do not share this confidence.",
+  "declaring minimum fuel. tower acknowledges. tower sympathizes. tower asks what your plan was originally.",
+  "aircraft on right downwind, are you aware you're upside down. aircraft on right downwind.",
+  "go around, go around, I say again go around. thank you. now do it right-side up.",
+  "Leonida approach, we have a pilot report of turbulence at three thousand over the bridge. pilot describes it as \"spiritually significant.\"",
+  "be advised the four seasons hotel is still on fire. this has been notamed. pilots are advised to treat it as a visual landmark.",
+  "wake turbulence caution, heavy aircraft departed two minutes ago. also it was on fire when it departed. just a heads up.",
+  "bird strike reported on short final. bird is fine. aircraft is thinking about its choices.",
+  "Leonida tower is temporarily operating with reduced staff. by which we mean Dave left.",
+  "ATIS information Kilo is current. ATIS information Kilo is a lie, but a comforting one.",
+  "radar maintenance complete. radar is back online and has forgotten everything it knew about you.",
+  "all frequencies will be monitored. all frequencies will also be judged.",
+  "Leonida approach control closed at two-three-zero-zero local. after that you're on your own and so are we.",
+  "stand by, we are resolving a disagreement between two radar returns that are both claiming to be you.",
+  "frequency change approved. new frequency is one-two-three-decimal-four-five. they're friendlier there. different vibe.",
+  "tower is experiencing a brief philosophical crisis. expect minor delays.",
+  "this is a reminder that VFR flight following is a service and not a guarantee and definitely not a friendship. although. you know.",
+  "Leonida departure, be advised - actually, just. be advised. generally. as a practice.",
+  "#39 is lowkey my favorite",
 ];
 const DEBUG_COLORS = [
   "rgba(245,245,245,0.92)",
@@ -195,6 +238,8 @@ const BOAT_LINES = [
   "we saw nothing",
   "wrong canal!",
   "five stars on boat trip",
+  "we are scuba brothers now",
+  "Bunny is a rider",
 ];
 const MAP_LABELS = [
   { text: "LTF Airfield", pos: [-2850, -4300, 0.08], width: 980, color: "#40ff4f" },
@@ -253,6 +298,9 @@ const state = {
   debugHoldAt: 0,
   debugNext: 35,
   debugLines: [],
+  blockedPopupUntil: 0,
+  blockedPopupNext: 180 + Math.random() * 240,
+  blockedPopupCount: 0,
   turbulence: 0,
   lastTurbulenceRumble: 0,
   storm: true,
@@ -781,6 +829,7 @@ function resetPlane() {
     hp: 100,
   });
   statusEl.textContent = "fresh floatplane, highly legal";
+  state.blockedPopupNext = state.weatherTime + 5;
 }
 
 function shoot(now) {
@@ -887,7 +936,8 @@ function updatePlane(dt, now) {
   const speed = length(p.vel);
   p.yaw -= p.roll * clamp(speed / 95, 0.35, 1.45) * dt * 0.82;
   const lift = Math.min(58, speed * speed * 0.0065);
-  p.vel = add(p.vel, scale(forward, (THROTTLE_FORCE * p.throttle + Math.max(0, accelInput) * 18) * dt));
+  const diveAccel = Math.max(0, -forward[2]) * DIVE_ACCEL;
+  p.vel = add(p.vel, scale(forward, (THROTTLE_FORCE * p.throttle + Math.max(0, accelInput) * 18 + diveAccel) * dt));
   if (accelInput < 0) p.vel = scale(p.vel, Math.pow(0.985, -accelInput * dt * 60));
   p.vel[2] += (lift * (0.35 + Math.max(-0.2, forward[2])) - GRAVITY * 0.34) * dt;
   if (state.storm) {
@@ -1226,7 +1276,7 @@ function triggerDebugOverlay() {
     }));
   const longest = Math.max(...state.debugLines.map((line) => line.text.length));
   state.debugStarted = state.weatherTime;
-  state.debugHoldAt = state.debugStarted + count * 0.055 + longest * 0.011;
+  state.debugHoldAt = state.debugStarted + count * 0.07 + longest * 0.014;
   state.debugUntil = state.debugHoldAt + 2.4;
 }
 
@@ -1234,6 +1284,13 @@ function updateDebugOverlay() {
   if (state.weatherTime < state.debugNext) return;
   if (Math.random() < 0.45) triggerDebugOverlay();
   state.debugNext = state.weatherTime + 50 + Math.random() * 35;
+}
+
+function updateBlockedPopup() {
+  if (state.weatherTime < state.blockedPopupNext) return;
+  state.blockedPopupCount = 25 + Math.floor(Math.random() * 61);
+  state.blockedPopupUntil = state.weatherTime + 5;
+  state.blockedPopupNext = state.weatherTime + 240 + Math.random() * 120;
 }
 
 function updateScreenshotFlyThroughs() {
@@ -1271,6 +1328,7 @@ function update(dt, now) {
   updateBullets(dt);
   updateParticles(dt);
   updateDebugOverlay();
+  updateBlockedPopup();
   updateCamera(dt);
   speedEl.textContent = `SPD ${length(state.plane.vel).toFixed(0)}`;
   altitudeEl.textContent = `ALT ${state.plane.pos[2].toFixed(0)}`;
@@ -1622,6 +1680,7 @@ function drawOverlay(m) {
     ctx.fillRect(0, 0, state.width, state.height);
   }
   drawDebugOverlay();
+  drawBlockedPopup();
   ctx.font = "12px -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -1670,7 +1729,7 @@ function drawDebugOverlay() {
   const fadeIn = clamp((state.weatherTime - state.debugStarted) / 0.12, 0, 1);
   const fadeOut = clamp((state.debugUntil - state.weatherTime) / 0.65, 0, 1);
   const alpha = Math.min(fadeIn, fadeOut);
-  const fontSize = Math.max(10, Math.round(state.width / 178));
+  const fontSize = Math.max(15, Math.round(state.width / 119));
   const lineHeight = Math.round(fontSize * 1.08);
   const x = Math.round(state.width * 0.02);
   const y = Math.round(state.height * 0.02);
@@ -1682,10 +1741,12 @@ function drawDebugOverlay() {
   ctx.textBaseline = "top";
   ctx.fillStyle = "rgba(0,0,0,0.38)";
   ctx.fillRect(x - 2, y - 2, width + 4, state.debugLines.length * lineHeight + 4);
+  ctx.shadowColor = "rgba(220, 245, 230, 0.28)";
+  ctx.shadowBlur = 1.2;
   const elapsed = Math.max(0, state.weatherTime - state.debugStarted);
   for (let i = 0; i < state.debugLines.length; i++) {
     const line = state.debugLines[i];
-    const typed = clamp((elapsed - i * 0.055) / 0.011, 0, line.text.length);
+    const typed = clamp((elapsed - i * 0.07) / 0.014, 0, line.text.length);
     const text = line.text.slice(0, Math.floor(typed));
     if (!text) continue;
     const yy = y + i * lineHeight;
@@ -1699,6 +1760,27 @@ function drawDebugOverlay() {
       ctx.fillText("_", x + 4 + ctx.measureText(text).width + 2, yy - 1);
     }
   }
+  ctx.restore();
+}
+
+function drawBlockedPopup() {
+  if (state.weatherTime > state.blockedPopupUntil) return;
+  const width = Math.round(state.width * 0.5);
+  const height = Math.round(state.height * 0.5);
+  const x = Math.round((state.width - width) / 2);
+  const y = Math.round((state.height - height) / 2);
+  const fontSize = Math.max(34, Math.round(Math.min(state.width, state.height) / 15));
+  ctx.save();
+  ctx.fillStyle = "rgba(118, 118, 118, 0.92)";
+  ctx.strokeStyle = "rgba(215, 215, 215, 0.78)";
+  ctx.lineWidth = 3;
+  ctx.fillRect(x, y, width, height);
+  ctx.strokeRect(x + 1.5, y + 1.5, width - 3, height - 3);
+  ctx.font = `700 ${fontSize}px -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = "rgba(42, 255, 70, 0.96)";
+  ctx.fillText(`Blocked Popups (${state.blockedPopupCount})`, state.width / 2, state.height / 2 + 2);
   ctx.restore();
 }
 
