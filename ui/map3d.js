@@ -48,6 +48,7 @@ const state = {
   dragging: null,
   lastX: 0,
   lastY: 0,
+  dragGroundPoint: null,
   keys: new Set(),
   tiles: [],
   cameras: [],
@@ -970,12 +971,14 @@ function installControls() {
   scene.addEventListener("mousedown", (event) => {
     scene.focus();
     if (state.tour.active) return;
-    state.dragging = event.shiftKey || event.button === 2 ? "pan" : "orbit";
+    state.dragging = true;
     state.lastX = event.clientX;
     state.lastY = event.clientY;
+    state.dragGroundPoint = groundPointUnderClient(event.clientX, event.clientY);
   });
   window.addEventListener("mouseup", () => {
     state.dragging = null;
+    state.dragGroundPoint = null;
   });
   window.addEventListener("mousemove", (event) => {
     if (!state.dragging) return;
@@ -983,12 +986,19 @@ function installControls() {
     const dy = event.clientY - state.lastY;
     state.lastX = event.clientX;
     state.lastY = event.clientY;
-    if (state.dragging === "orbit") {
+    if (event.metaKey || event.ctrlKey) {
       state.yaw -= dx * 0.006;
       state.pitch = Math.max(0.12, Math.min(1.45, state.pitch + dy * 0.004));
+      state.dragGroundPoint = groundPointUnderClient(event.clientX, event.clientY);
     } else {
-      const scale = state.distance / Math.max(state.width, state.height);
-      panBy(-dx * scale * 1.6, -dy * scale * 1.6);
+      const current = state.dragGroundPoint ? groundPointUnderClient(event.clientX, event.clientY) : null;
+      if (current) {
+        state.target = add(state.target, subtract(state.dragGroundPoint, current));
+        clampTargetRadius();
+      } else {
+        const scale = state.distance / Math.max(state.width, state.height);
+        panBy(-dx * scale * 1.6, -dy * scale * 1.6);
+      }
     }
     render();
   });
