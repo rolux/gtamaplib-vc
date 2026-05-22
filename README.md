@@ -176,3 +176,7 @@ Inspired by prior work from Neutral_State on the GTA VI Mapping Discord.
 Please keep in mind that v1.0.0 is pre-release software. Some parts may change quickly, others may still be unfinished.
 
 **gtamaplib-vc** was written by Codex. The quality and readability of the code will reflect this.
+
+If you have trouble setting it up, ask your own AI first. They should be able to help you out.
+
+And if you have Claude or Codex, why not ask them to add your own favorite features? This is open source software, after all.
