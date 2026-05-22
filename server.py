@@ -16,6 +16,9 @@ UI = ROOT / "ui"
 
 
 class Handler(SimpleHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=str(ROOT), **kwargs)
+
     def translate_path(self, path: str) -> str:
         if path in {"/", "/index.html", "/app.js", "/map.js", "/style.css"}:
             name = "index.html" if path in {"/", "/index.html"} else path.removeprefix("/")

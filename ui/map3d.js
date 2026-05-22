@@ -23,6 +23,7 @@ const root = document.querySelector("#map3d-root");
 const scene = document.querySelector("#map3d-scene");
 const overlay = document.querySelector("#map3d-overlay");
 const exitButton = document.querySelector("#map3d-exit");
+const gameButton = document.querySelector("#map3d-game");
 const tourStartButton = document.querySelector("#map3d-tour-start");
 const tourBackButton = document.querySelector("#map3d-tour-back");
 const tourPauseButton = document.querySelector("#map3d-tour-pause");
@@ -53,6 +54,7 @@ const state = {
   colors: new Map(),
   thumbnails: new Map(),
   blurLeaks: false,
+  useMonospaceFont: false,
   tour: {
     active: false,
     paused: false,
@@ -791,7 +793,9 @@ function wireframeLines(wireframe) {
 function drawOverlay(matrix) {
   ctx.clearRect(0, 0, state.width, state.height);
   ctx.save();
-  ctx.font = "11px -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif";
+  ctx.font = state.useMonospaceFont
+    ? '11px "GTAMapLib Menlo", Menlo, Monaco, Consolas, monospace'
+    : "11px -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif";
   ctx.textBaseline = "middle";
 
   const markerRows = [];
@@ -941,6 +945,9 @@ function installControls() {
   tourStopButton.addEventListener("click", stopTour);
   exitButton.addEventListener("click", () => {
     if (exitHandler) exitHandler();
+  });
+  gameButton.addEventListener("click", () => {
+    window.location.href = "/game";
   });
   scene.addEventListener("mousedown", (event) => {
     scene.focus();
@@ -1132,6 +1139,7 @@ export function activateMap3d(options = {}) {
 
 export function setMap3dSettings(options = {}) {
   state.blurLeaks = Boolean(options.blurLeaks);
+  state.useMonospaceFont = Boolean(options.useMonospaceFont);
   if (!root.hidden) render();
 }
 

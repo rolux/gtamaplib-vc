@@ -8,6 +8,10 @@
   font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
 }
 
+body.use-monospace-font #map3d-root {
+  font-family: "GTAMapLib Menlo", Menlo, Monaco, Consolas, monospace;
+}
+
 #map3d-root[hidden] {
   display: none;
 }
@@ -29,7 +33,9 @@
   pointer-events: none;
 }
 
+#map3d-left-controls,
 #map3d-exit,
+#map3d-game,
 #map3d-view-data,
 #map3d-tour-controls,
 #map3d-tour-controls button {
@@ -45,19 +51,34 @@
   line-height: 32px;
 }
 
-#map3d-exit {
+#map3d-left-controls {
   top: 12px;
   left: 12px;
   right: auto;
+  gap: 6px;
+  padding: 0;
+  background: transparent;
+}
+
+#map3d-exit,
+#map3d-game {
   width: auto;
   border: 0;
   font: inherit;
   cursor: pointer;
 }
 
-#map3d-tour-controls {
+#map3d-exit {
+  position: static;
+}
+
+#map3d-game {
   top: 12px;
   right: 12px;
+}
+
+#map3d-tour-controls {
+  position: static;
   gap: 6px;
   padding: 0;
   background: transparent;
@@ -73,6 +94,7 @@
 }
 
 #map3d-exit:hover,
+#map3d-game:hover,
 #map3d-tour-controls button:hover {
   background: rgba(18, 18, 18, 0.64);
   color: #fff;

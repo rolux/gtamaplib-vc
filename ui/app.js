@@ -299,7 +299,10 @@ function applyGlobalSettings() {
 
 function refreshSettingsDependentViews() {
   applyGlobalSettings();
-  setMap3dSettings({ blurLeaks: state.settings.blurLeaks });
+  setMap3dSettings({
+    blurLeaks: state.settings.blurLeaks,
+    useMonospaceFont: state.settings.useMonospaceFont,
+  });
   renderCameraList();
   updateGlobalStatus();
   if (state.camera) {
@@ -1648,7 +1651,11 @@ function applyHash() {
     applyLandmarkSelection(null, false);
   }
   if (state.view === "map3d") {
-    activateMap3d({ onExit: exitMap3d, blurLeaks: state.settings.blurLeaks });
+    activateMap3d({
+      onExit: exitMap3d,
+      blurLeaks: state.settings.blurLeaks,
+      useMonospaceFont: state.settings.useMonospaceFont,
+    });
   } else {
     deactivateMap3d();
   }
@@ -1688,7 +1695,11 @@ function setView(view) {
     state.view = view;
     els.viewSelect.value = view;
     writeHash(state.camera?.name || null, state.landmark || null);
-    activateMap3d({ onExit: exitMap3d, blurLeaks: state.settings.blurLeaks });
+    activateMap3d({
+      onExit: exitMap3d,
+      blurLeaks: state.settings.blurLeaks,
+      useMonospaceFont: state.settings.useMonospaceFont,
+    });
     updateEditTools();
     return;
   }

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>gtamaplib-vvc</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <canvas id="overlay"></canvas>
+    <div id="hud-top">
+      <div class="hud-group">
+        <strong>gtamaplib-vvc</strong>
+        <span id="mode">VERY VIBE CODED</span>
+        <span id="tiles">0 tiles</span>
+      </div>
+      <div class="hud-group">
+        <button id="sound">sound</button>
+        <button id="weather">storm</button>
+        <button id="day-night">night</button>
+        <button id="reset">reset</button>
+        <button id="exit">exit</button>
+      </div>
+    </div>
+    <div id="hud-bottom">
+      <span id="speed">SPD 0</span>
+      <span id="altitude">ALT 0</span>
+      <span id="score">SCORE 0</span>
+      <span id="status">WASD fly, Q/E throttle, arrows look, Space shoot, controller supported</span>
+    </div>
+    <div id="radio"></div>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

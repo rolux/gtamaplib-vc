@@ -1,0 +1,2023 @@
+const MAP_W = 32768;
+const MAP_H = 32768;
+const ZERO_X = 16384;
+const ZERO_Y = 16384;
+const TILE_SIZE = 256;
+const TILE_Z = 3;
+const TILE_RANGE = [[0, 4], [19, 23]];
+const TILE_ROOT = "../gtadb.org/maps/tiles/6/yanis,12";
+const DETAIL_TILE_Z = 5;
+const DETAIL_TILE_RADIUS = 7;
+const DETAIL_TILE_KEEP_RADIUS = 10;
+const DETAIL_TILE_LEVELS = [5];
+const VC_DATA = "../data/gtamapdata.json";
+const VC_RESULT = "../optimizer/result.json";
+const VC_MAP3D_COLORS = "../ui/data/map3d-colors.json";
+const VC_FOUR_SEASONS_WIREFRAME = "../ui/data/map3d-four-seasons.json";
+const VC_SUNSHINE_SKYWAY_WIREFRAME = "../ui/data/map3d-sunshine-skyway.json";
+const LANDMARK_MODELS = "landmarks/landmarks.json";
+const FOUR_SEASONS_NAME = "Four Seasons Hotel Miami (NW)";
+const GRAVITY = 9.8;
+const THROTTLE_FORCE = 46;
+const DRAG = 0.9862;
+const BULLET_SPEED = 520;
+const CAMERA_CHASE = 46;
+const CAMERA_UP = 15;
+const CAMERA_THUMBNAIL_DISTANCE = 100;
+const TURBULENCE_NORTH_START = 5600;
+const TURBULENCE_NORTH_FULL = 7000;
+const WATER_COLOR = [44 / 255, 103 / 255, 164 / 255, 1];
+const NIGHT_MAP_BRIGHTNESS = 0.15;
+const RADIO_LINES = [
+  "Vice Tower: experimental flight plan denied, again.",
+  "Leonida Approach: whoever is buzzing the postcards, please use a door.",
+  "News 9: we are seeing one extremely confident floatplane.",
+  "Coast Guard: small boats report vibes falling from the sky.",
+  "Vice Tower: runway is for landing, not for collecting screenshots.",
+  "Tourist blimp: we are not part of the mission. Probably.",
+  "Mapping error: please return immediately.",
+  "Vice Tower: your aircraft is inside a screenshot. Clarify intentions.",
+  "Leonida Center: we have you on radar and several Discord threads.",
+  "News 9: experts describe the situation as very manually triangulated.",
+  "Airport Ops: runway incursion reported by a seaplane with main character energy.",
+  "Coast Guard: advise all vessels to ignore the flying spreadsheet.",
+  "Vice Tower: your altitude is legal in three coordinate systems and alarming in two.",
+  "Leonida Approach: confirm you are not attempting to optimize the airport.",
+  "Tourist blimp: if you can read this, please stop reading this.",
+  "News 9: the pilot appears to be collecting evidence against geometry.",
+  "Vice Tower: screenshot fly-through is not an approved landing procedure.",
+  "Mapping error: landmark moved, vibes unchanged.",
+  "Leonida Center: we lost your transponder but gained several pixels.",
+  "Coast Guard: small craft advisory now includes low-flying opinions.",
+  "Vice Tower: be advised, Four Seasons is still on fire.",
+  "News 9: smoke visible downtown; room service unavailable.",
+  "Airport Ops: large jet is circling normally. Please do not make it weirder.",
+  "Leonida Approach: your yaw solution is suspiciously confident.",
+  "Vice Tower: please maintain separation from blimp, bridge, and narrative.",
+  "Mapping error: please rotate 180 degrees and reconsider.",
+  "Coast Guard: boats are staying in the water. We appreciate the effort.",
+  "News 9: sources confirm the plane is controlled by vibes and shoulder buttons.",
+  "Tourist blimp: we have snacks and no legal department.",
+  "Vice Tower: do not shoot missiles at calibration artifacts.",
+  "Leonida Center: camera cone collision detected, emotionally.",
+  "Airport Ops: whoever parked a photograph at 100 meters, call maintenance.",
+  "Mapping error: optimizer result appears airborne.",
+  "News 9: local residents demand fewer triangles, more answers.",
+  "Vice Tower: your flight plan says 'very vibe coded'. Please elaborate.",
+  "Coast Guard: wake turbulence replaced by wake sarcasm.",
+  "Leonida Approach: confirm visual on enormous invisible math.",
+  "Tourist blimp: this banner intentionally left implausible.",
+  "Vice Tower: please avoid the wireframe hotel. It is having a day.",
+  "Mapping error: priors missing. Confidence excessive.",
+  "News 9: helicopter crew reports a tiny yellow plane doing bits.",
+  "Airport Ops: runway closed due to ambient nonsense.",
+  "Leonida Center: your controller mapping has been described as 'finally fine'.",
+  "Vice Tower: if you see birds, they are not official navigation aids.",
+  "Coast Guard: one boat reports being called 'little white boat'.",
+  "Mapping error: please return immediately.",
+  "News 9: we go now to our sky correspondent, who is also confused.",
+  "MAPPING IN PROGRESS - PLEASE VACATE AIRSPACE",
+  "[WARNING] Camera 0041 has negative focal length. Ignoring.",
+  "we're working on it.",
+  "Authorities confirm the map is, quote, \"mostly right\"",
+  "we're live above what appears to be... a triangulation error.",
+  "prior: vibes",
+  "landmark confidence: 12%. proceeding anyway.",
+  "do NOT fly through that. ...okay you flew through that.",
+  "the ocean is load-bearing. please do not touch it.",
+  "four seasons still on fire. this is noted. this is filed. this is ignored.",
+  "reprojection error, please stand by",
+  "[BUNDLE ADJUSTMENT COMPLETE] errors redistributed evenly. you're welcome.",
+  "please be advised: the Keys are approximately 40 meters further south than expected. have a nice day.",
+  "unknown aircraft, please identify yourself. unknown aircraft, we can see you. unknown aircraft, okay fine.",
+  "the blimp is not supposed to be doing that.",
+  "weather: suspicious",
+  "uh, tower, we have a... the thing is...",
+  "this airspace is rated E for Errors",
+  "you are now leaving the reconstruction zone. your coordinates are now someone else's problem.",
+  "that is not a designated flight path!!",
+  "small boat traffic is expressing emotions again. we are monitoring.",
+  "lightning strike detected. adding to the dataset.",
+  "sir this is a Wendy's",
+  "altitude looks fine. everything else: jury's out.",
+  "please stop flying in circles.",
+  "mayday is a strong word.",
+  "you appear to be flying through a screenshot. this is technically legal.",
+  "news chopper, can we go off the record for a moment?",
+  "do not approach the calibration checkerboard. do not make eye contact with it.",
+  "SPARSE747, you don't have landing gear.",
+  "CAUTION: LOW CONFIDENCE SWAMP REGION",
+  "WARNING: BRIDGE CURRENTLY APPROXIMATE",
+  "WARNING: PHOTOGRAMMETRY EVENT IN PROGRESS",
+  "Air Traffic Control would like a word",
+  "NO FLY ZONE except for you apparently",
+  "PLEASE STOP FLYING THROUGH ACTIVE BUNDLE ADJUSTMENT OR OPTIMIZATION",
+  "Seaplane entering low-polygon weather cell",
+  "Mission updated. Just kind of keep flying",
+  "This is the year we lost contact.",
+  "Airspace temporarily closed. Reopening soon. Just fixing some leaks...",
+  "JASON IS A COP",
+  "SPOILER: THE DOG DIES",
+  "Prevented from using lower priority seats",
+  "No, you can't see Ambrosia from here.",
+  "If you think this is Watson Bay, you are fundamentally mistaken.",
+  "Do not complain about lack of airfields. We have nothing to do with this.",
+  "Do you need vectors? ... Hmm... looks like you don't.",
+  "That VOR beacon is really just decorative, ignore at all costs.",
+  "No, these boats are not clipping. They are ambhibious vehicles",
+  "Sparse747 heavy, descend to one thousand, report pelican in sight.",
+  "all aircraft be advised, the ILS is working but it is not happy about it.",
+  "unknown traffic, you are not on our radar. you are not on any radar. please advise.",
+  "Citation on left base, say intentions. Citation, say intentions. Citation, you just did a loop, we saw it.",
+  "winds calm, visibility unlimited, one boat on fire, otherwise clear.",
+  "traffic alert, twelve o'clock, two miles, altitude unknown, nature unknown, it's the blimp again.",
+  "say souls on board. ...say souls on board. that's a lot of souls for a seaplane.",
+  "Leonida ground, be advised, runway 27 is temporarily a crime scene. expect delays.",
+  "November four-niner tango, you are cleared direct, but we want you to think about what you did.",
+  "all stations, all stations, be advised there is a man on the taxiway. he seems confident. do not encourage him.",
+  "squawk seven-seven-zero-zero. ...that's not why we use that code but sure.",
+  "say altitude. say altitude again. that's not an altitude. that's a feeling.",
+  "traffic, ten o'clock, same altitude, they say they don't see you either, nobody knows what's happening.",
+  "cleared to land, runway two-four, caution, surface condition reported as, quote, \"damp and philosophical.\"",
+  "Sparse747 confirm you are not on fire. Sparse747, that was not rhetorical.",
+  "be advised, the VOR is operational but has strong opinions today.",
+  "contact approach on one-two-zero-decimal-nine. they know. they're waiting. they're calm about it. too calm.",
+  "Leonida tower to all aircraft: the Keys are a no-fly zone until further - actually it's fine. disregard. do not disregard.",
+  "maintain visual separation from the news helicopter. the news helicopter is not maintaining visual separation from you.",
+  "radar contact lost. radar contact reacquired. radar has questions.",
+  "you are number one for the approach. number two is a pelican. number two does not understand ATC instructions.",
+  "unable to issue traffic advisories at this time. we are aware of the irony.",
+  "Leonida approach, request lower. request denied. request noted. request denied again.",
+  "aircraft on the beach heading, say callsign. ...say callsign. we're going to call you Boat Guy.",
+  "altimeter two-niner-niner-two. that's probably fine.",
+];
+const DEBUG_COLORS = [
+  "rgba(245,245,245,0.92)",
+  "rgba(55,255,74,0.92)",
+  "rgba(65,88,255,0.95)",
+  "rgba(255,61,47,0.92)",
+  "rgba(255,238,58,0.92)",
+  "rgba(36,255,228,0.9)",
+];
+const DEBUG_TEMPLATES = [
+  "TASKS FULL",
+  "LOCAL ped SY_IDLE upper_body idle ({idle}s) LC:{lc}m",
+  "Population type: POPTYPE_RANDOM_PERSCHAR_S4S_IMPORT_GARAGE_GANG_MEMBER_4",
+  "SAS_IMPORT_GARAGE_GANG_MEMBER_4 Active All floor chars/Peds/Criminal",
+  "TotHangOut2 [0-12-03] NOT_USING_SCHEDULE:{slot} LmdSchedule",
+  "Idle: {idle} seconds while waiting on other place to go",
+  "Prevented from using lower priority seats",
+  "Health: 100/100 UBMotion component lksStateAnimated",
+  "<H> TASK_USE_SCENARIO Loop: high_energy_searching_unarmed_upper",
+  "TASK_LOCO_MOVING_STATE_MOVING normal_pa_walk_neutral {speed}m/s",
+  "ANIM_HSH: PedMotion",
+  "FSM_TRANSITION_POOL: PedMotion ({pool}/{poolMax})",
+  "STATE_MOTION_TASK: locoUpperBody ({upper}/{upperMax})",
+  "Layout: Current  LD_CNG_SAN4SAN_CUNH_DEFAULT",
+  "Cur Leon[LUN] INVESTIGATION_REQUEST_ACCEPTED! LSUSP_INIT",
+  "Last Highest Priority Event: EVENT_INVESTIGATION_REQUEST_ACCEPTED",
+  "Decision Maker: Investigate <filtered: GUARDS>",
+  "Creator Name: PerpCharPed CPedFactory(1) bank(perpCharPed)",
+  "Inside Avoidance Area: Name(NULL) Creator(CVolumeManager::CreateVolumeAggregate)",
+  "PersFlags: Guards PersChars Humans Beha_Misc",
+  "Door: Unlocked  Access Flags: External",
+  "TASK_LOCO_UPPERBODY_LOOP: State_Loop high_energy_searching_walk",
+  "Motion Type[0.204] MotionBLD:{motion} UBMotion:{upper}",
+];
+const BOAT_LINES = [
+  "nice weather!",
+  "is that legal?",
+  "we paid for the tour",
+  "wave at the plane",
+  "mind the wake!",
+  "not a runway!",
+  "tell the blimp hi",
+  "we saw nothing",
+  "wrong canal!",
+  "five stars on boat trip",
+];
+const MAP_LABELS = [
+  { text: "LTF Airfield", pos: [-2850, -4300, 0.08], width: 980, color: "#40ff4f" },
+  { text: "Scree Hill", pos: [-6350, 6100, 0.08], width: 820, color: "#ff3fb6" },
+];
+
+const canvas = document.querySelector("#scene");
+const overlay = document.querySelector("#overlay");
+const gl = canvas.getContext("webgl", { antialias: true, alpha: false });
+const ctx = overlay.getContext("2d");
+const speedEl = document.querySelector("#speed");
+const altitudeEl = document.querySelector("#altitude");
+const scoreEl = document.querySelector("#score");
+const statusEl = document.querySelector("#status");
+const modeEl = document.querySelector("#mode");
+const tilesEl = document.querySelector("#tiles");
+const radioEl = document.querySelector("#radio");
+const soundButton = document.querySelector("#sound");
+const weatherButton = document.querySelector("#weather");
+const dayNightButton = document.querySelector("#day-night");
+const resetButton = document.querySelector("#reset");
+const exitButton = document.querySelector("#exit");
+
+if (!gl) throw new Error("WebGL unavailable");
+
+const state = {
+  width: 1,
+  height: 1,
+  keys: new Set(),
+  tiles: [],
+  tileCache: new Map(),
+  cameras: [],
+  landmarks: [],
+  landmarkModels: [],
+  mapLabels: [],
+  colors: new Map(),
+  wireframes: [],
+  targets: [],
+  bullets: [],
+  screenshotHits: new Set(),
+  particles: [],
+  birds: [],
+  boats: [],
+  fog: [],
+  fires: [],
+  lightning: 0,
+  lightningBolt: null,
+  weatherTime: 0,
+  radioTime: 0,
+  radioUntil: 0,
+  radioNext: 2.5,
+  radioIndex: 0,
+  radioQueue: [],
+  debugUntil: 0,
+  debugStarted: 0,
+  debugHoldAt: 0,
+  debugNext: 35,
+  debugLines: [],
+  turbulence: 0,
+  lastTurbulenceRumble: 0,
+  storm: true,
+  night: false,
+  fogEnabled: false,
+  score: 0,
+  stickFlash: 0,
+  lastShot: 0,
+  lastMissile: 0,
+  lastTime: performance.now(),
+  sound: {
+    audio: null,
+    context: null,
+    source: null,
+    master: null,
+    highpass: null,
+    lowpass: null,
+    compressor: null,
+    shaper: null,
+    tremolo: null,
+    tremoloGain: null,
+    playing: false,
+  },
+  gamepad: {
+    pad: null,
+    connected: false,
+    label: "",
+    pitch: 0,
+    roll: 0,
+    yaw: 0,
+    lookYaw: 0,
+    lookPitch: 0,
+    throttleUp: 0,
+    throttleDown: 0,
+    shoot: false,
+    missile: false,
+    brake: false,
+    stickPressed: false,
+  },
+  plane: {
+    pos: [-6250, 5250, 250],
+    vel: [0, -92, 2],
+    yaw: Math.PI,
+    pitch: 0.04,
+    roll: 0,
+    throttle: 0.68,
+    hp: 100,
+  },
+  airliner: {
+    center: [-2500, -560, 0],
+    pos: [-1400, -560, 420],
+    yaw: 0,
+    pitch: 0,
+    roll: 0.22,
+    t: 0,
+  },
+  blimp: {
+    pos: [-3974, -7350, 190],
+    yaw: 1.1,
+    t: 0,
+  },
+  chopper: {
+    pos: [-2640, 4550, 180],
+    yaw: 0,
+    t: 0,
+  },
+  camera: {
+    eye: [0, 0, 0],
+    target: [0, 0, 0],
+    lookYaw: 0,
+    lookPitch: 0,
+  },
+};
+
+function compileShader(type, source) {
+  const shader = gl.createShader(type);
+  gl.shaderSource(shader, source);
+  gl.compileShader(shader);
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(shader));
+  return shader;
+}
+
+function createProgram(vertex, fragment) {
+  const program = gl.createProgram();
+  gl.attachShader(program, compileShader(gl.VERTEX_SHADER, vertex));
+  gl.attachShader(program, compileShader(gl.FRAGMENT_SHADER, fragment));
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
+  return program;
+}
+
+const texturedProgram = createProgram(`
+attribute vec3 a_position;
+attribute vec2 a_uv;
+uniform mat4 u_matrix;
+varying vec2 v_uv;
+void main() {
+  v_uv = a_uv;
+  gl_Position = u_matrix * vec4(a_position, 1.0);
+}
+`, `
+precision mediump float;
+uniform sampler2D u_texture;
+uniform float u_alpha;
+uniform float u_brightness;
+varying vec2 v_uv;
+void main() {
+  vec4 color = texture2D(u_texture, v_uv);
+  gl_FragColor = vec4(color.rgb * u_brightness, color.a * u_alpha);
+}
+`);
+
+const colorProgram = createProgram(`
+attribute vec3 a_position;
+uniform mat4 u_matrix;
+void main() {
+  gl_Position = u_matrix * vec4(a_position, 1.0);
+}
+`, `
+precision mediump float;
+uniform vec4 u_color;
+void main() {
+  gl_FragColor = u_color;
+}
+`);
+
+const texturedBuffer = gl.createBuffer();
+const colorBuffer = gl.createBuffer();
+const texturedLoc = {
+  position: gl.getAttribLocation(texturedProgram, "a_position"),
+  uv: gl.getAttribLocation(texturedProgram, "a_uv"),
+  matrix: gl.getUniformLocation(texturedProgram, "u_matrix"),
+  texture: gl.getUniformLocation(texturedProgram, "u_texture"),
+  alpha: gl.getUniformLocation(texturedProgram, "u_alpha"),
+  brightness: gl.getUniformLocation(texturedProgram, "u_brightness"),
+};
+const colorLoc = {
+  position: gl.getAttribLocation(colorProgram, "a_position"),
+  matrix: gl.getUniformLocation(colorProgram, "u_matrix"),
+  color: gl.getUniformLocation(colorProgram, "u_color"),
+};
+
+function add(a, b) { return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; }
+function subtract(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
+function scale(v, s) { return [v[0] * s, v[1] * s, v[2] * s]; }
+function dot(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+function cross(a, b) {
+  return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+}
+function length(v) { return Math.hypot(v[0], v[1], v[2]); }
+function normalize(v) {
+  const d = length(v) || 1;
+  return [v[0] / d, v[1] / d, v[2] / d];
+}
+function lerp(a, b, t) { return a + (b - a) * t; }
+function lerp3(a, b, t) { return [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)]; }
+function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
+function pick(items) { return items[Math.floor(Math.random() * items.length)]; }
+function smoothstep(edge0, edge1, value) {
+  const t = clamp((value - edge0) / (edge1 - edge0), 0, 1);
+  return t * t * (3 - 2 * t);
+}
+function shuffle(items) {
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [items[i], items[j]] = [items[j], items[i]];
+  }
+  return items;
+}
+
+function perspective(fovy, aspect, near, far) {
+  const f = 1 / Math.tan(fovy / 2);
+  const nf = 1 / (near - far);
+  return new Float32Array([
+    f / aspect, 0, 0, 0,
+    0, f, 0, 0,
+    0, 0, (far + near) * nf, -1,
+    0, 0, 2 * far * near * nf, 0,
+  ]);
+}
+
+function lookAt(eye, target, up) {
+  const z = normalize(subtract(eye, target));
+  const x = normalize(cross(up, z));
+  const y = cross(z, x);
+  return new Float32Array([
+    x[0], y[0], z[0], 0,
+    x[1], y[1], z[1], 0,
+    x[2], y[2], z[2], 0,
+    -dot(x, eye), -dot(y, eye), -dot(z, eye), 1,
+  ]);
+}
+
+function mat4Multiply(a, b) {
+  const out = new Float32Array(16);
+  for (let row = 0; row < 4; row++) {
+    for (let col = 0; col < 4; col++) {
+      out[col * 4 + row] =
+        a[0 * 4 + row] * b[col * 4 + 0] +
+        a[1 * 4 + row] * b[col * 4 + 1] +
+        a[2 * 4 + row] * b[col * 4 + 2] +
+        a[3 * 4 + row] * b[col * 4 + 3];
+    }
+  }
+  return out;
+}
+
+function transformPoint(matrix, point) {
+  const x = point[0], y = point[1], z = point[2];
+  const w = matrix[3] * x + matrix[7] * y + matrix[11] * z + matrix[15];
+  return [
+    (matrix[0] * x + matrix[4] * y + matrix[8] * z + matrix[12]) / w,
+    (matrix[1] * x + matrix[5] * y + matrix[9] * z + matrix[13]) / w,
+    (matrix[2] * x + matrix[6] * y + matrix[10] * z + matrix[14]) / w,
+  ];
+}
+
+function worldToGl(x, y, z = 0) {
+  return [x, z, -y];
+}
+
+function glToWorld(v) {
+  return [v[0], -v[2], v[1]];
+}
+
+function actorBasis(actor) {
+  const cy = Math.cos(actor.yaw), sy = Math.sin(actor.yaw);
+  const cp = Math.cos(actor.pitch), sp = Math.sin(actor.pitch);
+  const forward = normalize([-sy * cp, cy * cp, sp]);
+  let right = normalize([cy, sy, 0]);
+  let up = normalize(cross(right, forward));
+  const cr = Math.cos(actor.roll), sr = Math.sin(actor.roll);
+  const rolledRight = add(scale(right, cr), scale(up, -sr));
+  const rolledUp = add(scale(right, sr), scale(up, cr));
+  return { forward, right: rolledRight, up: rolledUp };
+}
+
+function planeBasis() {
+  return actorBasis(state.plane);
+}
+
+function directionFromYpr(ypr, u, v) {
+  const yaw = (ypr[0] || 0) * Math.PI / 180;
+  const pitch = (ypr[1] || 0) * Math.PI / 180;
+  const roll = (ypr[2] || 0) * Math.PI / 180;
+  let right = [Math.cos(yaw), Math.sin(yaw), 0];
+  const forward = [-Math.sin(yaw) * Math.cos(pitch), Math.cos(yaw) * Math.cos(pitch), Math.sin(pitch)];
+  let up = normalize(cross(right, forward));
+  if (roll) {
+    const cr = Math.cos(roll);
+    const sr = Math.sin(roll);
+    const nextRight = [
+      right[0] * cr - up[0] * sr,
+      right[1] * cr - up[1] * sr,
+      right[2] * cr - up[2] * sr,
+    ];
+    const nextUp = [
+      right[0] * sr + up[0] * cr,
+      right[1] * sr + up[1] * cr,
+      right[2] * sr + up[2] * cr,
+    ];
+    right = nextRight;
+    up = nextUp;
+  }
+  return normalize(add(add(forward, scale(right, u)), scale(up, v)));
+}
+
+function isPowerOfTwo(value) {
+  return value > 0 && (value & (value - 1)) === 0;
+}
+
+function makeTexture(image) {
+  const texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+  if (isPowerOfTwo(image.width) && isPowerOfTwo(image.height)) {
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+  } else {
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  }
+  return texture;
+}
+
+function loadImageTexture(url) {
+  const record = { loaded: false, failed: false, texture: null, width: 1, height: 1 };
+  const image = new Image();
+  image.onload = () => {
+    record.texture = makeTexture(image);
+    record.width = image.naturalWidth || image.width || 1;
+    record.height = image.naturalHeight || image.height || 1;
+    record.loaded = true;
+  };
+  image.onerror = () => {
+    record.failed = true;
+  };
+  image.src = url;
+  return record;
+}
+
+function createCanvasTexture(size, draw) {
+  const offscreen = document.createElement("canvas");
+  offscreen.width = size;
+  offscreen.height = size;
+  const offscreenCtx = offscreen.getContext("2d");
+  draw(offscreenCtx, size);
+  return { loaded: true, failed: false, texture: makeTexture(offscreen), width: size, height: size };
+}
+
+const fogTexture = createCanvasTexture(128, (fogCtx, size) => {
+  const gradient = fogCtx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  gradient.addColorStop(0, "rgba(235,242,250,0.55)");
+  gradient.addColorStop(0.45, "rgba(220,232,246,0.28)");
+  gradient.addColorStop(1, "rgba(220,232,246,0)");
+  fogCtx.fillStyle = gradient;
+  fogCtx.fillRect(0, 0, size, size);
+});
+
+function createTextTexture(text, color) {
+  const width = 1024;
+  const height = 180;
+  const offscreen = document.createElement("canvas");
+  offscreen.width = width;
+  offscreen.height = height;
+  const labelCtx = offscreen.getContext("2d");
+  labelCtx.clearRect(0, 0, width, height);
+  labelCtx.font = "bold 112px -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif";
+  labelCtx.textAlign = "center";
+  labelCtx.textBaseline = "middle";
+  labelCtx.lineJoin = "round";
+  labelCtx.lineWidth = 14;
+  labelCtx.strokeStyle = "rgba(0,0,0,0.65)";
+  labelCtx.strokeText(text, width / 2, height / 2 + 4);
+  labelCtx.fillStyle = color;
+  labelCtx.fillText(text, width / 2, height / 2 + 4);
+  return { loaded: true, failed: false, texture: makeTexture(offscreen), width, height };
+}
+
+function tileUrl(z, x, y) {
+  return `${TILE_ROOT}/${z}/${z},${y},${x}.jpg`;
+}
+
+function tileWorldBounds(z, x, y) {
+  const tilesPerSide = 4 * Math.pow(2, z);
+  const tileMeters = MAP_W / tilesPerSide;
+  const west = x * tileMeters - ZERO_X;
+  const east = west + tileMeters;
+  const north = ZERO_Y - y * tileMeters;
+  const south = north - tileMeters;
+  return { west, east, north, south };
+}
+
+function loadTiles() {
+  const [[x0, y0], [x1, y1]] = TILE_RANGE;
+  for (let y = y0; y <= y1; y++) {
+    for (let x = x0; x <= x1; x++) {
+      state.tiles.push(loadTileRecord(TILE_Z, x, y));
+    }
+  }
+}
+
+function loadTileRecord(z, x, y) {
+  const tilesPerSide = 4 * Math.pow(2, z);
+  if (x < 0 || y < 0 || x >= tilesPerSide || y >= tilesPerSide) return null;
+  const key = `${z}/${x}/${y}`;
+  if (state.tileCache.has(key)) return state.tileCache.get(key);
+  const record = loadImageTexture(tileUrl(z, x, y));
+  Object.assign(record, { z, x, y, dynamic: z > TILE_Z });
+  state.tileCache.set(key, record);
+  return record;
+}
+
+function worldTileAt(z, x, y) {
+  const tilesPerSide = 4 * Math.pow(2, z);
+  const tileMeters = MAP_W / tilesPerSide;
+  return {
+    x: Math.floor((x + ZERO_X) / tileMeters),
+    y: Math.floor((ZERO_Y - y) / tileMeters),
+  };
+}
+
+function updateDetailTiles() {
+  const centers = new Map();
+  for (const z of DETAIL_TILE_LEVELS) {
+    const center = worldTileAt(z, state.plane.pos[0], state.plane.pos[1]);
+    centers.set(z, center);
+    const scale = Math.pow(2, DETAIL_TILE_Z - z);
+    const radius = Math.max(2, Math.ceil(DETAIL_TILE_RADIUS / scale));
+    for (let y = center.y - radius; y <= center.y + radius; y++) {
+      for (let x = center.x - radius; x <= center.x + radius; x++) {
+        const tile = loadTileRecord(z, x, y);
+        if (tile && !state.tiles.includes(tile)) state.tiles.push(tile);
+      }
+    }
+  }
+  state.tiles = state.tiles.filter((tile) => {
+    if (!tile || tile.failed) return false;
+    if (!tile.dynamic) return true;
+    const center = centers.get(tile.z);
+    if (!center) return false;
+    const scale = Math.pow(2, DETAIL_TILE_Z - tile.z);
+    const keepRadius = Math.max(3, Math.ceil(DETAIL_TILE_KEEP_RADIUS / scale));
+    return Math.abs(tile.x - center.x) <= keepRadius && Math.abs(tile.y - center.y) <= keepRadius;
+  });
+}
+
+function drawTextured(vertices, texture, matrix, alpha = 1, brightness = 1) {
+  if (!texture) return;
+  gl.useProgram(texturedProgram);
+  gl.uniformMatrix4fv(texturedLoc.matrix, false, matrix);
+  gl.uniform1f(texturedLoc.alpha, alpha);
+  gl.uniform1f(texturedLoc.brightness, brightness);
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.uniform1i(texturedLoc.texture, 0);
+  gl.bindBuffer(gl.ARRAY_BUFFER, texturedBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STREAM_DRAW);
+  gl.enableVertexAttribArray(texturedLoc.position);
+  gl.vertexAttribPointer(texturedLoc.position, 3, gl.FLOAT, false, 20, 0);
+  gl.enableVertexAttribArray(texturedLoc.uv);
+  gl.vertexAttribPointer(texturedLoc.uv, 2, gl.FLOAT, false, 20, 12);
+  gl.drawArrays(gl.TRIANGLES, 0, vertices.length / 5);
+}
+
+function drawColor(vertices, color, matrix, mode = gl.TRIANGLES) {
+  if (!vertices.length) return;
+  gl.useProgram(colorProgram);
+  gl.uniformMatrix4fv(colorLoc.matrix, false, matrix);
+  gl.uniform4f(colorLoc.color, color[0], color[1], color[2], color[3]);
+  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STREAM_DRAW);
+  gl.enableVertexAttribArray(colorLoc.position);
+  gl.vertexAttribPointer(colorLoc.position, 3, gl.FLOAT, false, 0, 0);
+  gl.drawArrays(mode, 0, vertices.length / 3);
+}
+
+function colorForName(name) {
+  return state.colors.get(name) || [1, 1, 1];
+}
+
+function mapColor(color) {
+  if (!state.night) return color;
+  return [color[0] * NIGHT_MAP_BRIGHTNESS, color[1] * NIGHT_MAP_BRIGHTNESS, color[2] * NIGHT_MAP_BRIGHTNESS, color[3]];
+}
+
+async function loadJson(url) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Could not load ${url}`);
+  return response.json();
+}
+
+function drawTile(tile, matrix) {
+  if (!tile?.loaded) return;
+  const { west, east, north, south } = tileWorldBounds(tile.z, tile.x, tile.y);
+  drawTextured([
+    west, -0.04, -north, 0, 1,
+    east, -0.04, -north, 1, 1,
+    east, -0.04, -south, 1, 0,
+    west, -0.04, -north, 0, 1,
+    east, -0.04, -south, 1, 0,
+    west, -0.04, -south, 0, 0,
+  ], tile.texture, matrix, 1, state.night ? NIGHT_MAP_BRIGHTNESS : 1);
+}
+
+function mapLabelVertices(label) {
+  const aspect = label.texture.width / label.texture.height;
+  const width = label.width;
+  const height = width / aspect;
+  const halfW = width / 2;
+  const halfH = height / 2;
+  const [x, y, z] = label.pos;
+  const west = x - halfW;
+  const east = x + halfW;
+  const north = y + halfH;
+  const south = y - halfH;
+  return [
+    ...worldToGl(west, north, z), 0, 1,
+    ...worldToGl(east, north, z), 1, 1,
+    ...worldToGl(east, south, z), 1, 0,
+    ...worldToGl(west, north, z), 0, 1,
+    ...worldToGl(east, south, z), 1, 0,
+    ...worldToGl(west, south, z), 0, 0,
+  ];
+}
+
+function drawMapLabels(matrix) {
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  for (const label of state.mapLabels) {
+    drawTextured(label.vertices, label.texture.texture, matrix, 1);
+  }
+  gl.disable(gl.BLEND);
+}
+
+function initializeMapLabels() {
+  state.mapLabels = MAP_LABELS.map((label) => {
+    const texture = createTextTexture(label.text, label.color);
+    return {
+      ...label,
+      texture,
+      vertices: mapLabelVertices({ ...label, texture }),
+    };
+  });
+}
+
+function drawWater(matrix) {
+  const e = 250000;
+  drawColor([
+    -e, -2, -e, e, -2, -e, e, -2, e,
+    -e, -2, -e, e, -2, e, -e, -2, e,
+  ], mapColor(WATER_COLOR), matrix);
+}
+
+function resetPlane() {
+  Object.assign(state.plane, {
+    pos: [-6250, 5250, 250],
+    vel: [0, -92, 2],
+    yaw: Math.PI,
+    pitch: 0.04,
+    roll: 0,
+    throttle: 0.68,
+    hp: 100,
+  });
+  statusEl.textContent = "fresh floatplane, highly legal";
+}
+
+function shoot(now) {
+  if (now - state.lastShot < 95) return;
+  state.lastShot = now;
+  const { forward } = planeBasis();
+  state.bullets.push({
+    type: "bullet",
+    pos: add(state.plane.pos, scale(forward, 18)),
+    vel: add(state.plane.vel, scale(forward, BULLET_SPEED)),
+    life: 2.1,
+    radius: 0,
+  });
+  spawnParticles(add(state.plane.pos, scale(forward, 16)), [1, 0.86, 0.32, 1], 8, 22);
+}
+
+function launchMissile(now) {
+  if (now - state.lastMissile < 650) return;
+  state.lastMissile = now;
+  const { forward, up } = planeBasis();
+  state.bullets.push({
+    type: "missile",
+    pos: add(add(state.plane.pos, scale(forward, 20)), scale(up, -2)),
+    vel: add(state.plane.vel, scale(forward, 310)),
+    life: 4.5,
+    radius: 20,
+  });
+  spawnParticles(add(state.plane.pos, scale(forward, 18)), [1, 0.35, 0.08, 1], 18, 34);
+}
+
+function spawnParticles(pos, color, count, speed = 18) {
+  for (let i = 0; i < count; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const b = Math.random() * Math.PI - Math.PI / 2;
+    state.particles.push({
+      pos: [...pos],
+      vel: [Math.cos(a) * Math.cos(b) * speed * Math.random(), Math.sin(a) * Math.cos(b) * speed * Math.random(), Math.sin(b) * speed * Math.random()],
+      color,
+      life: 0.4 + Math.random() * 0.9,
+      size: 2 + Math.random() * 4,
+    });
+  }
+}
+
+function seedFog() {
+  state.fog = [];
+  for (let i = 0; i < 48; i++) {
+    state.fog.push(makeFogPatch(true));
+  }
+}
+
+function makeFogPatch(wide = false) {
+  const angle = Math.random() * Math.PI * 2;
+  const radius = wide ? 60 + Math.random() * 520 : 180 + Math.random() * 460;
+  const forwardBias = planeBasis().forward;
+  const ahead = wide ? -60 + Math.random() * 460 : 80 + Math.random() * 620;
+  const base = add(state.plane.pos, scale(forwardBias, ahead));
+  return {
+    pos: [
+      base[0] + Math.cos(angle) * radius,
+      base[1] + Math.sin(angle) * radius,
+      Math.max(24, state.plane.pos[2] - 105 + Math.random() * 250),
+    ],
+    size: 150 + Math.random() * 310,
+    alpha: 0.13 + Math.random() * 0.17,
+    drift: [-8 - Math.random() * 18, -18 - Math.random() * 22, (Math.random() - 0.5) * 3],
+  };
+}
+
+function igniteFourSeasons() {
+  if (state.fires.some((fire) => fire.name === FOUR_SEASONS_NAME)) return;
+  const landmark = state.landmarks.find((item) => item.name === FOUR_SEASONS_NAME);
+  if (!landmark?.xyz) return;
+  state.fires.push({ name: FOUR_SEASONS_NAME, pos: [landmark.xyz[0], landmark.xyz[1], landmark.xyz[2] + 35], radius: 135, height: 90, rate: 95, life: 999 });
+  statusEl.textContent = "Four Seasons: unfortunately flambé";
+}
+
+function turbulenceFactor(pos) {
+  const north = smoothstep(TURBULENCE_NORTH_START, TURBULENCE_NORTH_FULL, pos[1]);
+  const mountainBias = 0.55 + 0.45 * smoothstep(-1800, -5200, pos[0]);
+  return north * mountainBias;
+}
+
+function updatePlane(dt, now) {
+  const p = state.plane;
+  pollGamepad();
+  const pitchInput = keyAxis("w", "s") + state.gamepad.pitch;
+  const rollInput = keyAxis("d", "a") + state.gamepad.roll;
+  const yawInput = state.gamepad.yaw;
+  const throttleUp = (state.keys.has("q") || state.keys.has("Q") ? 1 : 0) + state.gamepad.throttleUp;
+  const throttleDown = (state.keys.has("e") || state.keys.has("E") ? 1 : 0) + state.gamepad.throttleDown;
+  const accelInput = clamp(throttleUp - throttleDown, -1, 1);
+  p.throttle += dt * (0.55 * throttleUp - 0.6 * throttleDown);
+  p.throttle = clamp(p.throttle, 0, 1);
+  p.roll += clamp(rollInput, -1, 1) * dt * 1.35;
+  p.pitch += clamp(pitchInput, -1, 1) * dt * 0.75;
+  p.yaw += clamp(yawInput, -1, 1) * dt * 0.9;
+  if (state.keys.has("b") || state.keys.has("B") || state.gamepad.brake) p.vel = scale(p.vel, 0.965);
+  if (state.keys.has(" ") || state.gamepad.shoot) shoot(now);
+  if (state.keys.has("m") || state.keys.has("M") || state.gamepad.missile) launchMissile(now);
+  p.roll *= Math.pow(0.86, dt * 5);
+  p.pitch = clamp(p.pitch, -0.85, 0.82);
+  const { forward, up } = planeBasis();
+  const speed = length(p.vel);
+  p.yaw -= p.roll * clamp(speed / 95, 0.35, 1.45) * dt * 0.82;
+  const lift = Math.min(58, speed * speed * 0.0065);
+  p.vel = add(p.vel, scale(forward, (THROTTLE_FORCE * p.throttle + Math.max(0, accelInput) * 18) * dt));
+  if (accelInput < 0) p.vel = scale(p.vel, Math.pow(0.985, -accelInput * dt * 60));
+  p.vel[2] += (lift * (0.35 + Math.max(-0.2, forward[2])) - GRAVITY * 0.34) * dt;
+  if (state.storm) {
+    const gust = Math.sin(now * 0.0017) * 0.55 + Math.sin(now * 0.0041) * 0.22;
+    p.vel[0] += Math.cos(now * 0.0013) * gust * dt * 9;
+    p.vel[1] += Math.sin(now * 0.0011) * gust * dt * 9;
+    p.roll += gust * dt * 0.16;
+  }
+  const turbulence = turbulenceFactor(p.pos);
+  state.turbulence = lerp(state.turbulence, turbulence, 1 - Math.pow(0.18, dt));
+  if (state.turbulence > 0.01) {
+    const t = now * 0.001;
+    const nx = Math.sin(t * 2.7 + p.pos[1] * 0.006) + Math.sin(t * 5.1 + p.pos[0] * 0.003) * 0.42;
+    const ny = Math.cos(t * 2.2 + p.pos[0] * 0.005) + Math.sin(t * 4.3 + p.pos[1] * 0.002) * 0.35;
+    const nz = Math.sin(t * 3.9 + p.pos[0] * 0.004 + p.pos[1] * 0.003);
+    p.vel[0] += nx * state.turbulence * dt * 28;
+    p.vel[1] += ny * state.turbulence * dt * 28;
+    p.vel[2] += nz * state.turbulence * dt * 20;
+    p.roll += (nx * 0.34 + ny * 0.18) * state.turbulence * dt;
+    p.pitch += nz * state.turbulence * dt * 0.16;
+    if (state.gamepad.connected && state.turbulence > 0.24 && state.weatherTime > state.lastTurbulenceRumble + 0.34) {
+      const bump = 0.45 + 0.55 * Math.abs(nz);
+      rumbleGamepad(110, 0.08 * state.turbulence * bump, 0.32 * state.turbulence * bump);
+      state.lastTurbulenceRumble = state.weatherTime;
+    }
+  }
+  p.vel = scale(p.vel, Math.pow(DRAG, dt * 60));
+  p.pos = add(p.pos, scale(p.vel, dt));
+  if (p.pos[2] < 7) {
+    p.pos[2] = 7;
+    if (p.vel[2] < -4) {
+      p.vel[2] = Math.abs(p.vel[2]) * 0.45;
+      p.vel[0] *= 0.72;
+      p.vel[1] *= 0.72;
+      spawnParticles(p.pos, [0.9, 0.76, 0.48, 1], 22, 26);
+      statusEl.textContent = "bonk";
+    }
+  }
+  const fs = state.landmarks.find((item) => item.name === FOUR_SEASONS_NAME);
+  if (fs?.xyz && Math.hypot(p.pos[0] - fs.xyz[0], p.pos[1] - fs.xyz[1], p.pos[2] - fs.xyz[2]) < 90) {
+    igniteFourSeasons();
+    p.vel = scale(p.vel, -0.22);
+    p.pos = add(p.pos, scale(normalize(subtract(p.pos, fs.xyz)), 42));
+    spawnParticles(p.pos, [1, 0.25, 0.05, 1], 48, 46);
+  }
+}
+
+function keyAxis(positiveKey, negativeKey) {
+  const positive = state.keys.has(positiveKey) || state.keys.has(positiveKey.toUpperCase()) ? 1 : 0;
+  const negative = state.keys.has(negativeKey) || state.keys.has(negativeKey.toUpperCase()) ? 1 : 0;
+  return positive - negative;
+}
+
+function applyDeadzone(value, deadzone = 0.12) {
+  if (Math.abs(value) < deadzone) return 0;
+  const sign = Math.sign(value);
+  return sign * (Math.abs(value) - deadzone) / (1 - deadzone);
+}
+
+function pollGamepad() {
+  const pads = navigator.getGamepads ? [...navigator.getGamepads()].filter(Boolean) : [];
+  const pad = pads[0];
+  if (!pad) {
+    state.gamepad.pad = null;
+    state.gamepad.connected = false;
+    state.gamepad.label = "";
+    state.gamepad.pitch = 0;
+    state.gamepad.roll = 0;
+    state.gamepad.yaw = 0;
+    state.gamepad.lookYaw = 0;
+    state.gamepad.lookPitch = 0;
+    state.gamepad.throttleUp = 0;
+    state.gamepad.throttleDown = 0;
+    state.gamepad.shoot = false;
+    state.gamepad.missile = false;
+    state.gamepad.brake = false;
+    state.gamepad.stickPressed = false;
+    return;
+  }
+  state.gamepad.pad = pad;
+  state.gamepad.connected = true;
+  state.gamepad.label = pad.id || "gamepad";
+  state.gamepad.roll = applyDeadzone(pad.axes[0] || 0);
+  state.gamepad.pitch = applyDeadzone(pad.axes[1] || 0);
+  state.gamepad.yaw = 0;
+  state.gamepad.lookYaw = applyDeadzone(pad.axes[2] || 0);
+  state.gamepad.lookPitch = applyDeadzone(-(pad.axes[3] || 0));
+  state.gamepad.throttleDown = Math.max(pad.buttons[4]?.value || 0, pad.buttons[6]?.value || 0);
+  state.gamepad.throttleUp = Math.max(pad.buttons[5]?.value || 0, pad.buttons[7]?.value || 0);
+  state.gamepad.shoot = Boolean(pad.buttons[0]?.pressed);
+  state.gamepad.missile = Boolean(pad.buttons[1]?.pressed || pad.buttons[2]?.pressed || pad.buttons[3]?.pressed);
+  state.gamepad.brake = false;
+  const stickPressed = Boolean(pad.buttons[10]?.pressed || pad.buttons[11]?.pressed);
+  if (stickPressed && !state.gamepad.stickPressed) {
+    state.stickFlash = 1;
+    statusEl.textContent = "stick click: absolutely acknowledged";
+  }
+  state.gamepad.stickPressed = stickPressed;
+}
+
+function rumbleGamepad(duration = 180, weakMagnitude = 0.35, strongMagnitude = 0.9) {
+  const pad = state.gamepad.pad || (navigator.getGamepads ? [...navigator.getGamepads()].filter(Boolean)[0] : null);
+  if (!pad) return;
+  if (pad.vibrationActuator?.playEffect) {
+    pad.vibrationActuator.playEffect("dual-rumble", {
+      startDelay: 0,
+      duration,
+      weakMagnitude,
+      strongMagnitude,
+    }).catch(() => {});
+    return;
+  }
+  if (pad.hapticActuators?.[0]?.pulse) {
+    pad.hapticActuators[0].pulse(strongMagnitude, duration).catch(() => {});
+  }
+}
+
+function updateBullets(dt) {
+  for (const bullet of state.bullets) {
+    bullet.life -= dt;
+    if (bullet.type === "missile") {
+      const target = state.targets.find((item) => !item.dead);
+      if (target) {
+        const speed = length(bullet.vel);
+        const desired = normalize(subtract(target.pos, bullet.pos));
+        bullet.vel = scale(normalize(add(scale(normalize(bullet.vel), 0.94), scale(desired, 0.06))), speed);
+      }
+      if (Math.random() < dt * 38) spawnParticles(bullet.pos, [0.08, 0.08, 0.08, 0.5], 1, 8);
+    }
+    bullet.pos = add(bullet.pos, scale(bullet.vel, dt));
+    for (const target of state.targets) {
+      if (target.dead) continue;
+      if (Math.hypot(bullet.pos[0] - target.pos[0], bullet.pos[1] - target.pos[1], bullet.pos[2] - target.pos[2]) < target.radius + (bullet.radius || 0)) {
+        target.dead = true;
+        bullet.life = 0;
+        state.score += bullet.type === "missile" ? 250 : 100;
+        spawnParticles(target.pos, bullet.type === "missile" ? [1, 0.32, 0.06, 1] : [0.4, 1, 0.7, 1], bullet.type === "missile" ? 90 : 48, bullet.type === "missile" ? 80 : 55);
+        statusEl.textContent = bullet.type === "missile" ? `missile hit: ${target.name}` : `target deleted: ${target.name}`;
+      }
+    }
+  }
+  state.bullets = state.bullets.filter((bullet) => bullet.life > 0);
+  if (state.targets.every((target) => target.dead)) makeTargets();
+}
+
+function spawnBirdFlock() {
+  const { forward, right, up } = planeBasis();
+  const count = 2 + Math.floor(Math.random() * 3);
+  const center = add(add(add(state.plane.pos, scale(forward, 260 + Math.random() * 480)), scale(right, (Math.random() - 0.5) * 520)), scale(up, 60 + Math.random() * 140));
+  const direction = normalize(add(scale(forward, -0.25 + Math.random() * 0.5), scale(right, Math.random() < 0.5 ? -1 : 1)));
+  for (let i = 0; i < count; i++) {
+    state.birds.push({
+      pos: add(center, [i * 18 + (Math.random() - 0.5) * 18, (Math.random() - 0.5) * 24, (Math.random() - 0.5) * 16]),
+      vel: scale(direction, 24 + Math.random() * 18),
+      phase: Math.random() * Math.PI * 2,
+      size: 5 + Math.random() * 3,
+      life: 7 + Math.random() * 4,
+    });
+  }
+}
+
+function updateBirds(dt) {
+  if (state.birds.length < 10 && Math.random() < dt * 0.045) spawnBirdFlock();
+  for (const bird of state.birds) {
+    bird.life -= dt;
+    bird.phase += dt * 8;
+    bird.pos = add(bird.pos, scale(bird.vel, dt));
+    bird.pos[2] += Math.sin(bird.phase) * dt * 2.2;
+  }
+  state.birds = state.birds.filter((bird) => bird.life > 0 && Math.hypot(bird.pos[0] - state.plane.pos[0], bird.pos[1] - state.plane.pos[1], bird.pos[2] - state.plane.pos[2]) < 1600);
+}
+
+function updateParticles(dt) {
+  state.weatherTime += dt;
+  updateBirds(dt);
+  for (const particle of state.particles) {
+    particle.life -= dt;
+    particle.pos = add(particle.pos, scale(particle.vel, dt));
+    particle.vel[2] += (particle.color[0] > 0.9 ? 10 : -18) * dt;
+  }
+  state.particles = state.particles.filter((particle) => particle.life > 0);
+  if (state.storm && Math.random() < dt * 90) {
+    const p = state.plane.pos;
+    state.particles.push({
+      pos: [p[0] + (Math.random() - 0.5) * 620, p[1] + (Math.random() - 0.5) * 620, p[2] + 240 + Math.random() * 140],
+      vel: [-70, -100, -390],
+      color: [0.62, 0.75, 1, 0.45],
+      life: 1.4,
+      size: 1,
+    });
+  }
+  if (state.storm && Math.random() < dt * 0.32) {
+    state.lightning = 0.24;
+    state.lightningBolt = {
+      x: 0.15 + Math.random() * 0.7,
+      y: 0.04 + Math.random() * 0.24,
+      bend: Math.random() * 0.25 - 0.125,
+    };
+    rumbleGamepad();
+    statusEl.textContent = "weather: tasteful apocalypse";
+  }
+  state.lightning = Math.max(0, state.lightning - dt);
+  if (!state.lightning) state.lightningBolt = null;
+  updateFog(dt);
+  for (const fire of state.fires) {
+    if (Math.random() < dt * (fire.rate || 45)) {
+      const radius = fire.radius || 80;
+      const height = fire.height || 40;
+      spawnParticles([fire.pos[0] + (Math.random() - 0.5) * radius, fire.pos[1] + (Math.random() - 0.5) * radius, fire.pos[2] + Math.random() * height], [1, 0.27 + Math.random() * 0.35, 0.04, 0.82], 2, 24);
+      spawnParticles([fire.pos[0] + (Math.random() - 0.5) * radius * 1.15, fire.pos[1] + (Math.random() - 0.5) * radius * 1.15, fire.pos[2] + height * 0.25 + Math.random() * height], [0.1, 0.1, 0.1, 0.45], 1, 14);
+    }
+  }
+}
+
+function updateFog(dt) {
+  if (!state.storm || !state.fogEnabled) return;
+  if (!state.fog.length) seedFog();
+  for (let i = 0; i < state.fog.length; i++) {
+    const patch = state.fog[i];
+    patch.pos = add(patch.pos, scale(patch.drift, dt));
+    const dx = patch.pos[0] - state.plane.pos[0];
+    const dy = patch.pos[1] - state.plane.pos[1];
+    const dz = patch.pos[2] - state.plane.pos[2];
+    if (Math.hypot(dx, dy, dz * 0.7) > 1100) state.fog[i] = makeFogPatch(false);
+  }
+}
+
+function updateCamera(dt) {
+  const { forward, up } = planeBasis();
+  const right = normalize(cross(forward, up));
+  if (state.keys.has("ArrowLeft")) state.camera.lookYaw -= dt * 1.8;
+  if (state.keys.has("ArrowRight")) state.camera.lookYaw += dt * 1.8;
+  if (state.keys.has("ArrowUp")) state.camera.lookPitch += dt * 1.2;
+  if (state.keys.has("ArrowDown")) state.camera.lookPitch -= dt * 1.2;
+  state.camera.lookYaw += state.gamepad.lookYaw * dt * 1.8;
+  state.camera.lookPitch += state.gamepad.lookPitch * dt * 1.2;
+  state.camera.lookYaw = clamp(state.camera.lookYaw, -1.05, 1.05) * Math.pow(0.965, dt * 60);
+  state.camera.lookPitch = clamp(state.camera.lookPitch, -0.68, 0.68) * Math.pow(0.965, dt * 60);
+  let desiredEye = add(add(state.plane.pos, scale(forward, -CAMERA_CHASE * 0.98)), scale(up, CAMERA_UP + 24 + length(state.plane.vel) * 0.025));
+  desiredEye[2] = Math.max(desiredEye[2], state.plane.pos[2] + 16);
+  const lookOffset = add(add(scale(forward, 20), scale(right, state.camera.lookYaw * 32)), scale(up, state.camera.lookPitch * 24));
+  let desiredTarget = add(state.plane.pos, lookOffset);
+  if (state.turbulence > 0.01) {
+    const t = state.weatherTime;
+    const shake = state.turbulence * (0.8 + Math.min(2.2, length(state.plane.vel) * 0.012));
+    const jitter = add(scale(right, Math.sin(t * 18.7) * shake), scale(up, Math.cos(t * 23.3) * shake * 0.65));
+    desiredEye = add(desiredEye, jitter);
+    desiredTarget = add(desiredTarget, scale(jitter, 0.38));
+  }
+  desiredTarget[2] = Math.max(0, desiredTarget[2]);
+  state.camera.eye = lerp3(state.camera.eye, desiredEye, 0.97);
+  state.camera.target = lerp3(state.camera.target, add(desiredTarget, scale(right, state.plane.roll * 0.28)), 0.96);
+}
+
+function updateAirliner(dt) {
+  const jet = state.airliner;
+  jet.t += dt * 0.075;
+  const rx = 1120;
+  const ry = 760;
+  const angle = jet.t;
+  const z = 430 + Math.sin(angle * 2.0) * 24;
+  const x = jet.center[0] + Math.cos(angle) * rx;
+  const y = jet.center[1] + Math.sin(angle) * ry;
+  const dx = -Math.sin(angle) * rx;
+  const dy = Math.cos(angle) * ry;
+  jet.pos = [x, y, z];
+  jet.yaw = Math.atan2(-dx, dy);
+  jet.pitch = Math.sin(angle * 2.0 + Math.PI / 2) * 0.025;
+  jet.roll = 0.26;
+}
+
+function updateAmbientActors(dt) {
+  state.blimp.t += dt * 0.18;
+  state.blimp.pos[2] = 190 + Math.sin(state.blimp.t) * 8;
+  state.blimp.yaw = 1.1 + Math.sin(state.blimp.t * 0.35) * 0.08;
+
+  state.chopper.t += dt;
+  const chopperAngle = state.chopper.t * 0.42;
+  state.chopper.pos = [-2640 + Math.cos(chopperAngle) * 110, 4550 + Math.sin(chopperAngle) * 80, 175 + Math.sin(state.chopper.t * 1.6) * 7];
+  state.chopper.yaw = chopperAngle + Math.PI / 2;
+
+  for (const boat of state.boats) {
+    boat.t = (boat.t + dt * boat.speed) % 1;
+    const a = boat.route[0];
+    const b = boat.route[1];
+    const t = boat.t < 0.5 ? boat.t * 2 : (1 - boat.t) * 2;
+    const from = boat.t < 0.5 ? a : b;
+    const to = boat.t < 0.5 ? b : a;
+    boat.pos = [lerp(from[0], to[0], t), lerp(from[1], to[1], t), 1.6];
+    boat.yaw = Math.atan2(-(to[0] - from[0]), to[1] - from[1]);
+    if (Math.random() < dt * 0.018) {
+      boat.message = BOAT_LINES[Math.floor(Math.random() * BOAT_LINES.length)];
+      boat.messageUntil = state.weatherTime + 3.5;
+    }
+  }
+}
+
+function updateRadio(dt) {
+  state.radioTime += dt;
+  if (state.radioTime > state.radioNext) {
+    if (!state.radioQueue.length) state.radioQueue = shuffle([...RADIO_LINES]);
+    radioEl.textContent = state.radioQueue.pop();
+    radioEl.classList.add("visible");
+    state.radioIndex += 1;
+    state.radioUntil = state.radioTime + 4.2;
+    state.radioNext = state.radioUntil + 8 + Math.random() * 7;
+  }
+  if (state.radioTime > state.radioUntil) radioEl.classList.remove("visible");
+}
+
+function debugValue(min, max, digits = 2) {
+  return (min + Math.random() * (max - min)).toFixed(digits);
+}
+
+function makeDebugLine(template) {
+  return template
+    .replaceAll("{idle}", debugValue(0.02, 0.98, 3))
+    .replaceAll("{lc}", debugValue(4.5, 84.5, 1))
+    .replaceAll("{slot}", String(1 + Math.floor(Math.random() * 12)).padStart(2, "0"))
+    .replaceAll("{speed}", debugValue(0, 7.5, 2))
+    .replaceAll("{pool}", String(22 + Math.floor(Math.random() * 54)))
+    .replaceAll("{poolMax}", String(80 + Math.floor(Math.random() * 80)))
+    .replaceAll("{upper}", debugValue(0, 1, 3))
+    .replaceAll("{upperMax}", debugValue(0.4, 0.98, 3))
+    .replaceAll("{motion}", debugValue(0.02, 0.99, 3));
+}
+
+function triggerDebugOverlay() {
+  const count = 16 + Math.floor(Math.random() * 7);
+  state.debugLines = shuffle([...DEBUG_TEMPLATES])
+    .slice(0, count)
+    .map((template, index) => ({
+      text: makeDebugLine(template),
+      color: index < 2 ? DEBUG_COLORS[0] : pick(DEBUG_COLORS),
+      band: Math.random() < 0.72,
+    }));
+  const longest = Math.max(...state.debugLines.map((line) => line.text.length));
+  state.debugStarted = state.weatherTime;
+  state.debugHoldAt = state.debugStarted + count * 0.055 + longest * 0.011;
+  state.debugUntil = state.debugHoldAt + 2.4;
+}
+
+function updateDebugOverlay() {
+  if (state.weatherTime < state.debugNext) return;
+  if (Math.random() < 0.45) triggerDebugOverlay();
+  state.debugNext = state.weatherTime + 50 + Math.random() * 35;
+}
+
+function updateScreenshotFlyThroughs() {
+  for (const camera of state.cameras) {
+    if (state.screenshotHits.has(camera.name) || !camera.xyz || !camera.ypr || !camera.fov || camera.name?.endsWith(" Fake Cam")) continue;
+    const hf = Math.tan((camera.fov[0] || 50) * Math.PI / 360);
+    const vf = Math.tan((camera.fov[1] || 35) * Math.PI / 360);
+    const forward = directionFromYpr(camera.ypr, 0, 0);
+    const center = add(camera.xyz, scale(forward, CAMERA_THUMBNAIL_DISTANCE));
+    const rightEdge = add(camera.xyz, scale(directionFromYpr(camera.ypr, hf, 0), CAMERA_THUMBNAIL_DISTANCE));
+    const topEdge = add(camera.xyz, scale(directionFromYpr(camera.ypr, 0, vf), CAMERA_THUMBNAIL_DISTANCE));
+    const right = normalize(subtract(rightEdge, center));
+    const up = normalize(subtract(topEdge, center));
+    const rel = subtract(state.plane.pos, center);
+    const planeDistance = Math.abs(dot(rel, forward));
+    const horizontal = Math.abs(dot(rel, right));
+    const vertical = Math.abs(dot(rel, up));
+    if (planeDistance < 16 && horizontal < length(subtract(rightEdge, center)) && vertical < length(subtract(topEdge, center))) {
+      state.screenshotHits.add(camera.name);
+      state.score += 1;
+      statusEl.textContent = `screenshot fly-through: ${camera.name}`;
+      spawnParticles(state.plane.pos, [1, 1, 0.72, 1], 16, 20);
+    }
+  }
+}
+
+function update(dt, now) {
+  state.stickFlash = Math.max(0, state.stickFlash - dt * 5.5);
+  updatePlane(dt, now);
+  updateAirliner(dt);
+  updateAmbientActors(dt);
+  updateRadio(dt);
+  updateDetailTiles();
+  updateScreenshotFlyThroughs();
+  updateBullets(dt);
+  updateParticles(dt);
+  updateDebugOverlay();
+  updateCamera(dt);
+  speedEl.textContent = `SPD ${length(state.plane.vel).toFixed(0)}`;
+  altitudeEl.textContent = `ALT ${state.plane.pos[2].toFixed(0)}`;
+  scoreEl.textContent = `SCORE ${state.score}`;
+  modeEl.textContent = state.storm ? "STORM MODE" : "SUNNY CHAOS";
+  weatherButton.textContent = state.storm ? "clear" : "storm";
+  dayNightButton.textContent = state.night ? "day" : "night";
+  dayNightButton.classList.toggle("active", state.night);
+  const padText = state.gamepad.connected ? " / pad" : "";
+  const tileCount = state.tiles.filter((tile) => tile?.loaded).length;
+  const landmarkCount = state.landmarkModels.filter((model) => model.texture?.loaded).length;
+  tilesEl.textContent = `${tileCount} tiles / ${landmarkCount} landmarks${padText}`;
+  if (state.gamepad.connected && statusEl.textContent === "fresh floatplane, highly legal") {
+    statusEl.textContent = "pad: left stick fly, right stick look, L1/R1 throttle, X shoots, □/○/△ missiles";
+  }
+}
+
+function matrix() {
+  return mat4Multiply(
+    perspective(58 * Math.PI / 180, state.width / state.height, 0.8, 95000),
+    lookAt(worldToGl(...state.camera.eye), worldToGl(...state.camera.target), [0, 1, 0]),
+  );
+}
+
+function modelPoint(local, basis, origin = state.plane.pos) {
+  return add(add(add(origin, scale(basis.right, local[0])), scale(basis.forward, local[1])), scale(basis.up, local[2]));
+}
+
+function drawPlane(m) {
+  const b = planeBasis();
+  const tri = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b)));
+  drawColor(tri([-3.8, 14, -0.8], [3.8, 14, -0.8], [0, -17, 1.2]), [1, 0.96, 0.84, 1], m);
+  drawColor(tri([-3.4, 14.4, -0.55], [3.4, 14.4, -0.55], [0, 18, 0.25]), [1, 0.8, 0.16, 1], m);
+  drawColor(tri([-48, 0, 2.5], [48, 0, 2.5], [6, 5.6, 3.2], [-48, 0, 2.5], [6, 5.6, 3.2], [-6, 5.6, 3.2]), [1, 0.97, 0.88, 1], m);
+  drawColor(tri([-30, 0.4, 2.65], [-10, 0.4, 2.65], [-10, 5.5, 3.28], [10, 0.4, 2.65], [30, 0.4, 2.65], [10, 5.5, 3.28]), [1, 0.77, 0.1, 1], m);
+  drawColor(tri([-10, -11, -0.6], [10, -11, -0.6], [0, -25, 0.25]), [1, 0.97, 0.86, 1], m);
+  drawColor(tri([-7, -18.2, 0.2], [7, -18.2, 0.2], [0, -24.5, 1.1]), [1, 0.8, 0.16, 1], m);
+  drawColor(tri([0, -16, 0], [0, -24, 9.6], [0, -18.5, 1.1]), [1, 0.84, 0.18, 1], m);
+  drawColor(tri([-7, 14, -5.5], [-3, 14, -5.5], [-5, -13, -5.5], [3, 14, -5.5], [7, 14, -5.5], [5, -13, -5.5]), [0.44, 0.37, 0.24, 1], m);
+  drawColor(tri([-6.7, 12, -5.1], [-3.3, 12, -5.1], [-5, 18, -4.8], [3.3, 12, -5.1], [6.7, 12, -5.1], [5, 18, -4.8]), [0.18, 0.16, 0.13, 1], m);
+  const prop = [];
+  const center = modelPoint([0, 17.2, 0.1], b);
+  for (let i = 0; i < 16; i++) {
+    const a = i * Math.PI / 8 + performance.now() * 0.04;
+    const p1 = add(center, add(scale(b.right, Math.cos(a) * 6), scale(b.up, Math.sin(a) * 6)));
+    const p2 = add(center, add(scale(b.right, Math.cos(a + Math.PI) * 6), scale(b.up, Math.sin(a + Math.PI) * 6)));
+    prop.push(...worldToGl(...p1), ...worldToGl(...p2));
+  }
+  drawColor(prop, [0.05, 0.06, 0.07, 0.45], m, gl.LINES);
+}
+
+function drawAirliner(m) {
+  const jet = state.airliner;
+  const b = actorBasis(jet);
+  const tri = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, jet.pos)));
+  const line = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, jet.pos)));
+  const twoSided = (color, ...points) => drawColor(tri(...points, ...[...points].reverse()), color, m);
+  twoSided([0.96, 0.94, 0.86, 1], [-9, 82, 0], [9, 82, 0], [0, -92, 2.5]);
+  drawColor(tri([-7, 84, -1.5], [7, 84, -1.5], [0, 104, -0.5]), [0.92, 0.91, 0.84, 1], m);
+  twoSided([0.86, 0.83, 0.73, 1], [-88, 8, 0], [88, 8, 0], [13, -26, 1.8], [-88, 8, 0], [13, -26, 1.8], [-13, -26, 1.8]);
+  twoSided([0.86, 0.84, 0.76, 1], [-36, -80, 1], [36, -80, 1], [0, -112, 2.4]);
+  twoSided([0.08, 0.12, 0.2, 1], [0, -84, 1], [0, -112, 38], [0, -95, 5]);
+  drawColor(tri([-8, 78, -3], [8, 78, -3], [0, 88, -4.4]), [0.72, 0.12, 0.08, 1], m);
+  drawColor(tri([-54, -2, -5], [-44, -2, -5], [-49, 14, -5], [44, -2, -5], [54, -2, -5], [49, 14, -5]), [0.18, 0.17, 0.15, 1], m);
+  drawColor(tri([-30, 2, -5], [-22, 2, -5], [-26, 16, -5], [22, 2, -5], [30, 2, -5], [26, 16, -5]), [0.18, 0.17, 0.15, 1], m);
+  drawColor(line([-9, 82, 0], [9, 82, 0], [9, 82, 0], [0, -92, 2.5], [0, -92, 2.5], [-9, 82, 0], [-88, 8, 0], [88, 8, 0], [-36, -80, 1], [36, -80, 1], [0, -84, 1], [0, -112, 38], [-5, 72, 1.8], [5, 72, 1.8], [-5, 52, 2.1], [5, 52, 2.1], [-5, 32, 2.3], [5, 32, 2.3], [-5, 12, 2.4], [5, 12, 2.4]), [0.16, 0.18, 0.2, 0.72], m, gl.LINES);
+}
+
+function drawBlimp(m) {
+  const b = actorBasis({ yaw: state.blimp.yaw, pitch: 0, roll: 0 });
+  const tri = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, state.blimp.pos)));
+  const line = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, state.blimp.pos)));
+  drawColor(tri([-52, 0, 0], [0, 72, 20], [52, 0, 0], [-52, 0, 0], [52, 0, 0], [0, -72, 20], [-52, 0, 0], [0, 72, -20], [52, 0, 0], [-52, 0, 0], [52, 0, 0], [0, -72, -20]), [0.92, 0.95, 0.93, 0.96], m);
+  drawColor(tri([-10, -8, -25], [10, -8, -25], [0, 24, -32], [0, -70, 0], [0, -95, 24], [0, -72, 4]), [0.78, 0.82, 0.78, 1], m);
+  drawColor(line([-52, 0, 0], [52, 0, 0], [0, 72, 20], [0, -72, 20], [0, 72, -20], [0, -72, -20]), [0.55, 0.62, 0.64, 0.72], m, gl.LINES);
+}
+
+function drawChopper(m) {
+  const actor = { yaw: state.chopper.yaw, pitch: 0, roll: Math.sin(state.chopper.t * 1.3) * 0.06 };
+  const b = actorBasis(actor);
+  const tri = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, state.chopper.pos)));
+  const line = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, state.chopper.pos)));
+  drawColor(tri([-10, 18, 0], [10, 18, 0], [0, -24, 4], [-9, 18, -2], [9, 18, -2], [0, 6, -8]), [0.78, 0.08, 0.07, 1], m);
+  drawColor(tri([-7, 15, 1], [7, 15, 1], [0, 28, 2]), [0.04, 0.05, 0.06, 1], m);
+  drawColor(line([0, -20, 4], [0, -58, 8], [-10, -58, 8], [10, -58, 8], [-14, 0, -9], [14, 0, -9], [-14, -18, -9], [14, -18, -9]), [0.07, 0.07, 0.06, 1], m, gl.LINES);
+  const rotor = [];
+  const center = modelPoint([0, 4, 14], b, state.chopper.pos);
+  const spin = performance.now() * 0.018;
+  for (let i = 0; i < 4; i++) {
+    const a = spin + i * Math.PI / 2;
+    const p1 = add(center, add(scale(b.right, Math.cos(a) * 42), scale(b.forward, Math.sin(a) * 42)));
+    const p2 = add(center, add(scale(b.right, -Math.cos(a) * 42), scale(b.forward, -Math.sin(a) * 42)));
+    rotor.push(...worldToGl(...p1), ...worldToGl(...p2));
+  }
+  drawColor(rotor, [0.08, 0.08, 0.08, 0.55], m, gl.LINES);
+}
+
+function drawBoats(m) {
+  for (const boat of state.boats) {
+    const b = actorBasis({ yaw: boat.yaw, pitch: 0, roll: 0 });
+    const tri = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, boat.pos)));
+    const line = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, boat.pos)));
+    drawColor(tri([-8, 12, 0], [8, 12, 0], [0, -16, 0], [-5, 8, 2.5], [5, 8, 2.5], [0, -6, 4]), [0.96, 0.97, 0.92, 1], m);
+    drawColor(line([-5, -18, 0], [-18, -32, 0], [5, -18, 0], [18, -32, 0]), [0.86, 0.94, 1, 0.45], m, gl.LINES);
+  }
+}
+
+function billboardQuad(pos, size, cameraRight, cameraUp) {
+  const r = scale(cameraRight, size);
+  const u = scale(cameraUp, size);
+  const p0 = subtract(subtract(pos, r), u);
+  const p1 = add(subtract(pos, u), r);
+  const p2 = add(add(pos, r), u);
+  const p3 = add(subtract(pos, r), u);
+  return [
+    ...worldToGl(...p0), 0, 0,
+    ...worldToGl(...p1), 1, 0,
+    ...worldToGl(...p2), 1, 1,
+    ...worldToGl(...p0), 0, 0,
+    ...worldToGl(...p2), 1, 1,
+    ...worldToGl(...p3), 0, 1,
+  ];
+}
+
+function cameraBillboardBasis() {
+  const eye = worldToGl(...state.camera.eye);
+  const target = worldToGl(...state.camera.target);
+  const forward = normalize(subtract(target, eye));
+  const right = normalize(cross(forward, [0, 1, 0]));
+  const up = normalize(cross(right, forward));
+  return { right: glToWorld(right), up: glToWorld(up) };
+}
+
+function drawSprites(m) {
+  const { right, up } = cameraBillboardBasis();
+  const eye = state.camera.eye;
+  if (state.fogEnabled) {
+    const fog = [...state.fog].sort((a, b) => {
+      const da = Math.hypot(a.pos[0] - eye[0], a.pos[1] - eye[1], a.pos[2] - eye[2]);
+      const db = Math.hypot(b.pos[0] - eye[0], b.pos[1] - eye[1], b.pos[2] - eye[2]);
+      return db - da;
+    });
+    for (const patch of fog) {
+      const distance = Math.hypot(patch.pos[0] - state.plane.pos[0], patch.pos[1] - state.plane.pos[1], patch.pos[2] - state.plane.pos[2]);
+      const alpha = patch.alpha * clamp(1 - distance / 1200, 0, 1);
+      if (alpha <= 0.005) continue;
+      drawTextured(billboardQuad(patch.pos, patch.size, right, up), fogTexture.texture, m, alpha);
+    }
+  }
+  for (const target of state.targets) {
+    if (target.dead) continue;
+    const p = worldToGl(...target.pos);
+    const r = target.radius;
+    drawColor([
+      p[0] - r, p[1], p[2],
+      p[0] + r, p[1], p[2],
+      p[0], p[1] - r, p[2],
+      p[0], p[1] + r, p[2],
+    ], [0.4, 1, 0.7, 0.85], m, gl.LINES);
+  }
+  for (const particle of state.particles) {
+    drawColor(billboardQuad(particle.pos, particle.size, right, up).filter((_, i) => i % 5 < 3), particle.color, m);
+  }
+}
+
+function drawBullets(m) {
+  const lines = [];
+  const missileLines = [];
+  for (const bullet of state.bullets) {
+    const tail = subtract(bullet.pos, scale(normalize(bullet.vel), bullet.type === "missile" ? 36 : 18));
+    if (bullet.type === "missile") missileLines.push(...worldToGl(...tail), ...worldToGl(...bullet.pos));
+    else lines.push(...worldToGl(...tail), ...worldToGl(...bullet.pos));
+  }
+  drawColor(lines, [1, 0.9, 0.32, 1], m, gl.LINES);
+  drawColor(missileLines, [1, 0.28, 0.08, 1], m, gl.LINES);
+}
+
+function drawBirds(m) {
+  const lines = [];
+  for (const bird of state.birds) {
+    const direction = normalize(bird.vel);
+    const side = normalize(cross(direction, [0, 0, 1]));
+    const flap = Math.sin(bird.phase) * bird.size * 0.45;
+    const left = add(add(bird.pos, scale(side, -bird.size)), [0, 0, flap]);
+    const right = add(add(bird.pos, scale(side, bird.size)), [0, 0, flap]);
+    const beak = add(bird.pos, scale(direction, bird.size * 0.45));
+    lines.push(...worldToGl(...left), ...worldToGl(...beak), ...worldToGl(...beak), ...worldToGl(...right));
+  }
+  drawColor(lines, [0.92, 0.9, 0.82, 0.78], m, gl.LINES);
+}
+
+function thickenLines(lines, offsets) {
+  const result = [];
+  for (const offset of offsets) {
+    for (let i = 0; i < lines.length; i += 6) {
+      result.push(
+        lines[i] + offset, lines[i + 1], lines[i + 2] + offset,
+        lines[i + 3] + offset, lines[i + 4], lines[i + 5] + offset,
+      );
+    }
+  }
+  return result;
+}
+
+function wireframeLines(wireframe) {
+  const groups = { thin: [], bold: [] };
+  for (const segment of wireframe.segments || []) {
+    const points = Array.isArray(segment) ? segment : segment.points;
+    const style = Array.isArray(segment) ? "thin" : segment.style || "thin";
+    if (!points || points.length !== 2) continue;
+    const target = style === "bold" ? groups.bold : groups.thin;
+    target.push(...worldToGl(points[0][0], points[0][1], points[0][2]));
+    target.push(...worldToGl(points[1][0], points[1][1], points[1][2]));
+  }
+  return groups;
+}
+
+function drawWireframes(m) {
+  for (const wireframe of state.wireframes) {
+    const groups = wireframeLines(wireframe);
+    const color = wireframe.color || [1, 1, 1];
+    if (groups.thin.length) drawColor(thickenLines(groups.thin, [0, 0.18, -0.18, 0.36]), [...color, 0.78], m, gl.LINES);
+    if (groups.bold.length) drawColor(thickenLines(groups.bold, [0, 0.18, -0.18, 0.36, -0.36, 0.54]), [...color, 0.92], m, gl.LINES);
+  }
+}
+
+function cameraThumbnailVertices(camera) {
+  if (!camera.xyz || !camera.ypr || !camera.fov) return null;
+  const hf = Math.tan((camera.fov[0] || 50) * Math.PI / 360);
+  const vf = Math.tan((camera.fov[1] || 35) * Math.PI / 360);
+  const corners = [[-hf, vf], [hf, vf], [hf, -vf], [-hf, -vf]].map(([u, v]) => {
+    const d = directionFromYpr(camera.ypr, u, v);
+    return worldToGl(
+      camera.xyz[0] + d[0] * CAMERA_THUMBNAIL_DISTANCE,
+      camera.xyz[1] + d[1] * CAMERA_THUMBNAIL_DISTANCE,
+      camera.xyz[2] + d[2] * CAMERA_THUMBNAIL_DISTANCE,
+    );
+  });
+  return [
+    ...corners[0], 0, 1,
+    ...corners[1], 1, 1,
+    ...corners[2], 1, 0,
+    ...corners[0], 0, 1,
+    ...corners[2], 1, 0,
+    ...corners[3], 0, 0,
+  ];
+}
+
+function drawCameraThumbnails(m) {
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  for (const camera of state.cameras) {
+    if (!camera.texture?.loaded || camera.name?.endsWith(" Fake Cam")) continue;
+    const vertices = cameraThumbnailVertices(camera);
+    if (!vertices) continue;
+    drawTextured(vertices, camera.texture.texture, m, 0.62);
+  }
+  gl.disable(gl.BLEND);
+}
+
+function landmarkModelVertices(model) {
+  if (model.shape === "pyramid") return landmarkPyramidVertices(model);
+  const [x, y] = model.xyz;
+  const width = model.width || 25;
+  const height = model.height || model.xyz[2] || 80;
+  const half = width / 2;
+  const corners = {
+    nw: [x - half, y + half, 0],
+    ne: [x + half, y + half, 0],
+    se: [x + half, y - half, 0],
+    sw: [x - half, y - half, 0],
+    tnw: [x - half, y + half, height],
+    tne: [x + half, y + half, height],
+    tse: [x + half, y - half, height],
+    tsw: [x - half, y - half, height],
+  };
+  const vertices = [];
+  const face = (a, b, c, d, slice) => {
+    const u0 = slice / 4;
+    const u1 = (slice + 1) / 4;
+    vertices.push(
+      ...worldToGl(...a), u0, 0,
+      ...worldToGl(...b), u1, 0,
+      ...worldToGl(...c), u1, 1,
+      ...worldToGl(...a), u0, 0,
+      ...worldToGl(...c), u1, 1,
+      ...worldToGl(...d), u0, 1,
+    );
+  };
+  face(corners.sw, corners.se, corners.tse, corners.tsw, 0);
+  face(corners.se, corners.ne, corners.tne, corners.tse, 1);
+  face(corners.ne, corners.nw, corners.tnw, corners.tne, 2);
+  face(corners.nw, corners.sw, corners.tsw, corners.tnw, 3);
+  return vertices;
+}
+
+function landmarkPyramidVertices(model) {
+  const [x, y] = model.xyz;
+  const width = model.width || (model.height || model.xyz[2] || 100) * 2;
+  const height = model.height || model.xyz[2] || 100;
+  const half = width / 2;
+  const apex = [x, y, height];
+  const corners = {
+    nw: [x - half, y + half, 0],
+    ne: [x + half, y + half, 0],
+    se: [x + half, y - half, 0],
+    sw: [x - half, y - half, 0],
+  };
+  const vertices = [];
+  const face = (a, b, slice) => {
+    const u0 = slice / 4;
+    const u1 = (slice + 1) / 4;
+    const um = (u0 + u1) / 2;
+    vertices.push(
+      ...worldToGl(...a), u0, 0,
+      ...worldToGl(...b), u1, 0,
+      ...worldToGl(...apex), um, 1,
+    );
+  };
+  face(corners.sw, corners.se, 0);
+  face(corners.se, corners.ne, 1);
+  face(corners.ne, corners.nw, 2);
+  face(corners.nw, corners.sw, 3);
+  return vertices;
+}
+
+function drawLandmarkModels(m) {
+  for (const model of state.landmarkModels) {
+    if (!model.texture?.loaded) continue;
+    drawTextured(model.vertices, model.texture.texture, m, 1);
+  }
+}
+
+function drawOverlay(m) {
+  ctx.clearRect(0, 0, state.width, state.height);
+  ctx.save();
+  if (state.storm) {
+    ctx.fillStyle = "rgba(7, 13, 24, 0.22)";
+    ctx.fillRect(0, 0, state.width, state.height);
+    drawRainOverlay();
+  }
+  if (state.lightning > 0) {
+    ctx.fillStyle = `rgba(210,230,255,${state.lightning * 2.8})`;
+    ctx.fillRect(0, 0, state.width, state.height);
+    drawLightningOverlay();
+  }
+  if (state.stickFlash > 0) {
+    ctx.fillStyle = `rgba(255,0,0,${state.stickFlash * 0.32})`;
+    ctx.fillRect(0, 0, state.width, state.height);
+  }
+  drawDebugOverlay();
+  ctx.font = "12px -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  for (const target of state.targets) {
+    if (target.dead) continue;
+    const p = transformPoint(m, worldToGl(...target.pos));
+    if (p[2] < -1 || p[2] > 1) continue;
+    const x = (p[0] * 0.5 + 0.5) * state.width;
+    const y = (-p[1] * 0.5 + 0.5) * state.height;
+    ctx.fillStyle = "rgba(185,255,216,0.9)";
+    ctx.fillText(target.name, x, y - 18);
+  }
+  for (const boat of state.boats) {
+    if (!boat.message || state.weatherTime > boat.messageUntil) continue;
+    const p = transformPoint(m, worldToGl(...boat.pos));
+    if (p[2] < -1 || p[2] > 1) continue;
+    const x = (p[0] * 0.5 + 0.5) * state.width;
+    const y = (-p[1] * 0.5 + 0.5) * state.height - 26;
+    ctx.save();
+    ctx.font = "13px -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif";
+    const w = ctx.measureText(boat.message).width + 18;
+    ctx.fillStyle = "rgba(255,255,255,0.86)";
+    ctx.strokeStyle = "rgba(0,0,0,0.42)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(x - w / 2, y - 12, w, 24, 8);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "rgba(0,0,0,0.78)";
+    ctx.fillText(boat.message, x, y + 1);
+    ctx.restore();
+  }
+  ctx.strokeStyle = "rgba(255,255,255,0.7)";
+  ctx.beginPath();
+  ctx.moveTo(state.width / 2 - 10, state.height / 2);
+  ctx.lineTo(state.width / 2 + 10, state.height / 2);
+  ctx.moveTo(state.width / 2, state.height / 2 - 10);
+  ctx.lineTo(state.width / 2, state.height / 2 + 10);
+  ctx.stroke();
+  drawAttitudeCue();
+  ctx.restore();
+}
+
+function drawDebugOverlay() {
+  if (state.weatherTime > state.debugUntil || !state.debugLines.length) return;
+  const fadeIn = clamp((state.weatherTime - state.debugStarted) / 0.12, 0, 1);
+  const fadeOut = clamp((state.debugUntil - state.weatherTime) / 0.65, 0, 1);
+  const alpha = Math.min(fadeIn, fadeOut);
+  const fontSize = Math.max(10, Math.round(state.width / 178));
+  const lineHeight = Math.round(fontSize * 1.08);
+  const x = Math.round(state.width * 0.02);
+  const y = Math.round(state.height * 0.02);
+  const width = Math.min(Math.round(state.width * 0.72), 1500);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.font = `${fontSize}px Menlo, Monaco, Consolas, "Courier New", monospace`;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  ctx.fillStyle = "rgba(0,0,0,0.38)";
+  ctx.fillRect(x - 2, y - 2, width + 4, state.debugLines.length * lineHeight + 4);
+  const elapsed = Math.max(0, state.weatherTime - state.debugStarted);
+  for (let i = 0; i < state.debugLines.length; i++) {
+    const line = state.debugLines[i];
+    const typed = clamp((elapsed - i * 0.055) / 0.011, 0, line.text.length);
+    const text = line.text.slice(0, Math.floor(typed));
+    if (!text) continue;
+    const yy = y + i * lineHeight;
+    if (line.band) {
+      ctx.fillStyle = i % 2 ? "rgba(232,238,240,0.54)" : "rgba(24,29,34,0.58)";
+      ctx.fillRect(x, yy, width, lineHeight);
+    }
+    ctx.fillStyle = line.color;
+    ctx.fillText(text, x + 4, yy - 1);
+    if (state.weatherTime < state.debugHoldAt && Math.floor(typed) < line.text.length && Math.floor(state.weatherTime * 12) % 2 === 0) {
+      ctx.fillText("_", x + 4 + ctx.measureText(text).width + 2, yy - 1);
+    }
+  }
+  ctx.restore();
+}
+
+function drawAttitudeCue() {
+  const cx = state.width / 2;
+  const cy = state.height * 0.72;
+  const roll = -state.plane.roll;
+  const pitchOffset = clamp(state.plane.pitch * 80, -48, 48);
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(roll);
+  ctx.strokeStyle = "rgba(255,255,255,0.62)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-52, pitchOffset);
+  ctx.lineTo(-14, pitchOffset);
+  ctx.moveTo(14, pitchOffset);
+  ctx.lineTo(52, pitchOffset);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(255,217,97,0.9)";
+  ctx.beginPath();
+  ctx.moveTo(-18, 0);
+  ctx.lineTo(0, 8);
+  ctx.lineTo(18, 0);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawRainOverlay() {
+  const count = Math.floor((state.width * state.height) / 18500);
+  const speed = state.weatherTime * 850;
+  ctx.save();
+  ctx.lineWidth = Math.max(1, state.width / 1600);
+  ctx.strokeStyle = "rgba(185, 208, 235, 0.34)";
+  ctx.beginPath();
+  for (let i = 0; i < count; i++) {
+    const seed = (i * 9301 + 49297) % 233280;
+    const x0 = ((seed / 233280) * state.width + (state.weatherTime * 60) % state.width) % state.width;
+    const y0 = (((seed * 37) % 233280) / 233280 * state.height + speed) % state.height;
+    const length = 18 + ((seed * 17) % 34);
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(x0 - length * 0.45, y0 + length);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawLightningOverlay() {
+  if (!state.lightningBolt) return;
+  const bolt = state.lightningBolt;
+  const x = bolt.x * state.width;
+  const y = bolt.y * state.height;
+  const segments = 7;
+  ctx.save();
+  ctx.strokeStyle = `rgba(230, 244, 255, ${Math.min(1, state.lightning * 7)})`;
+  ctx.lineWidth = 2.5;
+  ctx.shadowColor = "rgba(180,220,255,0.9)";
+  ctx.shadowBlur = 12;
+  ctx.beginPath();
+  ctx.moveTo(x, 0);
+  for (let i = 1; i <= segments; i++) {
+    const t = i / segments;
+    const jitter = Math.sin(i * 12.989 + bolt.bend * 20) * 26;
+    ctx.lineTo(x + bolt.bend * state.width * t + jitter, y + t * state.height * 0.45);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function render() {
+  resize();
+  gl.viewport(0, 0, state.width, state.height);
+  const sky = state.night ? [0, 0, 0, 1] : (state.storm ? [0.025, 0.045, 0.085, 1] : [0.43, 0.72, 0.92, 1]);
+  gl.clearColor(...sky);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  const m = matrix();
+  gl.disable(gl.DEPTH_TEST);
+  drawWater(m);
+  for (const tile of state.tiles.filter((tile) => tile?.z === TILE_Z)) drawTile(tile, m);
+  for (const tile of state.tiles.filter((tile) => tile?.z > TILE_Z).sort((a, b) => a.z - b.z)) drawTile(tile, m);
+  drawMapLabels(m);
+  gl.enable(gl.DEPTH_TEST);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  drawLandmarkModels(m);
+  drawWireframes(m);
+  drawCameraThumbnails(m);
+  drawBullets(m);
+  drawBirds(m);
+  drawBoats(m);
+  drawBlimp(m);
+  drawChopper(m);
+  drawAirliner(m);
+  drawPlane(m);
+  drawSprites(m);
+  gl.disable(gl.BLEND);
+  drawOverlay(m);
+}
+
+function resize() {
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const width = Math.max(1, Math.floor(window.innerWidth * dpr));
+  const height = Math.max(1, Math.floor(window.innerHeight * dpr));
+  if (canvas.width !== width || canvas.height !== height) {
+    canvas.width = width;
+    canvas.height = height;
+    overlay.width = width;
+    overlay.height = height;
+    state.width = width;
+    state.height = height;
+  }
+}
+
+function makeTargets() {
+  const candidates = state.landmarks.filter((item) => item.xyz && item.xyz[2] > 20 && item.xyz[2] < 260);
+  state.targets = [];
+  for (let i = 0; i < 12 && candidates.length; i++) {
+    const index = Math.floor(Math.random() * candidates.length);
+    const landmark = candidates.splice(index, 1)[0];
+    state.targets.push({ name: landmark.name, pos: [landmark.xyz[0], landmark.xyz[1], landmark.xyz[2] + 28], radius: 24, dead: false });
+  }
+}
+
+function initializeAmbientActors() {
+  const landmark = (name) => state.landmarks.find((item) => item.name === name)?.xyz;
+  const blimpBay = landmark("Blimp Bay");
+  if (blimpBay) state.blimp.pos = [blimpBay[0], blimpBay[1], 190];
+  const lakeNorth = landmark("Lake Leonida (A)") || landmark("Lake Leonida (N)");
+  if (lakeNorth) state.chopper.pos = [lakeNorth[0], lakeNorth[1] - 180, 175];
+  // Keep these as explicit water corridors: offshore Keys/channel routes, not random wandering.
+  state.boats = [
+    { route: [[-5200, -7600, 1.6], [-3450, -7350, 1.6]], t: 0.08, speed: 0.018, message: "", messageUntil: 0 },
+    { route: [[-4550, -6400, 1.6], [-2850, -6100, 1.6]], t: 0.42, speed: 0.015, message: "", messageUntil: 0 },
+    { route: [[-2800, -5000, 1.6], [-900, -4450, 1.6]], t: 0.68, speed: 0.013, message: "", messageUntil: 0 },
+    { route: [[-900, -3350, 1.6], [1050, -2850, 1.6]], t: 0.25, speed: 0.012, message: "", messageUntil: 0 },
+  ];
+}
+
+async function loadData() {
+  initializeMapLabels();
+  const [base, result, colors, fourSeasons, sunshineSkyway, landmarkModels] = await Promise.all([
+    fetch(VC_DATA).then((r) => r.json()),
+    fetch(VC_RESULT).then((r) => r.ok ? r.json() : null).catch(() => null),
+    loadJson(VC_MAP3D_COLORS).catch(() => null),
+    loadJson(VC_FOUR_SEASONS_WIREFRAME).catch(() => null),
+    loadJson(VC_SUNSHINE_SKYWAY_WIREFRAME).catch(() => null),
+    loadJson(LANDMARK_MODELS).catch(() => null),
+  ]);
+  if (colors?.schema === "gtamaplibvc-map3d-colors-v1") {
+    for (const [name, color] of Object.entries(colors.colors || {})) state.colors.set(name, color);
+  }
+  if (fourSeasons?.schema === "gtamaplibvc-map3d-four-seasons-v1") {
+    fourSeasons.color = colorForName("Four Seasons Hotel Miami");
+    state.wireframes.push(fourSeasons);
+  }
+  if (sunshineSkyway?.schema === "gtamaplibvc-map3d-sunshine-skyway-v1") {
+    sunshineSkyway.color = colorForName("Sunshine Skyway Bridge");
+    state.wireframes.push(sunshineSkyway);
+  }
+  const resultCameras = result?.cameras || {};
+  const resultLandmarks = result?.landmarks || {};
+  state.cameras = base.cameras
+    .map((camera) => ({ ...camera, ...(resultCameras[camera.name] || {}) }))
+    .filter((camera) => camera.xyz && !isLeakCamera(camera) && camera.name !== "AI World Editor Map (4K)" && !camera.name?.endsWith(" Fake Cam"))
+    .map((camera) => ({
+      ...camera,
+      texture: camera.thumbnail ? loadImageTexture(`../${camera.thumbnail}`) : null,
+    }));
+  const landmarkMap = new Map(base.landmarks.map((item) => [item.name, item]));
+  for (const [name, xyz] of Object.entries(resultLandmarks)) {
+    landmarkMap.set(name, { ...(landmarkMap.get(name) || { name }), xyz });
+  }
+  state.landmarks = [...landmarkMap.values()].filter((item) => item.xyz);
+  if (landmarkModels?.schema === "gtamaplib-vvc-landmarks-v1") {
+    state.landmarkModels = (landmarkModels.landmarks || []).map((model) => ({
+      ...model,
+      vertices: landmarkModelVertices(model),
+      texture: loadImageTexture(model.texture),
+    }));
+  }
+  makeTargets();
+  initializeAmbientActors();
+  igniteFourSeasons();
+  state.camera.eye = add(state.plane.pos, [-60, -80, 35]);
+  state.camera.target = [...state.plane.pos];
+  spawnBirdFlock();
+}
+
+function tick(now) {
+  const dt = Math.min(0.035, (now - state.lastTime) / 1000 || 0.016);
+  state.lastTime = now;
+  update(dt, now);
+  render();
+  requestAnimationFrame(tick);
+}
+
+function distortionCurve(amount = 95) {
+  const samples = 2048;
+  const curve = new Float32Array(samples);
+  for (let i = 0; i < samples; i++) {
+    const x = (i * 2) / samples - 1;
+    curve[i] = Math.tanh(x * amount) * 0.72 + x * 0.08;
+  }
+  return curve;
+}
+
+async function toggleSound() {
+  const sound = state.sound;
+  if (!sound.audio) {
+    sound.audio = new Audio("music/custom.mp3");
+    sound.audio.loop = true;
+    sound.audio.preload = "auto";
+    sound.audio.crossOrigin = "anonymous";
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    sound.context = new AudioCtx();
+    sound.source = sound.context.createMediaElementSource(sound.audio);
+
+    sound.highpass = sound.context.createBiquadFilter();
+    sound.highpass.type = "highpass";
+    sound.highpass.frequency.value = 420;
+    sound.highpass.Q.value = 1.4;
+
+    sound.lowpass = sound.context.createBiquadFilter();
+    sound.lowpass.type = "lowpass";
+    sound.lowpass.frequency.value = 1550;
+    sound.lowpass.Q.value = 7.5;
+
+    sound.shaper = sound.context.createWaveShaper();
+    sound.shaper.curve = distortionCurve();
+    sound.shaper.oversample = "4x";
+
+    sound.compressor = sound.context.createDynamicsCompressor();
+    sound.compressor.threshold.value = -34;
+    sound.compressor.knee.value = 4;
+    sound.compressor.ratio.value = 18;
+    sound.compressor.attack.value = 0.005;
+    sound.compressor.release.value = 0.16;
+
+    sound.tremoloGain = sound.context.createGain();
+    sound.tremoloGain.gain.value = 0.78;
+    sound.tremolo = sound.context.createOscillator();
+    sound.tremolo.type = "sine";
+    sound.tremolo.frequency.value = 7.2;
+    const tremoloDepth = sound.context.createGain();
+    tremoloDepth.gain.value = 0.16;
+    sound.tremolo.connect(tremoloDepth).connect(sound.tremoloGain.gain);
+    sound.tremolo.start();
+
+    sound.master = sound.context.createGain();
+    sound.master.gain.value = 0.05;
+    sound.source
+      .connect(sound.highpass)
+      .connect(sound.lowpass)
+      .connect(sound.shaper)
+      .connect(sound.compressor)
+      .connect(sound.tremoloGain)
+      .connect(sound.master)
+      .connect(sound.context.destination);
+  }
+  if (sound.context.state === "suspended") await sound.context.resume();
+  if (sound.playing) {
+    sound.audio.pause();
+    sound.playing = false;
+    soundButton.classList.remove("active");
+    soundButton.textContent = "sound";
+    return;
+  }
+  try {
+    sound.audio.playbackRate = 0.96;
+    await sound.audio.play();
+    sound.playing = true;
+    soundButton.classList.add("active");
+    soundButton.textContent = "sound on";
+    statusEl.textContent = "custom.mp3: busted distant radio";
+  } catch (_error) {
+    soundButton.classList.remove("active");
+    soundButton.textContent = "sound";
+    statusEl.textContent = "missing music/custom.mp3";
+  }
+}
+
+function installControls() {
+  window.addEventListener("keydown", (event) => {
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    if (event.key === " ") event.preventDefault();
+    if (event.key === "r" || event.key === "R") resetPlane();
+    if (event.key === "t" || event.key === "T") state.storm = !state.storm;
+    state.keys.add(event.key);
+  });
+  window.addEventListener("keyup", (event) => {
+    state.keys.delete(event.key);
+  });
+  weatherButton.addEventListener("click", () => {
+    state.storm = !state.storm;
+  });
+  dayNightButton.addEventListener("click", () => {
+    state.night = !state.night;
+  });
+  soundButton.addEventListener("click", toggleSound);
+  resetButton.addEventListener("click", resetPlane);
+  exitButton.addEventListener("click", () => {
+    window.location.href = "/#view=map3d";
+  });
+}
+
+function isLeakCamera(camera) {
+  return String(camera.id || "").trim().startsWith("L");
+}
+
+async function main() {
+  resize();
+  installControls();
+  loadTiles();
+  await loadData();
+  updateDetailTiles();
+  requestAnimationFrame((now) => {
+    state.lastTime = now;
+    tick(now);
+  });
+}
+
+main();

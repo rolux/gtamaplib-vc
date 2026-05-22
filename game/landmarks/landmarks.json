@@ -1,0 +1,1382 @@
+{
+  "schema": "gtamaplib-vvc-landmarks-v1",
+  "landmarks": [
+    {
+      "name": "WDNA FM",
+      "id": "L264",
+      "photo_kind": "ig",
+      "xyz": [
+        -2522.659314,
+        -2302.746381,
+        402.015748
+      ],
+      "shape": "box",
+      "width": 5.0,
+      "height": 402.015748,
+      "texture": "landmarks/textures/L264,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "WDNA FM"
+      ]
+    },
+    {
+      "name": "Opera Tower",
+      "id": "L184",
+      "photo_kind": "ig",
+      "xyz": [
+        -417.549173,
+        864.579717,
+        200.871892
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 200.871892,
+      "texture": "landmarks/textures/L184,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Opera Tower"
+      ]
+    },
+    {
+      "name": "Stephen P. Clark Government Center",
+      "id": "L211",
+      "photo_kind": "ig",
+      "xyz": [
+        -934.667,
+        19.0835,
+        161.497
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 161.497,
+      "texture": "landmarks/textures/L211,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Stephen P. Clark Government Center (E)",
+        "Stephen P. Clark Government Center (NW)"
+      ]
+    },
+    {
+      "name": "Southeast Financial Center",
+      "id": "L222",
+      "photo_kind": "ig",
+      "xyz": [
+        -461.30646,
+        -460.0965,
+        248.344069
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 248.344069,
+      "texture": "landmarks/textures/L222,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Southeast Financial Center",
+        "Southeast Financial Center (D)"
+      ]
+    },
+    {
+      "name": "Kaseya Center",
+      "id": "L187",
+      "photo_kind": "ig",
+      "xyz": [
+        -272.555064,
+        433.395765,
+        46.771276
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 46.771276,
+      "texture": "landmarks/textures/L187,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Kaseya Center (NW)",
+        "Kaseya Center (S)",
+        "Kaseya Center (SE)"
+      ]
+    },
+    {
+      "name": "Tr\u00e9sor Tower",
+      "id": "L10",
+      "photo_kind": "ig",
+      "xyz": [
+        1837.421275,
+        1946.04922,
+        119.241553
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 119.241553,
+      "texture": "landmarks/textures/L10,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Tr\u00e9sor Tower"
+      ]
+    },
+    {
+      "name": "The Ritz Carlton Bal Harbour",
+      "id": "L1",
+      "photo_kind": "ig",
+      "xyz": [
+        1356.592569,
+        2759.505846,
+        102.010217
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 102.010217,
+      "texture": "landmarks/textures/L1,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "The Ritz-Carlton Bal Harbour"
+      ]
+    },
+    {
+      "name": "Akoya Condominium",
+      "id": "L2",
+      "photo_kind": "ig",
+      "xyz": [
+        1448.672763,
+        2611.025377,
+        144.538747
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 144.538747,
+      "texture": "landmarks/textures/L2,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Akoya Condominium"
+      ]
+    },
+    {
+      "name": "Jade Ocean Condos",
+      "id": "L4",
+      "photo_kind": "ig",
+      "xyz": [
+        1580.994348,
+        2482.232614,
+        202.456546
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 202.456546,
+      "texture": "landmarks/textures/L4,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Jade Ocean Condos",
+        "Jade Ocean Condos (SW)"
+      ]
+    },
+    {
+      "name": "Portofino Tower",
+      "id": "L122",
+      "photo_kind": "ig",
+      "xyz": [
+        1734.052053,
+        -205.801858,
+        144.464808
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 144.464808,
+      "texture": "landmarks/textures/L122,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Portofino Tower (NW)",
+        "Portofino Tower (S)"
+      ]
+    },
+    {
+      "name": "Miami Tower",
+      "id": "L221",
+      "photo_kind": "ig",
+      "xyz": [
+        -770.519546,
+        -414.847557,
+        161.068116
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 161.068116,
+      "texture": "landmarks/textures/L221,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Miami Tower"
+      ]
+    },
+    {
+      "name": "Marriott Miami Biscayne Bay",
+      "id": "L185",
+      "photo_kind": "ig",
+      "xyz": [
+        -219.728652,
+        859.135209,
+        146.440766
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 146.440766,
+      "texture": "landmarks/textures/L185,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Marriott Miami Biscayne Bay (E)",
+        "Marriott Miami Biscayne Bay (NE)"
+      ]
+    },
+    {
+      "name": "The Grand",
+      "id": "L182",
+      "photo_kind": "ig",
+      "xyz": [
+        -262.468991,
+        952.242905,
+        176.639997
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 176.639997,
+      "texture": "landmarks/textures/L182,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "The Grand",
+        "The Grand (E)"
+      ]
+    },
+    {
+      "name": "Wells Fargo Center",
+      "id": "L225",
+      "photo_kind": "rl",
+      "xyz": [
+        -655.019082,
+        -408.577958,
+        186.882014
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 186.882014,
+      "texture": "landmarks/textures/L225,rl.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Wells Fargo Center (N)"
+      ]
+    },
+    {
+      "name": "The Floridian",
+      "id": "L116",
+      "photo_kind": "ig",
+      "xyz": [
+        1265.560382,
+        408.997018,
+        96.471122
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 96.471122,
+      "texture": "landmarks/textures/L116,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "The Floridian"
+      ]
+    },
+    {
+      "name": "Wheelabrator South Broward",
+      "id": "L472",
+      "photo_kind": "ig",
+      "xyz": [
+        -2443.725862,
+        2391.164229,
+        72.518264
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 72.518264,
+      "texture": "landmarks/textures/L472,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Wheelabrator South Broward",
+        "Wheelabrator South Broward (W)"
+      ]
+    },
+    {
+      "name": "Reworld Miami-Dade",
+      "id": "L198",
+      "photo_kind": "ig",
+      "xyz": [
+        -1856.496726,
+        739.787693,
+        98.097534
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 98.097534,
+      "texture": "landmarks/textures/L198,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Reworld Miami-Dade (NW)",
+        "Reworld Miami-Dade (SE)"
+      ]
+    },
+    {
+      "name": "US Sugar Mill",
+      "id": "L399",
+      "photo_kind": "ig",
+      "xyz": [
+        -2954.354483,
+        3586.70516,
+        93.642139
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 93.642139,
+      "texture": "landmarks/textures/L399,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "US Sugar Mill (Factory)"
+      ]
+    },
+    {
+      "name": "Loews Miami Beach",
+      "id": "L20",
+      "photo_kind": "ig",
+      "xyz": [
+        2004.74058,
+        1149.173655,
+        86.822599
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 86.822599,
+      "texture": "landmarks/textures/L20,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Loews Miami Beach"
+      ]
+    },
+    {
+      "name": "The Gates Hotel South Beach",
+      "id": "L86",
+      "photo_kind": "ig",
+      "xyz": [
+        1863.97,
+        1612.189,
+        48.177
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 48.177,
+      "texture": "landmarks/textures/L86,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "The Gates Hotel South Beach (NW)"
+      ]
+    },
+    {
+      "name": "Sunset Harbour South Condo",
+      "id": "L102",
+      "photo_kind": "ig",
+      "xyz": [
+        1441.321049,
+        1669.711295,
+        87.355947
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 87.355947,
+      "texture": "landmarks/textures/L102,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Sunset Harbour South Condo",
+        "Sunset Harbour South Condo (RN)",
+        "Sunset Harbour South Condo (RS)"
+      ]
+    },
+    {
+      "name": "Latitude on the River",
+      "id": "L230",
+      "photo_kind": "ig",
+      "xyz": [
+        -973.333911,
+        -830.15751,
+        91.837344
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 91.837344,
+      "texture": "landmarks/textures/L230,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Latitude on the River (S) (NW)",
+        "Latitude on the River (S) (SW)"
+      ]
+    },
+    {
+      "name": "1800 Club",
+      "id": "L181",
+      "photo_kind": "ig",
+      "xyz": [
+        -349.777322,
+        1034.41398,
+        161.961665
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 161.961665,
+      "texture": "landmarks/textures/L181,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "1800 Club"
+      ]
+    },
+    {
+      "name": "Quantum on the Bay",
+      "id": "L179",
+      "photo_kind": "ig",
+      "xyz": [
+        -398.510334,
+        1140.649407,
+        194.784493
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 194.784493,
+      "texture": "landmarks/textures/L179,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Quantum on the Bay Condominium (N) (NE)",
+        "Quantum on the Bay Condominium (S) (NE)"
+      ]
+    },
+    {
+      "name": "Water Tower near Prison",
+      "id": "L280",
+      "photo_kind": "ig",
+      "xyz": [
+        -5134.542485,
+        1571.168795,
+        91.507806
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 91.507806,
+      "texture": "landmarks/textures/L280,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Water Tower near Prison"
+      ]
+    },
+    {
+      "name": "Prison Tower (1)",
+      "id": "prison-tower-1",
+      "photo_kind": "procedural",
+      "xyz": [
+        -2894.83941,
+        -2696.613549,
+        31.097806
+      ],
+      "shape": "box",
+      "width": 8.0,
+      "height": 31.097806,
+      "texture": "landmarks/textures/prison-tower.svg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Prison Tower (1)"
+      ]
+    },
+    {
+      "name": "Prison Tower (2)",
+      "id": "prison-tower-2",
+      "photo_kind": "procedural",
+      "xyz": [
+        -2718.246499,
+        -2718.358547,
+        31.421792
+      ],
+      "shape": "box",
+      "width": 8.0,
+      "height": 31.421792,
+      "texture": "landmarks/textures/prison-tower.svg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Prison Tower (2)"
+      ]
+    },
+    {
+      "name": "Prison Tower (3)",
+      "id": "prison-tower-3",
+      "photo_kind": "procedural",
+      "xyz": [
+        -2592.964388,
+        -2800.384389,
+        32.310443
+      ],
+      "shape": "box",
+      "width": 8.0,
+      "height": 32.310443,
+      "texture": "landmarks/textures/prison-tower.svg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Prison Tower (3)"
+      ]
+    },
+    {
+      "name": "Prison Tower (4)",
+      "id": "prison-tower-4",
+      "photo_kind": "procedural",
+      "xyz": [
+        -2636.088384,
+        -2869.71865,
+        31.976078
+      ],
+      "shape": "box",
+      "width": 8.0,
+      "height": 31.976078,
+      "texture": "landmarks/textures/prison-tower.svg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Prison Tower (4)"
+      ]
+    },
+    {
+      "name": "Prison Tower (5)",
+      "id": "prison-tower-5",
+      "photo_kind": "procedural",
+      "xyz": [
+        -2883.119358,
+        -2890.724587,
+        31.8989
+      ],
+      "shape": "box",
+      "width": 8.0,
+      "height": 31.8989,
+      "texture": "landmarks/textures/prison-tower.svg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Prison Tower (5)"
+      ]
+    },
+    {
+      "name": "Prison Tower (6)",
+      "id": "prison-tower-6",
+      "photo_kind": "procedural",
+      "xyz": [
+        -2986.481923,
+        -2785.971347,
+        31.421973
+      ],
+      "shape": "box",
+      "width": 8.0,
+      "height": 31.421973,
+      "texture": "landmarks/textures/prison-tower.svg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Prison Tower (6)"
+      ]
+    },
+    {
+      "name": "Bank of America Financial Center",
+      "id": "L84",
+      "photo_kind": "ig",
+      "xyz": [
+        1693.670486,
+        1372.341695,
+        73.442079
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 73.442079,
+      "texture": "landmarks/textures/L84,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Bank of America Financial Center",
+        "Bank of America Financial Center (NW)",
+        "Bank of America Financial Center (SW)"
+      ]
+    },
+    {
+      "name": "Blue Diamond",
+      "id": "L9",
+      "photo_kind": "ig",
+      "xyz": [
+        1830.963452,
+        2061.613564,
+        143.590277
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 143.590277,
+      "texture": "landmarks/textures/L9,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Blue Diamond"
+      ]
+    },
+    {
+      "name": "Green Diamond",
+      "id": "L8",
+      "photo_kind": "ig",
+      "xyz": [
+        1772.718592,
+        2120.8464,
+        144.47982
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 144.47982,
+      "texture": "landmarks/textures/L8,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Green Diamond"
+      ]
+    },
+    {
+      "name": "1500 Ocean Dr",
+      "id": "L24",
+      "photo_kind": "ig",
+      "xyz": [
+        2039.844568,
+        977.521575,
+        61.756085
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 61.756085,
+      "texture": "landmarks/textures/L24,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "1500 Ocean Dr",
+        "1500 Ocean Dr (S) (NW)",
+        "1500 Ocean Dr (S) (SE)",
+        "1500 Ocean Dr (S) (SW)"
+      ]
+    },
+    {
+      "name": "Continuum on South Beach (S)",
+      "id": "L61",
+      "photo_kind": "rl",
+      "xyz": [
+        2030.579853,
+        -232.853572,
+        154.930951
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 154.930951,
+      "texture": "landmarks/textures/L61,rl.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Continuum on South Beach (S)"
+      ]
+    },
+    {
+      "name": "W South Beach",
+      "id": "L16",
+      "photo_kind": "ig",
+      "xyz": [
+        1906.203746,
+        1590.709811,
+        48.756349
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 48.756349,
+      "texture": "landmarks/textures/L16,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "W South Beach (BNW)",
+        "W South Beach (SE)"
+      ]
+    },
+    {
+      "name": "Royal Palm South Beach",
+      "id": "L22",
+      "photo_kind": "ig",
+      "xyz": [
+        2021.644986,
+        1043.698273,
+        66.635438
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 66.635438,
+      "texture": "landmarks/textures/L22,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Royal Palm South Beach (N) (N)",
+        "Royal Palm South Beach (N) (S)",
+        "Royal Palm South Beach (S)"
+      ]
+    },
+    {
+      "name": "VCIA FAA Miami ATCT (MIA)",
+      "id": "L345",
+      "photo_kind": "ig",
+      "xyz": [
+        -2376.863634,
+        -782.964837,
+        96.674382
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 96.674382,
+      "texture": "landmarks/textures/L345,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "FAA Miami ATCT (MIA)"
+      ]
+    },
+    {
+      "name": "Park Grove Condominium (S)",
+      "id": "L253",
+      "photo_kind": "ig",
+      "xyz": [
+        -1320.013313,
+        -2135.982089,
+        95.113489
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 95.113489,
+      "texture": "landmarks/textures/L253,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Park Grove Condominium (S)"
+      ]
+    },
+    {
+      "name": "Venetian Isle Condominium",
+      "id": "L151",
+      "photo_kind": "ig",
+      "xyz": [
+        55.220013,
+        1191.411444,
+        46.928651
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 46.928651,
+      "texture": "landmarks/textures/L151,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Venetian Isle Condominium"
+      ]
+    },
+    {
+      "name": "1000 Venetian Way",
+      "id": "L150",
+      "photo_kind": "ig",
+      "xyz": [
+        307.831303,
+        1129.734681,
+        54.162422
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 54.162422,
+      "texture": "landmarks/textures/L150,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "1000 Venetian Way (2)",
+        "1000 Venetian Way (3)",
+        "1000 Venetian Way (4)",
+        "1000 Venetian Way (SE)",
+        "1000 Venetian Way (SW)"
+      ]
+    },
+    {
+      "name": "Easy Hill",
+      "id": "L532",
+      "photo_kind": "ig",
+      "xyz": [
+        -5710.402,
+        3936.333,
+        81.993
+      ],
+      "shape": "pyramid",
+      "width": 163.986,
+      "height": 81.993,
+      "texture": "landmarks/textures/L532,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Easy Hill"
+      ]
+    },
+    {
+      "name": "99353 Overseas Hwy",
+      "id": "L269",
+      "photo_kind": "ig",
+      "xyz": [
+        -3368.683352,
+        -6775.756057,
+        75.328888
+      ],
+      "shape": "box",
+      "width": 5.0,
+      "height": 75.328888,
+      "texture": "landmarks/textures/L269,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "99353 Overseas Hwy"
+      ]
+    },
+    {
+      "name": "102180 Overseas Hwy",
+      "id": "L330",
+      "photo_kind": "ig",
+      "xyz": [
+        -2651.116634,
+        -6036.99681,
+        41.022686
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 41.022686,
+      "texture": "landmarks/textures/L330,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "102180 Overseas Hwy"
+      ]
+    },
+    {
+      "name": "22 Biscayne Bay",
+      "id": "L473",
+      "photo_kind": "ig",
+      "xyz": [
+        -350.413419,
+        1354.522341,
+        72.619621
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 72.619621,
+      "texture": "landmarks/textures/L473,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "22 Biscayne Bay (SE)"
+      ]
+    },
+    {
+      "name": "Homestead Water Tower",
+      "id": "L262",
+      "photo_kind": "ig",
+      "xyz": [
+        -2950.346996,
+        -3028.899047,
+        68.582228
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 68.582228,
+      "texture": "landmarks/textures/L262,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Homestead Water Tower"
+      ]
+    },
+    {
+      "name": "Sebring Water Tower",
+      "id": "L884",
+      "photo_kind": "ig",
+      "xyz": [
+        -3996.293,
+        2892.033,
+        68.174
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 68.174,
+      "texture": "landmarks/textures/L884,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Sebring Water Tower"
+      ]
+    },
+    {
+      "name": "112 NE 41st St",
+      "id": "L168",
+      "photo_kind": "ig",
+      "xyz": [
+        26.618086,
+        2219.870634,
+        53.346807
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 53.346807,
+      "texture": "landmarks/textures/L168,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "112 NE 41st St",
+        "112 NE 41st St (NW)",
+        "112 NE 41st St (SE)",
+        "112 NE 41st St (SW)"
+      ]
+    },
+    {
+      "name": "MIA North Terminal Tower",
+      "id": "L1059",
+      "photo_kind": "ig",
+      "xyz": [
+        -2386.659039,
+        -554.618065,
+        59.950191
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 59.950191,
+      "texture": "landmarks/textures/L1059,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "MIA North Terminal Tower"
+      ]
+    },
+    {
+      "name": "1500 Sonora Ave",
+      "id": "L400",
+      "photo_kind": "ig",
+      "xyz": [
+        -2846.47,
+        3769.523,
+        47.5125
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 47.5125,
+      "texture": "landmarks/textures/L400,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "1500 Sonora Ave (Silo)",
+        "1500 Sonora Ave (Tank)"
+      ]
+    },
+    {
+      "name": "Capri South Beach",
+      "id": "L111",
+      "photo_kind": "ig",
+      "xyz": [
+        1316.646559,
+        1132.182232,
+        57.54085
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 57.54085,
+      "texture": "landmarks/textures/L111,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Capri South Beach (SE)"
+      ]
+    },
+    {
+      "name": "The Tides South Beach",
+      "id": "L26",
+      "photo_kind": "ig",
+      "xyz": [
+        1993.625615,
+        888.234981,
+        53.213572
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 53.213572,
+      "texture": "landmarks/textures/L26,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "The Tides South Beach"
+      ]
+    },
+    {
+      "name": "Port Gellhorn Smokestack",
+      "id": "L302",
+      "photo_kind": "ig",
+      "xyz": [
+        -6351.711416,
+        3419.533137,
+        52.564235
+      ],
+      "shape": "box",
+      "width": 5.0,
+      "height": 52.564235,
+      "texture": "landmarks/textures/L302,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Port Gellhorn Smokestack"
+      ]
+    },
+    {
+      "name": "Old City Hall",
+      "id": "L70",
+      "photo_kind": "ig",
+      "xyz": [
+        1681.705368,
+        605.02346,
+        51.602734
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 51.602734,
+      "texture": "landmarks/textures/L70,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Old City Hall"
+      ]
+    },
+    {
+      "name": "Mount Waffles",
+      "id": "L528",
+      "photo_kind": "ig",
+      "xyz": [
+        -5290.120975,
+        5615.606771,
+        182.69629
+      ],
+      "shape": "pyramid",
+      "width": 365.39258,
+      "height": 182.69629,
+      "texture": "landmarks/textures/L528,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Mount Waffles",
+        "Mount Waffles (W2)"
+      ]
+    },
+    {
+      "name": "Mount Mountain",
+      "id": "L529",
+      "photo_kind": "ig",
+      "xyz": [
+        -4015.277755,
+        5826.50393,
+        240.468174
+      ],
+      "shape": "pyramid",
+      "width": 480.936348,
+      "height": 240.468174,
+      "texture": "landmarks/textures/L529,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Mount Mountain"
+      ]
+    }
+  ],
+  "skipped": [
+    {
+      "name": "Y Vice City",
+      "reason": "no GTA MapLib XYZ",
+      "match_name": "Y Vice City"
+    },
+    {
+      "name": "1111 Lincoln Rd",
+      "reason": "no downloadable photo",
+      "gtadb_photo_ids": [
+        "L104"
+      ],
+      "photo_kinds": [
+        "ig"
+      ],
+      "source_points": [
+        "1111 Lincoln Rd (NW)",
+        "1111 Lincoln Rd (SE)"
+      ]
+    }
+  ],
+  "fallbacks": [
+    {
+      "name": "Wells Fargo Center",
+      "id": "L225",
+      "photo_kind": "rl",
+      "reason": "in-game photo unavailable"
+    },
+    {
+      "name": "Continuum on South Beach (S)",
+      "id": "L61",
+      "photo_kind": "rl",
+      "reason": "in-game photo unavailable"
+    }
+  ]
+}

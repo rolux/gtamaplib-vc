@@ -17,6 +17,7 @@ ui/data/overlay.json
 ui/data/map3d-*.json
 ui/*-bw.jpg
 ui/thumbnails/
+game/landmarks/candidates.json
 optimizer/chain.json
 optimizer/configs/
 optimizer/result.json

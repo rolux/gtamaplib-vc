@@ -165,6 +165,10 @@ python3 project.py cam-into-cam "Leonida Keys Postcard (X)" "Leonida Keys 01 (Ai
 python3 project.py map -5220 5580 200 135 -10 0 60 --output map.png
 ```
 
+## Game Mode
+
+To enter game mode, click `Fasten Seatbelts` in the 3D map view. The usual keyboard controls work, but we highly recommend using a controller.
+
 ## Notes
 
 Inspired by prior work from Neutral_State on the GTA VI Mapping Discord.
