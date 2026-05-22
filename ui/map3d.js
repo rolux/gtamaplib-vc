@@ -946,9 +946,11 @@ function installControls() {
   exitButton.addEventListener("click", () => {
     if (exitHandler) exitHandler();
   });
-  gameButton.addEventListener("click", () => {
-    window.location.href = "/game";
-  });
+  if (gameButton) {
+    gameButton.addEventListener("click", () => {
+      window.location.href = "/game";
+    });
+  }
   scene.addEventListener("mousedown", (event) => {
     scene.focus();
     if (state.tour.active) return;
