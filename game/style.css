@@ -9,6 +9,11 @@ body {
   font: 13px -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
 }
 
+body.trevor {
+  filter: blur(2px) brightness(1.25) contrast(1.5) hue-rotate(180deg) saturate(0.5);
+  transform: rotate(-1deg) scaleX(-1.05) scaleY(1.05);
+}
+
 canvas {
   position: fixed;
   inset: 0;
@@ -72,6 +77,14 @@ canvas {
   flex: 1;
   min-width: 0;
   margin-right: 0;
+}
+
+#metar {
+  min-width: max-content;
+  margin-left: auto;
+  margin-right: 0;
+  text-align: right;
+  color: rgba(255, 255, 255, 0.68);
 }
 
 #radio {

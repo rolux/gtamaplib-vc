@@ -201,6 +201,9 @@ const RADIO_LINES = [
   "What do you mean \"where is the panhandle?\"",
   "Roger. I mean, no... not you!",
   "Delta Alpha Foxtrott. I repeat: Foxtrott!",
+  "the map is not the territory",
+  "deliver the calibration target to the marina. do not roll the aircraft. we will know.",
+  "Screenshot Police. Hands where I can see them!",
 ];
 const DEBUG_COLORS = [
   "rgba(245,245,245,0.92)",
@@ -248,6 +251,7 @@ const BOAT_LINES = [
   "five stars on boat trip",
   "we are scuba brothers now",
   "bunny is a rider",
+  "this is fine",
 ];
 const MAP_LABELS = [
   { text: "LTF Airfield", pos: [-2850, -4300, 0.08], width: 980, color: "#40ff4f" },
@@ -325,6 +329,7 @@ const state = {
   blockedPopupUntil: 0,
   blockedPopupNext: 180 + Math.random() * 240,
   blockedPopupCount: 0,
+  trevorTimeout: null,
   turbulence: 0,
   lastTurbulenceRumble: 0,
   storm: true,
@@ -2309,7 +2314,7 @@ async function toggleSound() {
     sound.tremolo.start();
 
     sound.master = sound.context.createGain();
-    sound.master.gain.value = 0.05;
+    sound.master.gain.value = 0.1;
     sound.source
       .connect(sound.highpass)
       .connect(sound.lowpass)
@@ -2351,10 +2356,33 @@ function skipRadioTrack(direction) {
   });
 }
 
+function exitTrevorMode() {
+  document.body.classList.remove("trevor");
+  if (state.trevorTimeout) {
+    clearTimeout(state.trevorTimeout);
+    state.trevorTimeout = null;
+  }
+}
+
+function toggleTrevorMode() {
+  if (document.body.classList.contains("trevor")) {
+    exitTrevorMode();
+    return;
+  }
+  document.body.classList.add("trevor");
+  if (state.trevorTimeout) clearTimeout(state.trevorTimeout);
+  state.trevorTimeout = setTimeout(exitTrevorMode, 60000);
+}
+
 function installControls() {
   window.addEventListener("keydown", (event) => {
     if (event.metaKey || event.ctrlKey || event.altKey) return;
     if (event.key === " ") event.preventDefault();
+    if (event.key === "/") {
+      event.preventDefault();
+      toggleTrevorMode();
+      return;
+    }
     if (event.key === ",") skipRadioTrack(-1);
     if (event.key === ".") skipRadioTrack(1);
     if (event.key === "r" || event.key === "R") resetPlane();
