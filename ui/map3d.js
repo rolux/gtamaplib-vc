@@ -18,11 +18,13 @@ const YANIS_WATER_COLOR = [44 / 255, 103 / 255, 164 / 255, 1];
 const CAMERA_CONE_DISTANCE = 100;
 const CAMERA_THUMBNAIL_DISTANCE = CAMERA_CONE_DISTANCE * 0.995;
 const TOUR_DWELL_MS = 1200;
+const MAX_TARGET_RADIUS = 32768;
 
 const root = document.querySelector("#map3d-root");
 const scene = document.querySelector("#map3d-scene");
 const overlay = document.querySelector("#map3d-overlay");
 const exitButton = document.querySelector("#map3d-exit");
+const resetButton = document.querySelector("#map3d-reset");
 const gameButton = document.querySelector("#map3d-game");
 const tourStartButton = document.querySelector("#map3d-tour-start");
 const tourBackButton = document.querySelector("#map3d-tour-back");
@@ -890,9 +892,19 @@ function panBy(dx, dz) {
   const forward = [Math.sin(state.yaw), 0, Math.cos(state.yaw)];
   state.target[0] += right[0] * dx + forward[0] * dz;
   state.target[2] += right[2] * dx + forward[2] * dz;
+  clampTargetRadius();
+}
+
+function clampTargetRadius() {
+  const radius = Math.hypot(state.target[0], state.target[2]);
+  if (radius <= MAX_TARGET_RADIUS) return;
+  const scale = MAX_TARGET_RADIUS / radius;
+  state.target[0] *= scale;
+  state.target[2] *= scale;
 }
 
 function resetView() {
+  stopTour();
   state.target = [0, 0, 0];
   state.distance = 9800;
   state.yaw = -0.72;
@@ -931,7 +943,10 @@ function zoomAt(clientX, clientY, factor) {
   state.distance = Math.max(700, Math.min(50000, state.distance * factor));
   if (before) {
     const after = groundPointUnderClient(clientX, clientY);
-    if (after) state.target = add(state.target, subtract(before, after));
+    if (after) {
+      state.target = add(state.target, subtract(before, after));
+      clampTargetRadius();
+    }
   }
   render();
 }
@@ -943,6 +958,7 @@ function installControls() {
   tourPauseButton.addEventListener("click", toggleTour);
   tourForwardButton.addEventListener("click", forwardTour);
   tourStopButton.addEventListener("click", stopTour);
+  resetButton.addEventListener("click", resetView);
   exitButton.addEventListener("click", () => {
     if (exitHandler) exitHandler();
   });
