@@ -31,6 +31,8 @@ const CAMERA_UP = 15;
 const CAMERA_THUMBNAIL_DISTANCE = 100;
 const TURBULENCE_NORTH_START = 6100;
 const TURBULENCE_NORTH_FULL = 7500;
+const DEAD_ZONE_START = 11000;
+const DEAD_ZONE_FULL = 12000;
 const ICON_TEXTURE = "../ui/gtamaplib-vc.png";
 const WATER_COLOR = [44 / 255, 103 / 255, 164 / 255, 1];
 const NIGHT_MAP_BRIGHTNESS = 0.15;
@@ -285,6 +287,7 @@ const statusEl = document.querySelector("#status");
 const modeEl = document.querySelector("#mode");
 const tilesEl = document.querySelector("#tiles");
 const radioEl = document.querySelector("#radio");
+const phoneButton = document.querySelector("#phone-button");
 const radioButton = document.querySelector("#radio-button");
 const weatherButton = document.querySelector("#weather");
 const dayNightButton = document.querySelector("#day-night");
@@ -342,6 +345,8 @@ const state = {
   fogEnabled: false,
   score: 0,
   stickFlash: 0,
+  deadZoneCrash: false,
+  deadZoneResetAt: 0,
   lastShot: 0,
   lastMissile: 0,
   lastTime: performance.now(),
@@ -356,9 +361,26 @@ const state = {
     shaper: null,
     tremolo: null,
     tremoloGain: null,
+    baseGain: 0.1,
     playing: false,
     tracks: ["radio/track_01.mp3", "radio/track_02.mp3", "radio/track_03.mp3", "radio/track_04.mp3"],
     trackIndex: 0,
+  },
+  phone: {
+    audio: null,
+    context: null,
+    source: null,
+    gain: null,
+    playing: false,
+    conversationIndex: 0,
+    activeConversation: null,
+    lineIndex: 0,
+    pauseTimeout: null,
+    conversations: [
+      { folder: "phone/conversation_01", count: 20 },
+      { folder: "phone/conversation_02", count: 23 },
+      { folder: "phone/conversation_03", count: 26 },
+    ],
   },
   gamepad: {
     pad: null,
@@ -403,6 +425,22 @@ const state = {
     pos: [-2640, 4550, 180],
     yaw: 0,
     t: 0,
+  },
+  cruiseShip: {
+    active: false,
+    direction: 1,
+    t: 0,
+    next: 55,
+    pos: [3000, -3500, 2],
+    yaw: 0,
+  },
+  containerShip: {
+    active: true,
+    direction: 1,
+    t: 0,
+    next: 95,
+    pos: [-7000, 4500, 2],
+    yaw: 0,
   },
   keysSeaplane: {
     active: false,
@@ -893,6 +931,8 @@ function resetPlane() {
     throttle: 0.68,
     hp: 100,
   });
+  state.deadZoneCrash = false;
+  state.deadZoneResetAt = 0;
   statusEl.textContent = "fresh floatplane, highly legal";
 }
 
@@ -974,27 +1014,41 @@ function igniteFourSeasons() {
 function turbulenceFactor(pos) {
   const north = smoothstep(TURBULENCE_NORTH_START, TURBULENCE_NORTH_FULL, pos[1]);
   const mountainBias = 0.55 + 0.45 * smoothstep(-1800, -5200, pos[0]);
-  return north * mountainBias;
+  const deadZone = 1 + smoothstep(DEAD_ZONE_START, DEAD_ZONE_FULL, pos[1]);
+  return north * mountainBias * deadZone;
+}
+
+function updateRadioVolume() {
+  const sound = state.sound;
+  if (!sound.master) return;
+  const targetGain = sound.baseGain * (1 - 0.5 * clamp(state.turbulence, 0, 1));
+  sound.master.gain.setTargetAtTime(targetGain, sound.context.currentTime, 0.18);
 }
 
 function updatePlane(dt, now) {
   const p = state.plane;
   pollGamepad();
-  const pitchInput = keyAxis("w", "s") + state.gamepad.pitch;
-  const rollInput = keyAxis("d", "a") + state.gamepad.roll;
-  const yawInput = state.gamepad.yaw;
-  const throttleUp = (state.keys.has("q") || state.keys.has("Q") ? 1 : 0) + state.gamepad.throttleUp;
-  const throttleDown = (state.keys.has("e") || state.keys.has("E") ? 1 : 0) + state.gamepad.throttleDown;
+  const deadZoneWarning = smoothstep(DEAD_ZONE_START, DEAD_ZONE_FULL, p.pos[1]);
+  if (p.pos[1] > DEAD_ZONE_START && Math.random() < dt * (0.7 + deadZoneWarning * 2.4)) {
+    state.stickFlash = Math.max(state.stickFlash, 0.35 + Math.random() * 0.45);
+  }
+  if (p.pos[1] > DEAD_ZONE_FULL) state.deadZoneCrash = true;
+  const controlsEnabled = !state.deadZoneCrash;
+  const pitchInput = controlsEnabled ? keyAxis("w", "s") + state.gamepad.pitch : 0;
+  const rollInput = controlsEnabled ? keyAxis("d", "a") + state.gamepad.roll : 0;
+  const yawInput = controlsEnabled ? state.gamepad.yaw : 0;
+  const throttleUp = controlsEnabled ? (state.keys.has("q") || state.keys.has("Q") ? 1 : 0) + state.gamepad.throttleUp : 0;
+  const throttleDown = controlsEnabled ? (state.keys.has("e") || state.keys.has("E") ? 1 : 0) + state.gamepad.throttleDown : 1;
   const accelInput = clamp(throttleUp - throttleDown, -1, 1);
   p.throttle += dt * (0.55 * throttleUp - 0.6 * throttleDown);
   p.throttle = clamp(p.throttle, 0, 1);
   p.roll += clamp(rollInput, -1, 1) * dt * 1.35;
   p.pitch += clamp(pitchInput, -1, 1) * dt * 0.75;
   p.yaw += clamp(yawInput, -1, 1) * dt * 0.9;
-  if (state.keys.has("b") || state.keys.has("B") || state.gamepad.brake) p.vel = scale(p.vel, 0.965);
-  if (state.keys.has(" ") || state.gamepad.shoot) shoot(now);
-  if (state.keys.has("m") || state.keys.has("M") || state.gamepad.missile) launchMissile(now);
-  if (state.gamepad.iconMissile) launchMissile(now, "icon-missile");
+  if (controlsEnabled && (state.keys.has("b") || state.keys.has("B") || state.gamepad.brake)) p.vel = scale(p.vel, 0.965);
+  if (controlsEnabled && (state.keys.has(" ") || state.gamepad.shoot)) shoot(now);
+  if (controlsEnabled && (state.keys.has("m") || state.keys.has("M") || state.gamepad.missile)) launchMissile(now);
+  if (controlsEnabled && state.gamepad.iconMissile) launchMissile(now, "icon-missile");
   p.roll *= Math.pow(0.86, dt * 5);
   p.pitch = clamp(p.pitch, -0.85, 0.82);
   const { forward, up } = planeBasis();
@@ -1010,6 +1064,16 @@ function updatePlane(dt, now) {
     p.vel[0] += Math.cos(now * 0.0013) * gust * dt * 9;
     p.vel[1] += Math.sin(now * 0.0011) * gust * dt * 9;
     p.roll += gust * dt * 0.16;
+  }
+  if (state.deadZoneCrash) {
+    p.throttle = 0;
+    p.pitch = lerp(p.pitch, -0.72, 1 - Math.pow(0.025, dt));
+    p.roll += Math.sin(now * 0.006) * dt * 0.8;
+    p.vel[2] -= (84 + Math.min(120, speed * 0.44)) * dt;
+    p.vel[0] *= Math.pow(0.991, dt * 60);
+    p.vel[1] *= Math.pow(0.991, dt * 60);
+    if (Math.random() < dt * 36) spawnParticles(p.pos, [0.9, 0.76, 0.48, 0.78], 2, 28);
+    statusEl.textContent = "dead zone: controls offline";
   }
   const turbulence = turbulenceFactor(p.pos);
   state.turbulence = lerp(state.turbulence, turbulence, 1 - Math.pow(0.18, dt));
@@ -1039,6 +1103,11 @@ function updatePlane(dt, now) {
       p.vel[1] *= 0.72;
       spawnParticles(p.pos, [0.9, 0.76, 0.48, 1], 22, 26);
       statusEl.textContent = "bonk";
+      if (state.deadZoneCrash && !state.deadZoneResetAt) {
+        state.deadZoneResetAt = state.weatherTime + 1;
+        p.vel = [0, 0, 0];
+        statusEl.textContent = "signal lost";
+      }
     }
   }
   const fs = state.landmarks.find((item) => item.name === FOUR_SEASONS_NAME);
@@ -1320,6 +1389,8 @@ function updateAmbientActors(dt) {
   state.chopper.yaw = chopperAngle + Math.PI / 2;
 
   updateKeysSeaplane(dt);
+  updateRouteShip(dt, state.cruiseShip, [[3000, -3500, 2], [500, -5500, 2], [-500, -7500, 2]], 0.0048, 180, 260);
+  updateRouteShip(dt, state.containerShip, [[-7000, 4500, 2], [-8500, 3500, 2], [-10500, 4500, 2]], 0.0038, 220, 320);
 
   for (const boat of state.boats) {
     boat.t = (boat.t + dt * boat.speed) % 1;
@@ -1338,6 +1409,46 @@ function updateAmbientActors(dt) {
 
   updateJetSkis(dt);
   updateGolfCarts(dt);
+}
+
+function quadraticRoutePoint(points, t, direction = 1) {
+  const start = direction > 0 ? points[0] : points[2];
+  const mid = points[1];
+  const end = direction > 0 ? points[2] : points[0];
+  const control = [
+    2 * mid[0] - (start[0] + end[0]) * 0.5,
+    2 * mid[1] - (start[1] + end[1]) * 0.5,
+    2 * mid[2] - (start[2] + end[2]) * 0.5,
+  ];
+  const a = (1 - t) * (1 - t);
+  const b = 2 * (1 - t) * t;
+  const c = t * t;
+  return [
+    start[0] * a + control[0] * b + end[0] * c,
+    start[1] * a + control[1] * b + end[1] * c,
+    start[2] * a + control[2] * b + end[2] * c,
+  ];
+}
+
+function updateRouteShip(dt, ship, points, speed, pauseMin, pauseRange) {
+  if (!ship.active) {
+    ship.next -= dt;
+    if (ship.next > 0) return;
+    ship.active = true;
+    ship.direction = Math.random() < 0.5 ? 1 : -1;
+    ship.t = 0;
+  }
+  ship.t += dt * speed;
+  if (ship.t >= 1) {
+    ship.active = false;
+    ship.next = pauseMin + Math.random() * pauseRange;
+    return;
+  }
+  const p0 = quadraticRoutePoint(points, Math.max(0, ship.t - 0.006), ship.direction);
+  const p1 = quadraticRoutePoint(points, ship.t, ship.direction);
+  const p2 = quadraticRoutePoint(points, Math.min(1, ship.t + 0.006), ship.direction);
+  ship.pos = p1;
+  ship.yaw = Math.atan2(-(p2[0] - p0[0]), p2[1] - p0[1]);
 }
 
 function randomJetSkiPoint() {
@@ -1524,6 +1635,7 @@ function updateScreenshotFlyThroughs() {
 }
 
 function update(dt, now) {
+  if (state.deadZoneResetAt && state.weatherTime >= state.deadZoneResetAt) resetPlane();
   state.stickFlash = Math.max(0, state.stickFlash - dt * 5.5);
   updatePlane(dt, now);
   updateAirliner(dt);
@@ -1537,6 +1649,7 @@ function update(dt, now) {
   updateDebugOverlay();
   updateBlockedPopup();
   updateCamera(dt);
+  updateRadioVolume();
   speedEl.textContent = `SPD ${length(state.plane.vel).toFixed(0)}`;
   latitudeEl.textContent = `LAT ${Math.round(state.plane.pos[1])}`;
   longitudeEl.textContent = `LNG ${Math.round(state.plane.pos[0])}`;
@@ -1763,6 +1876,54 @@ function drawBoats(m) {
     drawColor(tri([-1.5, 3.4, 0.8], [1.5, 3.4, 0.8], [0, 5.5, 1.25]), [0.08, 0.1, 0.12, 1], m);
     drawColor(line([-1.6, -6.5, 0], [-8, -22, 0], [1.6, -6.5, 0], [8, -22, 0]), [0.8, 0.95, 1, 0.55], m, gl.LINES);
   }
+}
+
+function drawCruiseShip(m) {
+  const ship = state.cruiseShip;
+  if (!ship.active) return;
+  const b = actorBasis({ yaw: ship.yaw, pitch: 0, roll: Math.sin(state.weatherTime * 0.7) * 0.015 });
+  const tri = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, ship.pos)));
+  const line = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, ship.pos)));
+  const hull = [];
+  pushBox(hull, [-32, -76, 0], [32, 70, 13]);
+  drawColor(meshVertices(hull, b, ship.pos), [0.9, 0.93, 0.94, 1], m);
+  drawColor(tri([-32, 70, 0], [32, 70, 0], [0, 95, 7], [-32, -76, 0], [0, -94, 6], [32, -76, 0]), [0.78, 0.82, 0.86, 1], m);
+  const decks = [];
+  pushBox(decks, [-25, -54, 13], [25, 48, 24]);
+  pushBox(decks, [-19, -34, 24], [19, 35, 34]);
+  pushBox(decks, [-11, -14, 34], [11, 22, 44]);
+  drawColor(meshVertices(decks, b, ship.pos), [0.98, 0.98, 0.94, 1], m);
+  drawColor(tri([-24, 54, 24], [24, 54, 24], [0, 70, 29]), [0.78, 0.82, 0.86, 1], m);
+  drawColor(line([-35, -90, 1], [-68, -126, 1], [35, -90, 1], [68, -126, 1], [-28, -70, 1], [-58, -104, 1], [28, -70, 1], [58, -104, 1]), [0.82, 0.94, 1, 0.42], m, gl.LINES);
+}
+
+function drawContainerShip(m) {
+  const ship = state.containerShip;
+  if (!ship.active) return;
+  const b = actorBasis({ yaw: ship.yaw, pitch: 0, roll: Math.sin(state.weatherTime * 0.55) * 0.012 });
+  const tri = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, ship.pos)));
+  const line = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, ship.pos)));
+  const hull = [];
+  pushBox(hull, [-34, -86, 0], [34, 86, 18]);
+  drawColor(meshVertices(hull, b, ship.pos), [0.03, 0.22, 0.14, 1], m);
+  drawColor(tri([-34, 86, 0], [34, 86, 0], [0, 112, 10], [-34, -86, 0], [0, -108, 8], [34, -86, 0]), [0.02, 0.16, 0.11, 1], m);
+  const deck = [];
+  pushBox(deck, [-28, -70, 18], [28, 36, 22]);
+  pushBox(deck, [-26, 44, 18], [26, 78, 42]);
+  drawColor(meshVertices(deck, b, ship.pos), [0.36, 0.12, 0.12, 1], m);
+  const colors = [[0.72, 0.18, 0.12, 1], [0.86, 0.65, 0.24, 1], [0.18, 0.35, 0.62, 1], [0.74, 0.72, 0.62, 1], [0.45, 0.2, 0.14, 1]];
+  let colorIndex = 0;
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 5; col++) {
+      const box = [];
+      const x = -25 + col * 12;
+      const y = -60 + row * 24;
+      const z = 22 + (col % 2) * 5;
+      pushBox(box, [x, y, z], [x + 10, y + 18, z + 8]);
+      drawColor(meshVertices(box, b, ship.pos), colors[colorIndex++ % colors.length], m);
+    }
+  }
+  drawColor(line([-36, -104, 1], [-72, -144, 1], [36, -104, 1], [72, -144, 1], [-34, -84, 1], [-64, -120, 1], [34, -84, 1], [64, -120, 1]), [0.82, 0.94, 1, 0.38], m, gl.LINES);
 }
 
 function drawGolfCarts(m) {
@@ -2035,6 +2196,11 @@ function drawOverlay(m) {
     ctx.fillStyle = `rgba(255,0,0,${state.stickFlash * 0.32})`;
     ctx.fillRect(0, 0, state.width, state.height);
   }
+  if (state.deadZoneResetAt) {
+    const alpha = clamp(1 - (state.deadZoneResetAt - state.weatherTime), 0, 1);
+    ctx.fillStyle = `rgba(0,0,0,${alpha})`;
+    ctx.fillRect(0, 0, state.width, state.height);
+  }
   drawDebugOverlay();
   drawBlockedPopup();
   ctx.font = "12px -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif";
@@ -2227,6 +2393,8 @@ function render() {
   drawBullets(m);
   drawBirds(m);
   drawBoats(m);
+  drawCruiseShip(m);
+  drawContainerShip(m);
   drawGolfCarts(m);
   drawBlimp(m);
   drawChopper(m);
@@ -2377,6 +2545,96 @@ function distortionCurve(amount = 95) {
   return curve;
 }
 
+function phoneLinePath(conversation, lineIndex) {
+  return `${conversation.folder}/dialogue_${String(lineIndex + 1).padStart(2, "0")}.mp3`;
+}
+
+function ensurePhoneAudio() {
+  const phone = state.phone;
+  if (phone.audio) return;
+
+  phone.audio = new Audio();
+  phone.audio.preload = "auto";
+  phone.audio.crossOrigin = "anonymous";
+  phone.audio.addEventListener("ended", scheduleNextPhoneLine);
+
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  phone.context = new AudioCtx();
+  phone.source = phone.context.createMediaElementSource(phone.audio);
+  phone.gain = phone.context.createGain();
+  phone.gain.gain.value = 0.333;
+  phone.source.connect(phone.gain).connect(phone.context.destination);
+}
+
+function clearPhonePause() {
+  if (!state.phone.pauseTimeout) return;
+  clearTimeout(state.phone.pauseTimeout);
+  state.phone.pauseTimeout = null;
+}
+
+function stopPhone(status = "phone: disconnected") {
+  const phone = state.phone;
+  clearPhonePause();
+  if (phone.audio) {
+    phone.audio.pause();
+    phone.audio.removeAttribute("src");
+    phone.audio.load();
+  }
+  phone.playing = false;
+  phone.activeConversation = null;
+  phone.lineIndex = 0;
+  phoneButton.textContent = "phone";
+  statusEl.textContent = status;
+}
+
+async function playPhoneLine() {
+  const phone = state.phone;
+  if (!phone.playing || !phone.activeConversation) return;
+  if (phone.lineIndex >= phone.activeConversation.count) {
+    stopPhone();
+    return;
+  }
+
+  phone.audio.src = phoneLinePath(phone.activeConversation, phone.lineIndex);
+  try {
+    await phone.audio.play();
+  } catch (_error) {
+    stopPhone("phone: no signal");
+  }
+}
+
+function scheduleNextPhoneLine() {
+  const phone = state.phone;
+  if (!phone.playing) return;
+  phone.lineIndex += 1;
+  if (phone.lineIndex >= phone.activeConversation.count) {
+    stopPhone();
+    return;
+  }
+  const delay = 1000 + Math.random() * 2000;
+  clearPhonePause();
+  phone.pauseTimeout = setTimeout(playPhoneLine, delay);
+}
+
+async function togglePhone() {
+  const phone = state.phone;
+  if (phone.playing) {
+    stopPhone("phone: hung up");
+    return;
+  }
+
+  ensurePhoneAudio();
+  if (phone.context.state === "suspended") await phone.context.resume();
+
+  phone.activeConversation = phone.conversations[phone.conversationIndex];
+  phone.conversationIndex = (phone.conversationIndex + 1) % phone.conversations.length;
+  phone.lineIndex = 0;
+  phone.playing = true;
+  phoneButton.textContent = "hang up";
+  statusEl.textContent = "phone: connected";
+  playPhoneLine();
+}
+
 async function toggleSound() {
   const sound = state.sound;
   if (!sound.audio) {
@@ -2430,7 +2688,7 @@ async function toggleSound() {
     sound.tremolo.start();
 
     sound.master = sound.context.createGain();
-    sound.master.gain.value = 0.1;
+    sound.master.gain.value = sound.baseGain;
     sound.source
       .connect(sound.highpass)
       .connect(sound.lowpass)
@@ -2451,7 +2709,7 @@ async function toggleSound() {
     sound.audio.playbackRate = 0.96;
     await sound.audio.play();
     sound.playing = true;
-    radioButton.textContent = "mute";
+    radioButton.textContent = "turn off";
     statusEl.textContent = "radio: busted distant signal";
   } catch (_error) {
     radioButton.textContent = "radio";
@@ -2514,6 +2772,7 @@ function installControls() {
   dayNightButton.addEventListener("click", () => {
     state.night = !state.night;
   });
+  phoneButton.addEventListener("click", togglePhone);
   radioButton.addEventListener("click", toggleSound);
   resetButton.addEventListener("click", resetPlane);
   exitButton.addEventListener("click", () => {
