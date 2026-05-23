@@ -24,6 +24,8 @@ const DRAG = 0.9862;
 const BULLET_SPEED = 520;
 const PRISON_DEFENSE_RADIUS = 500;
 const PRISON_SHOT_SPEED = 185;
+const LEAF_LINKS_CENTER = [730, 2390, 0];
+const LEAF_LINKS_RADIUS = 150;
 const CAMERA_CHASE = 46;
 const CAMERA_UP = 15;
 const CAMERA_THUMBNAIL_DISTANCE = 100;
@@ -311,6 +313,8 @@ const state = {
   particles: [],
   birds: [],
   boats: [],
+  jetSkis: [],
+  golfCarts: [],
   fog: [],
   fires: [],
   lightning: 0,
@@ -1330,6 +1334,69 @@ function updateAmbientActors(dt) {
       boat.messageUntil = state.weatherTime + 3.5;
     }
   }
+
+  updateJetSkis(dt);
+  updateGolfCarts(dt);
+}
+
+function randomJetSkiPoint() {
+  return [
+    2220 + Math.random() * 720,
+    360 + Math.random() * 1780,
+    1.15,
+  ];
+}
+
+function updateJetSkis(dt) {
+  for (const ski of state.jetSkis) {
+    const toTarget = subtract(ski.target, ski.pos);
+    const distance = Math.hypot(toTarget[0], toTarget[1]);
+    if (distance < 45) ski.target = randomJetSkiPoint();
+    const desiredYaw = Math.atan2(-(ski.target[0] - ski.pos[0]), ski.target[1] - ski.pos[1]);
+    let delta = desiredYaw - ski.yaw;
+    while (delta > Math.PI) delta -= Math.PI * 2;
+    while (delta < -Math.PI) delta += Math.PI * 2;
+    ski.yaw += clamp(delta, -dt * 2.6, dt * 2.6);
+    const speed = ski.speed * (0.78 + 0.22 * Math.sin(state.weatherTime * 3.1 + ski.phase));
+    ski.pos[0] += -Math.sin(ski.yaw) * speed * dt;
+    ski.pos[1] += Math.cos(ski.yaw) * speed * dt;
+    ski.pos[2] = 1.05 + Math.sin(state.weatherTime * 8 + ski.phase) * 0.18;
+    if (ski.pos[0] < 2100 || ski.pos[0] > 3040 || ski.pos[1] < 260 || ski.pos[1] > 2240) {
+      ski.target = randomJetSkiPoint();
+    }
+  }
+}
+
+function randomGolfCartPoint() {
+  const a = Math.random() * Math.PI * 2;
+  const r = Math.sqrt(Math.random()) * LEAF_LINKS_RADIUS;
+  return [LEAF_LINKS_CENTER[0] + Math.cos(a) * r, LEAF_LINKS_CENTER[1] + Math.sin(a) * r, 2.0];
+}
+
+function updateGolfCarts(dt) {
+  for (const cart of state.golfCarts) {
+    if (cart.wait > 0) {
+      cart.wait -= dt;
+      continue;
+    }
+    const toTarget = subtract(cart.target, cart.pos);
+    const distance = Math.hypot(toTarget[0], toTarget[1]);
+    if (distance < 7) {
+      cart.target = randomGolfCartPoint();
+      cart.wait = 1.6 + Math.random() * 4.4;
+      continue;
+    }
+    const desiredYaw = Math.atan2(-(cart.target[0] - cart.pos[0]), cart.target[1] - cart.pos[1]);
+    let delta = desiredYaw - cart.yaw;
+    while (delta > Math.PI) delta -= Math.PI * 2;
+    while (delta < -Math.PI) delta += Math.PI * 2;
+    cart.yaw += clamp(delta, -dt * 1.8, dt * 1.8);
+    const speed = cart.speed * clamp(distance / 30, 0.35, 1);
+    cart.pos[0] += -Math.sin(cart.yaw) * speed * dt;
+    cart.pos[1] += Math.cos(cart.yaw) * speed * dt;
+    const fromCenter = Math.hypot(cart.pos[0] - LEAF_LINKS_CENTER[0], cart.pos[1] - LEAF_LINKS_CENTER[1]);
+    if (fromCenter > LEAF_LINKS_RADIUS + 12) cart.target = randomGolfCartPoint();
+  }
 }
 
 function keysSeaplanePoint(t, direction) {
@@ -1686,6 +1753,29 @@ function drawBoats(m) {
     const line = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, boat.pos)));
     drawColor(tri([-8, 12, 0], [8, 12, 0], [0, -16, 0], [-5, 8, 2.5], [5, 8, 2.5], [0, -6, 4]), [0.96, 0.97, 0.92, 1], m);
     drawColor(line([-5, -18, 0], [-18, -32, 0], [5, -18, 0], [18, -32, 0]), [0.86, 0.94, 1, 0.45], m, gl.LINES);
+  }
+  for (const ski of state.jetSkis) {
+    const b = actorBasis({ yaw: ski.yaw, pitch: 0, roll: Math.sin(state.weatherTime * 5 + ski.phase) * 0.08 });
+    const tri = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, ski.pos)));
+    const line = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, ski.pos)));
+    drawColor(tri([-2.2, 4.4, 0], [2.2, 4.4, 0], [0, -6.2, 0.8], [-1.45, 1.6, 1.0], [1.45, 1.6, 1.0], [0, -2.7, 2.1]), ski.color, m);
+    drawColor(tri([-1.5, 3.4, 0.8], [1.5, 3.4, 0.8], [0, 5.5, 1.25]), [0.08, 0.1, 0.12, 1], m);
+    drawColor(line([-1.6, -6.5, 0], [-8, -22, 0], [1.6, -6.5, 0], [8, -22, 0]), [0.8, 0.95, 1, 0.55], m, gl.LINES);
+  }
+}
+
+function drawGolfCarts(m) {
+  for (const cart of state.golfCarts) {
+    const b = actorBasis({ yaw: cart.yaw, pitch: 0, roll: 0 });
+    const body = [];
+    pushBox(body, [-3.2, -4.8, 0], [3.2, 4.8, 3.1]);
+    pushBox(body, [-2.6, -2.6, 3.1], [2.6, 2.8, 5.8]);
+    drawColor(meshVertices(body, b, cart.pos), [0.96, 0.96, 0.9, 1], m);
+    const dark = [];
+    pushBox(dark, [-2.1, -1.4, 3.2], [2.1, 2.2, 5.4]);
+    drawColor(meshVertices(dark, b, cart.pos), [0.08, 0.1, 0.09, 1], m);
+    const line = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, cart.pos)));
+    drawColor(line([-3.4, -4.8, 0], [-4.8, -4.8, 0], [3.4, -4.8, 0], [4.8, -4.8, 0], [-3.4, 4.8, 0], [-4.8, 4.8, 0], [3.4, 4.8, 0], [4.8, 4.8, 0]), [0.04, 0.04, 0.035, 1], m, gl.LINES);
   }
 }
 
@@ -2136,6 +2226,7 @@ function render() {
   drawBullets(m);
   drawBirds(m);
   drawBoats(m);
+  drawGolfCarts(m);
   drawBlimp(m);
   drawChopper(m);
   drawAirliner(m);
@@ -2183,6 +2274,30 @@ function initializeAmbientActors() {
     { route: [[-2800, -5000, 1.6], [-900, -4450, 1.6]], t: 0.68, speed: 0.013, message: "", messageUntil: 0 },
     { route: [[-900, -3350, 1.6], [1050, -2850, 1.6]], t: 0.25, speed: 0.012, message: "", messageUntil: 0 },
   ];
+  state.jetSkis = Array.from({ length: 3 }, (_, index) => {
+    const pos = randomJetSkiPoint();
+    const target = randomJetSkiPoint();
+    const colors = [[1, 0.82, 0.05, 1], [1, 0.18, 0.12, 1], [0.12, 0.78, 1, 1]];
+    return {
+      pos,
+      target,
+      yaw: Math.atan2(-(target[0] - pos[0]), target[1] - pos[1]),
+      speed: 72 + index * 9 + Math.random() * 16,
+      phase: Math.random() * Math.PI * 2,
+      color: colors[index % colors.length],
+    };
+  });
+  state.golfCarts = Array.from({ length: 2 }, (_, index) => {
+    const pos = randomGolfCartPoint();
+    const target = randomGolfCartPoint();
+    return {
+      pos,
+      target,
+      yaw: Math.atan2(-(target[0] - pos[0]), target[1] - pos[1]),
+      speed: 10 + index * 1.6,
+      wait: Math.random() * 3,
+    };
+  });
 }
 
 async function loadData() {
