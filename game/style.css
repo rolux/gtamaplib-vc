@@ -7,6 +7,8 @@ body {
   background: #3f81bd;
   color: rgba(255, 255, 255, 0.92);
   font: 13px -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 body.trevor {
@@ -122,10 +124,20 @@ button {
   background: rgba(255, 255, 255, 0.12);
   font: inherit;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 button:hover {
   background: rgba(255, 255, 255, 0.18);
+}
+
+button:focus,
+button:focus-visible,
+button:active {
+  outline: none;
+  box-shadow: none;
 }
 
 button.active {

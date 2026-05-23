@@ -1021,8 +1021,10 @@ function turbulenceFactor(pos) {
 function updateRadioVolume() {
   const sound = state.sound;
   if (!sound.master) return;
-  const targetGain = sound.baseGain * (1 - 0.5 * clamp(state.turbulence, 0, 1));
-  sound.master.gain.setTargetAtTime(targetGain, sound.context.currentTime, 0.18);
+  const weatherGain = 1 - 0.5 * clamp(state.turbulence, 0, 1);
+  const phoneDuckGain = state.phone.playing ? 0.2 : 1;
+  const targetGain = sound.baseGain * weatherGain * phoneDuckGain;
+  sound.master.gain.setTargetAtTime(targetGain, sound.context.currentTime, 0.5);
 }
 
 function updatePlane(dt, now) {
