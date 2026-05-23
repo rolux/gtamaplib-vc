@@ -252,6 +252,7 @@ const BOAT_LINES = [
   "wrong canal!",
   "five stars on boat trip",
   "we are scuba brothers now",
+  "jason is a cop",
   "bunny is a rider",
   "this is fine",
 ];
@@ -2399,13 +2400,13 @@ async function toggleSound() {
 
     sound.highpass = sound.context.createBiquadFilter();
     sound.highpass.type = "highpass";
-    sound.highpass.frequency.value = 420;
-    sound.highpass.Q.value = 1.4;
+    sound.highpass.frequency.value = 1100;
+    sound.highpass.Q.value = 0.7;
 
     sound.lowpass = sound.context.createBiquadFilter();
     sound.lowpass.type = "lowpass";
-    sound.lowpass.frequency.value = 1550;
-    sound.lowpass.Q.value = 7.5;
+    sound.lowpass.frequency.value = 3200;
+    sound.lowpass.Q.value = 1.4;
 
     sound.shaper = sound.context.createWaveShaper();
     sound.shaper.curve = distortionCurve();
