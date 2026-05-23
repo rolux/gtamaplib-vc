@@ -376,6 +376,7 @@ const state = {
     activeConversation: null,
     lineIndex: 0,
     pauseTimeout: null,
+    duckReleaseAt: 0,
     conversations: [
       { folder: "phone/conversation_01", count: 20 },
       { folder: "phone/conversation_02", count: 23 },
@@ -1022,7 +1023,7 @@ function updateRadioVolume() {
   const sound = state.sound;
   if (!sound.master) return;
   const weatherGain = 1 - 0.5 * clamp(state.turbulence, 0, 1);
-  const phoneDuckGain = state.phone.playing ? 0.2 : 1;
+  const phoneDuckGain = state.phone.playing || state.weatherTime < state.phone.duckReleaseAt ? 0.2 : 1;
   const targetGain = sound.baseGain * weatherGain * phoneDuckGain;
   sound.master.gain.setTargetAtTime(targetGain, sound.context.currentTime, 0.5);
 }
@@ -2585,6 +2586,7 @@ function stopPhone(status = "phone: disconnected") {
   phone.playing = false;
   phone.activeConversation = null;
   phone.lineIndex = 0;
+  phone.duckReleaseAt = state.weatherTime + 0.5;
   phoneButton.textContent = "phone";
   statusEl.textContent = status;
 }
@@ -2631,6 +2633,7 @@ async function togglePhone() {
   phone.activeConversation = phone.conversations[phone.conversationIndex];
   phone.conversationIndex = (phone.conversationIndex + 1) % phone.conversations.length;
   phone.lineIndex = 0;
+  phone.duckReleaseAt = 0;
   phone.playing = true;
   phoneButton.textContent = "hang up";
   statusEl.textContent = "phone: connected";
@@ -2690,7 +2693,9 @@ async function toggleSound() {
     sound.tremolo.start();
 
     sound.master = sound.context.createGain();
-    sound.master.gain.value = sound.baseGain;
+    const weatherGain = 1 - 0.5 * clamp(state.turbulence, 0, 1);
+    const phoneDuckGain = state.phone.playing || state.weatherTime < state.phone.duckReleaseAt ? 0.2 : 1;
+    sound.master.gain.value = sound.baseGain * weatherGain * phoneDuckGain;
     sound.source
       .connect(sound.highpass)
       .connect(sound.lowpass)
