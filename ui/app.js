@@ -24,7 +24,7 @@ const state = {
     useMonospaceFont: false,
     showCameraIDs: false,
     onlyShowCamerasForSelectedLandmark: false,
-    blurLeaks: false,
+    blurLeaks: true,
   },
   map: {
     centerX: 0,
@@ -2296,7 +2296,7 @@ function restorePreferences() {
   state.settings.useMonospaceFont = storedBoolean(STORAGE.useMonospaceFont, false);
   state.settings.showCameraIDs = storedBoolean(STORAGE.showCameraIDs, false);
   state.settings.onlyShowCamerasForSelectedLandmark = storedBoolean(STORAGE.onlyShowCamerasForSelectedLandmark, false);
-  state.settings.blurLeaks = storedBoolean(STORAGE.blurLeaks, false);
+  state.settings.blurLeaks = storedBoolean(STORAGE.blurLeaks, true);
   applyGlobalSettings();
 }
 
