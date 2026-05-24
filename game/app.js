@@ -15,6 +15,7 @@ const VC_RESULT = "../optimizer/result.json";
 const VC_MAP3D_COLORS = "../ui/data/map3d-colors.json";
 const VC_FOUR_SEASONS_WIREFRAME = "../ui/data/map3d-four-seasons.json";
 const VC_SUNSHINE_SKYWAY_WIREFRAME = "../ui/data/map3d-sunshine-skyway.json";
+const VC_HANKS_WAFFLES_WIREFRAME = "../ui/data/map3d-hanks-waffles.json";
 const LANDMARK_MODELS = "landmarks/landmarks.json";
 const FOUR_SEASONS_NAME = "Four Seasons Hotel Miami (NW)";
 const GRAVITY = 9.8;
@@ -25,11 +26,19 @@ const MIN_BRAKE_SPEED = 10;
 const BULLET_SPEED = 520;
 const PRISON_DEFENSE_RADIUS = 500;
 const PRISON_SHOT_SPEED = 185;
-const FIGHTER_ROUTE_SPEED = 0.0225;
+const FIGHTER_ROUTE_SPEED = 0.015;
 const FIGHTER_ATTACK_SECONDS = 15;
 const FIGHTER_SHOT_SPEED = 260;
 const LEAF_LINKS_CENTER = [730, 2390, 0];
 const LEAF_LINKS_RADIUS = 150;
+const SKYVIEW_WHEEL_POS = [-57, 257, 0];
+const SKYVIEW_WHEEL_TOP = 75;
+const SKYVIEW_WHEEL_RADIUS = 35;
+const SKYVIEW_WHEEL_YAW = 240 * Math.PI / 180;
+const SCHLOTT_PANEL_X = -16000;
+const SCHLOTT_PANEL_SOUTH = -3000;
+const SCHLOTT_PANEL_NORTH = -1000;
+const TREVOR_FLICKER_ZONE = { west: -7000, east: -6500, south: -6000, north: -5500 };
 const CAMERA_CHASE = 46;
 const CAMERA_UP = 15;
 const CAMERA_THUMBNAIL_DISTANCE = 100;
@@ -215,6 +224,7 @@ const RADIO_LINES = [
   "Screenshot Police. Hands up where I can see them!",
   "Stay clear of Ambrosia. No, that airfield does not exist! We call it the I-505. Yes, that's an Insider joke. But still...",
   "Notice to airmen: you are not REALLY airmen, okay?",
+  "My strongest hunch is still orphaned RAF loops.",
 ];
 const DEBUG_COLORS = [
   "rgba(245,245,245,0.92)",
@@ -289,6 +299,7 @@ const speedEl = document.querySelector("#speed");
 const latitudeEl = document.querySelector("#latitude");
 const longitudeEl = document.querySelector("#longitude");
 const altitudeEl = document.querySelector("#altitude");
+const yawEl = document.querySelector("#yaw");
 const scoreEl = document.querySelector("#score");
 const statusEl = document.querySelector("#status");
 const modeEl = document.querySelector("#mode");
@@ -313,6 +324,7 @@ const state = {
   landmarks: [],
   landmarkModels: [],
   mapLabels: [],
+  imagePanels: [],
   colors: new Map(),
   wireframes: [],
   targets: [],
@@ -347,6 +359,9 @@ const state = {
   blockedPopupNext: 180 + Math.random() * 240,
   blockedPopupCount: 0,
   trevorTimeout: null,
+  trevorManual: false,
+  trevorZoneActive: false,
+  trevorZoneSuppressed: false,
   turbulence: 0,
   lastTurbulenceRumble: 0,
   storm: true,
@@ -466,7 +481,7 @@ const state = {
     direction: 1,
     t: 0,
     next: 260 + Math.random() * 220,
-    pos: [-6250, -6750, 260],
+    pos: [-6250, -6750, 55],
     yaw: 0,
     pitch: 0,
     roll: 0,
@@ -928,6 +943,24 @@ function drawMapLabels(matrix) {
   gl.disable(gl.BLEND);
 }
 
+function imagePanelVertices(panel) {
+  return [
+    ...worldToGl(panel.x, panel.north, panel.top), 1, 1,
+    ...worldToGl(panel.x, panel.south, panel.top), 0, 1,
+    ...worldToGl(panel.x, panel.south, panel.bottom), 0, 0,
+    ...worldToGl(panel.x, panel.north, panel.top), 1, 1,
+    ...worldToGl(panel.x, panel.south, panel.bottom), 0, 0,
+    ...worldToGl(panel.x, panel.north, panel.bottom), 1, 0,
+  ];
+}
+
+function drawImagePanels(matrix) {
+  for (const panel of state.imagePanels) {
+    if (!panel.texture?.loaded) continue;
+    drawTextured(imagePanelVertices(panel), panel.texture.texture, matrix, 1);
+  }
+}
+
 function initializeMapLabels() {
   state.mapLabels = MAP_LABELS.map((label) => {
     const texture = createTextTexture(label.text, label.color, {
@@ -942,6 +975,39 @@ function initializeMapLabels() {
       vertices: mapLabelVertices({ ...label, texture }),
     };
   });
+}
+
+function initializeImagePanels() {
+  const margin = 25;
+  const gap = 25;
+  const totalWidth = SCHLOTT_PANEL_NORTH - SCHLOTT_PANEL_SOUTH;
+  const availableWidth = totalWidth - margin * 2 - gap;
+  const slotAspect = 1920 / 1080;
+  const operationAspect = 1;
+  const height = availableWidth / (slotAspect + operationAspect);
+  const slotWidth = height * slotAspect;
+  const operationWidth = height * operationAspect;
+  const south = SCHLOTT_PANEL_SOUTH + margin;
+  const split = south + slotWidth;
+  const operationSouth = split + gap;
+  state.imagePanels = [
+    {
+      x: SCHLOTT_PANEL_X,
+      south,
+      north: split,
+      bottom: margin,
+      top: margin + height,
+      texture: loadImageTexture("images/schlott.png"),
+    },
+    {
+      x: SCHLOTT_PANEL_X,
+      south: operationSouth,
+      north: operationSouth + operationWidth,
+      bottom: margin,
+      top: margin + height,
+      texture: loadImageTexture("images/operation%20schlott.png"),
+    },
+  ];
 }
 
 function drawWater(matrix) {
@@ -1092,6 +1158,28 @@ function updatePhoneVolume() {
   phone.gain.gain.setTargetAtTime(phone.baseGain * deadZoneGain, phone.context.currentTime, 0.5);
 }
 
+function isInTrevorFlickerZone(pos) {
+  return pos[0] >= TREVOR_FLICKER_ZONE.west &&
+    pos[0] <= TREVOR_FLICKER_ZONE.east &&
+    pos[1] >= TREVOR_FLICKER_ZONE.south &&
+    pos[1] <= TREVOR_FLICKER_ZONE.north;
+}
+
+function updateTrevorClass() {
+  const zoneFlickerOn = state.trevorZoneActive &&
+    !state.trevorZoneSuppressed &&
+    Math.floor(state.weatherTime * 20) % 2 === 0;
+  document.body.classList.toggle("trevor", state.trevorManual || zoneFlickerOn);
+}
+
+function updateTrevorZone() {
+  const active = isInTrevorFlickerZone(state.plane.pos);
+  if (active && !state.trevorZoneActive) state.trevorZoneSuppressed = false;
+  if (!active) state.trevorZoneSuppressed = false;
+  state.trevorZoneActive = active;
+  updateTrevorClass();
+}
+
 function updatePlane(dt, now) {
   const p = state.plane;
   pollGamepad();
@@ -1189,6 +1277,7 @@ function updatePlane(dt, now) {
     p.pos = add(p.pos, scale(normalize(subtract(p.pos, fs.xyz)), 42));
     spawnParticles(p.pos, [1, 0.25, 0.05, 1], 48, 46);
   }
+  updateTrevorZone();
 }
 
 function keyAxis(positiveKey, negativeKey) {
@@ -1522,8 +1611,8 @@ function scheduleNextFighterJet() {
 
 function spawnFighterJet() {
   const jet = state.fighterJet;
-  const airbase = [-6250, -6750, 260];
-  const spaceCenter = [500, 7000, 620];
+  const airbase = [-6250, -6750, 55];
+  const spaceCenter = [500, 7000, 70];
   const startAtAirbase = Math.random() < 0.5;
   const start = startAtAirbase ? airbase : spaceCenter;
   const end = startAtAirbase ? spaceCenter : airbase;
@@ -1831,6 +1920,7 @@ function update(dt, now) {
   latitudeEl.textContent = `LAT ${Math.round(state.plane.pos[1])}`;
   longitudeEl.textContent = `LNG ${Math.round(state.plane.pos[0])}`;
   altitudeEl.textContent = `ALT ${state.plane.pos[2].toFixed(0)}`;
+  yawEl.textContent = `YAW ${Math.round((state.plane.yaw * 180 / Math.PI % 360 + 360) % 360)}`;
   scoreEl.textContent = `SCORE ${state.score}`;
   modeEl.textContent = state.storm ? "STORM MODE" : "SUNNY CHAOS";
   weatherButton.textContent = state.storm ? "clear" : "storm";
@@ -2273,6 +2363,101 @@ function drawWireframes(m) {
   }
 }
 
+function sunshineSkywayBlinkerPoints() {
+  const north = state.landmarks.find((item) => item.name === "Sunshine Skyway Bridge (N)")?.xyz;
+  const south = state.landmarks.find((item) => item.name === "Sunshine Skyway Bridge (S)")?.xyz;
+  return north && south ? [north, south] : null;
+}
+
+function drawSunshineSkywayBlinkers(m) {
+  const points = sunshineSkywayBlinkerPoints();
+  if (!points) return;
+  const active = Math.floor(state.weatherTime * 2) % 2;
+  const basis = { right: [1, 0, 0], forward: [0, 1, 0], up: [0, 0, 1] };
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    const origin = [p[0], p[1], p[2] + 2.25];
+    const mesh = [];
+    pushBox(mesh, [-2.25, -2.25, -2.25], [2.25, 2.25, 2.25]);
+    drawColor(meshVertices(mesh, basis, origin), i === active ? [1, 0.02, 0.01, 0.98] : [0.45, 0.01, 0.01, 0.24], m);
+  }
+}
+
+function drawSkyViewWheel(m) {
+  const centerHeight = SKYVIEW_WHEEL_TOP - SKYVIEW_WHEEL_RADIUS;
+  const center = [SKYVIEW_WHEEL_POS[0], SKYVIEW_WHEEL_POS[1], centerHeight];
+  const basis = actorBasis({ yaw: SKYVIEW_WHEEL_YAW, pitch: 0, roll: 0 });
+  const right = basis.right;
+  const up = [0, 0, 1];
+  const forward = basis.forward;
+  const radius = SKYVIEW_WHEEL_RADIUS;
+  const spin = state.weatherTime * 2.9;
+  const blink = Math.floor(state.weatherTime * 10);
+  const palette = [
+    [1.0, 0.92, 0.12, 0.96],
+    [1.0, 0.46, 0.06, 0.96],
+    [1.0, 0.08, 0.08, 0.96],
+    [1.0, 0.1, 0.88, 0.96],
+    [0.0, 0.92, 1.0, 0.96],
+    [0.18, 0.35, 1.0, 0.96],
+    [0.15, 1.0, 0.25, 0.96],
+  ];
+  const groups = palette.map(() => []);
+  const supports = [];
+  const glow = [];
+  const point = (angle, r = radius) => add(center, add(scale(right, Math.cos(angle) * r), scale(up, Math.sin(angle) * r)));
+  const pushLine = (target, a, b) => {
+    target.push(...worldToGl(a[0], a[1], a[2]));
+    target.push(...worldToGl(b[0], b[1], b[2]));
+  };
+  const colorGroup = (index, pulse = 0) => groups[(index + blink + pulse) % groups.length];
+
+  for (let i = 0; i < 48; i++) {
+    const a = i / 48 * Math.PI * 2;
+    const b = (i + 1) / 48 * Math.PI * 2;
+    pushLine(colorGroup(i), point(a), point(b));
+  }
+  for (let i = 0; i < 18; i++) {
+    const a = spin + i / 18 * Math.PI * 2;
+    pushLine(colorGroup(i, Math.floor(Math.sin(state.weatherTime * 7 + i) * 2 + 2)), center, point(a, radius * 0.95));
+  }
+  for (let i = 0; i < 18; i++) {
+    const a = spin + i / 18 * Math.PI * 2;
+    const p = point(a, radius * 0.94);
+    const q = add(p, scale(up, -3.4));
+    pushLine(colorGroup(i + 3), p, q);
+  }
+
+  const hubLeft = add(center, scale(right, -4));
+  const hubRight = add(center, scale(right, 4));
+  const hubUp = add(center, scale(up, 4));
+  const hubDown = add(center, scale(up, -4));
+  pushLine(glow, hubLeft, hubRight);
+  pushLine(glow, hubUp, hubDown);
+
+  const footLeft = add(add(SKYVIEW_WHEEL_POS, scale(right, -25)), scale(forward, -4));
+  const footRight = add(add(SKYVIEW_WHEEL_POS, scale(right, 25)), scale(forward, -4));
+  const rearLeft = add(add(SKYVIEW_WHEEL_POS, scale(right, -17)), scale(forward, 17));
+  const rearRight = add(add(SKYVIEW_WHEEL_POS, scale(right, 17)), scale(forward, 17));
+  const axle = add(center, scale(up, -3));
+  pushLine(supports, footLeft, axle);
+  pushLine(supports, footRight, axle);
+  pushLine(supports, rearLeft, add(center, scale(right, -6)));
+  pushLine(supports, rearRight, add(center, scale(right, 6)));
+  pushLine(supports, footLeft, footRight);
+  pushLine(supports, rearLeft, rearRight);
+
+  drawColor(thickenLines(supports, [0, 0.2, -0.2, 0.4]), [0.82, 0.96, 0.88, 0.88], m, gl.LINES);
+  drawColor(thickenLines(glow, [0, 0.18, -0.18, 0.36, -0.36]), [0.96, 1, 0.9, 0.98], m, gl.LINES);
+  for (let i = 0; i < groups.length; i++) {
+    const lines = groups[i];
+    if (!lines.length) continue;
+    const pulse = 0.78 + 0.22 * Math.sin(state.weatherTime * 12 + i * 1.7);
+    const color = palette[i];
+    drawColor(thickenLines(lines, [0, 0.2, -0.2, 0.4]), [color[0] * pulse, color[1] * pulse, color[2] * pulse, color[3]], m, gl.LINES);
+  }
+}
+
 function cameraThumbnailVertices(camera) {
   if (!camera.xyz || !camera.ypr || !camera.fov) return null;
   const hf = Math.tan((camera.fov[0] || 50) * Math.PI / 360);
@@ -2609,8 +2794,11 @@ function render() {
   gl.enable(gl.DEPTH_TEST);
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  drawImagePanels(m);
   drawLandmarkModels(m);
   drawWireframes(m);
+  drawSunshineSkywayBlinkers(m);
+  drawSkyViewWheel(m);
   drawCameraThumbnails(m);
   drawBullets(m);
   drawBirds(m);
@@ -2694,13 +2882,15 @@ function initializeAmbientActors() {
 
 async function loadData() {
   initializeMapLabels();
+  initializeImagePanels();
   state.iconTexture = loadImageTexture(ICON_TEXTURE);
-  const [base, result, colors, fourSeasons, sunshineSkyway, landmarkModels] = await Promise.all([
+  const [base, result, colors, fourSeasons, sunshineSkyway, hanksWaffles, landmarkModels] = await Promise.all([
     fetch(VC_DATA).then((r) => r.json()),
     fetch(VC_RESULT).then((r) => r.ok ? r.json() : null).catch(() => null),
     loadJson(VC_MAP3D_COLORS).catch(() => null),
     loadJson(VC_FOUR_SEASONS_WIREFRAME).catch(() => null),
     loadJson(VC_SUNSHINE_SKYWAY_WIREFRAME).catch(() => null),
+    loadJson(VC_HANKS_WAFFLES_WIREFRAME).catch(() => null),
     loadJson(LANDMARK_MODELS).catch(() => null),
   ]);
   if (colors?.schema === "gtamaplibvc-map3d-colors-v1") {
@@ -2713,6 +2903,10 @@ async function loadData() {
   if (sunshineSkyway?.schema === "gtamaplibvc-map3d-sunshine-skyway-v1") {
     sunshineSkyway.color = colorForName("Sunshine Skyway Bridge");
     state.wireframes.push(sunshineSkyway);
+  }
+  if (hanksWaffles?.schema === "gtamaplibvc-map3d-hanks-waffles-v1") {
+    hanksWaffles.color = colorForName("536 Richard Jackson Blvd");
+    state.wireframes.push(hanksWaffles);
   }
   const resultCameras = result?.cameras || {};
   const resultLandmarks = result?.landmarks || {};
@@ -2985,21 +3179,28 @@ function skipRadioTrack(direction) {
 }
 
 function exitTrevorMode() {
-  document.body.classList.remove("trevor");
+  state.trevorManual = false;
   if (state.trevorTimeout) {
     clearTimeout(state.trevorTimeout);
     state.trevorTimeout = null;
   }
+  updateTrevorClass();
 }
 
 function toggleTrevorMode() {
-  if (document.body.classList.contains("trevor")) {
+  if (state.trevorZoneActive) {
+    state.trevorZoneSuppressed = !state.trevorZoneSuppressed;
+    updateTrevorClass();
+    return;
+  }
+  if (state.trevorManual) {
     exitTrevorMode();
     return;
   }
-  document.body.classList.add("trevor");
+  state.trevorManual = true;
   if (state.trevorTimeout) clearTimeout(state.trevorTimeout);
   state.trevorTimeout = setTimeout(exitTrevorMode, 60000);
+  updateTrevorClass();
 }
 
 function installControls() {
