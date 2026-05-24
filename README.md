@@ -11,6 +11,7 @@
 Clone this repository, then `cd` into the `gtamaplib-vc` directory:
 
 ```bash
+git clone https://github.com/rolux/gtamaplib-vc.git
 cd gtamaplib-vc
 ```
 
