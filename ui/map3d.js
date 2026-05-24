@@ -19,6 +19,9 @@ const CAMERA_CONE_DISTANCE = 100;
 const CAMERA_THUMBNAIL_DISTANCE = CAMERA_CONE_DISTANCE * 0.995;
 const TOUR_DWELL_MS = 1200;
 const TOUR_EYE_CONTROL_MIN_Z = 10;
+const MAP3D_POSE_STORAGE_KEY = "gtamaplib-vc.map3dPose";
+const GAME_START_EYE = [-6250, 380, -5420];
+const GAME_START_TARGET = [-6250, 265, -5050];
 const MAX_TARGET_RADIUS = 32768;
 
 const root = document.querySelector("#map3d-root");
@@ -59,6 +62,7 @@ const state = {
   thumbnails: new Map(),
   blurLeaks: true,
   useMonospaceFont: false,
+  transitionRaf: null,
   tour: {
     active: false,
     paused: false,
@@ -591,6 +595,62 @@ function stopTourFrame() {
   }
 }
 
+function stopTransitionFrame() {
+  if (state.transitionRaf) {
+    cancelAnimationFrame(state.transitionRaf);
+    state.transitionRaf = null;
+  }
+}
+
+function animateToView(to, onDone) {
+  stopTourFrame();
+  stopTransitionFrame();
+  state.tour.active = false;
+  state.tour.paused = false;
+  updateTourButton();
+  const segment = makeTourSegment(currentView(), to);
+  const startedAt = performance.now();
+  function step(now) {
+    const t = Math.min(1, (now - startedAt) / segment.duration);
+    const eased = smoothStep(t);
+    const eye = cubicBezier3(segment.from.eye, segment.eyeC1, segment.eyeC2, segment.to.eye, eased);
+    const target = cubicBezier3(segment.from.target, segment.targetC1, segment.targetC2, segment.to.target, eased);
+    applyEyeTarget(eye, target);
+    state.vfov = lerp(segment.from.vfov || 45, segment.to.vfov || 45, eased);
+    render();
+    if (t >= 1) {
+      state.transitionRaf = null;
+      onDone?.();
+      return;
+    }
+    state.transitionRaf = requestAnimationFrame(step);
+  }
+  state.transitionRaf = requestAnimationFrame(step);
+}
+
+function gameStartView() {
+  return {
+    eye: [...GAME_START_EYE],
+    target: [...GAME_START_TARGET],
+    vfov: 45,
+  };
+}
+
+function applyStoredPose() {
+  const raw = sessionStorage.getItem(MAP3D_POSE_STORAGE_KEY);
+  if (!raw) return false;
+  sessionStorage.removeItem(MAP3D_POSE_STORAGE_KEY);
+  try {
+    const pose = JSON.parse(raw);
+    if (!Array.isArray(pose.eye) || !Array.isArray(pose.target)) return false;
+    applyEyeTarget(pose.eye, pose.target);
+    state.vfov = pose.vfov || state.vfov;
+    return true;
+  } catch (_error) {
+    return false;
+  }
+}
+
 function startTourSegment(from, camera) {
   const to = viewForCamera(camera);
   state.tour.segment = makeTourSegment(from, to);
@@ -971,7 +1031,9 @@ function installControls() {
   });
   if (gameButton) {
     gameButton.addEventListener("click", () => {
-      window.location.href = "/game";
+      animateToView(gameStartView(), () => {
+        window.location.href = "/game";
+      });
     });
   }
   scene.addEventListener("mousedown", (event) => {
@@ -1166,6 +1228,7 @@ export function activateMap3d(options = {}) {
   root.hidden = false;
   return init().then(() => {
     resize();
+    applyStoredPose();
     render();
     scene.focus();
   }).catch((error) => {

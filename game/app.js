@@ -40,6 +40,7 @@ const DEAD_ZONE_FULL = 12000;
 const ICON_TEXTURE = "../ui/gtamaplib-vc.png";
 const WATER_COLOR = [44 / 255, 103 / 255, 164 / 255, 1];
 const NIGHT_MAP_BRIGHTNESS = 0.15;
+const MAP3D_POSE_STORAGE_KEY = "gtamaplib-vc.map3dPose";
 const RADIO_LINES = [
   "Vice Tower: experimental flight plan denied, again.",
   "Leonida Approach: whoever is buzzing the postcards, please use a door.",
@@ -1450,6 +1451,14 @@ function updateCamera(dt) {
   desiredTarget[2] = Math.max(0, desiredTarget[2]);
   state.camera.eye = lerp3(state.camera.eye, desiredEye, 0.97);
   state.camera.target = lerp3(state.camera.target, add(desiredTarget, scale(right, state.plane.roll * 0.28)), 0.96);
+}
+
+function writeMap3dPose() {
+  sessionStorage.setItem(MAP3D_POSE_STORAGE_KEY, JSON.stringify({
+    eye: worldToGl(...state.camera.eye),
+    target: worldToGl(...state.camera.target),
+    vfov: 45,
+  }));
 }
 
 function updateAirliner(dt) {
@@ -3021,6 +3030,7 @@ function installControls() {
   radioButton.addEventListener("click", toggleSound);
   resetButton.addEventListener("click", resetPlane);
   exitButton.addEventListener("click", () => {
+    writeMap3dPose();
     window.location.href = "/#view=map3d";
   });
 }
