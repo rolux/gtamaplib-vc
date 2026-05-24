@@ -21,6 +21,7 @@ const GRAVITY = 9.8;
 const THROTTLE_FORCE = 46;
 const DIVE_ACCEL = 7;
 const DRAG = 0.9862;
+const MIN_BRAKE_SPEED = 10;
 const BULLET_SPEED = 520;
 const PRISON_DEFENSE_RADIUS = 500;
 const PRISON_SHOT_SPEED = 185;
@@ -211,6 +212,7 @@ const RADIO_LINES = [
   "the map is not the territory",
   "deliver the calibration target to the marina. do not roll the aircraft. we will know.",
   "Screenshot Police. Hands up where I can see them!",
+  "Stay clear of Ambrosia. No, that airfield does not exist! We call it the I-505. Yes, that's an Insider joke. But still...",
 ];
 const DEBUG_COLORS = [
   "rgba(245,245,245,0.92)",
@@ -324,6 +326,7 @@ const state = {
   jetSkis: [],
   golfCarts: [],
   fog: [],
+  stars: makeStars(230),
   fires: [],
   lightning: 0,
   lightningBolt: null,
@@ -367,6 +370,7 @@ const state = {
     tremoloGain: null,
     baseGain: 0.1,
     playing: false,
+    audible: false,
     tracks: ["radio/track_01.mp3", "radio/track_02.mp3", "radio/track_03.mp3", "radio/track_04.mp3"],
     trackIndex: 0,
   },
@@ -960,6 +964,27 @@ function resetPlane() {
   statusEl.textContent = "fresh floatplane, highly legal";
 }
 
+function makeStars(count) {
+  const stars = [];
+  let seed = 73491;
+  const random = () => {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+  for (let i = 0; i < count; i++) {
+    const yaw = random() * Math.PI * 2;
+    const elevation = 0.18 + Math.pow(random(), 0.72) * 0.82;
+    const horizontal = Math.cos(elevation);
+    const bright = random() > 0.84;
+    stars.push({
+      dir: [Math.cos(yaw) * horizontal, Math.sin(yaw) * horizontal, Math.sin(elevation)],
+      size: bright ? 2.2 + random() * 1.8 : 0.9 + random() * 1.7,
+      alpha: bright ? 0.74 + random() * 0.22 : 0.42 + random() * 0.48,
+    });
+  }
+  return stars;
+}
+
 function shoot(now) {
   if (now - state.lastShot < 95) return;
   state.lastShot = now;
@@ -1044,7 +1069,7 @@ function turbulenceFactor(pos) {
 
 function updateRadioVolume() {
   const sound = state.sound;
-  if (!sound.master) return;
+  if (!sound.master || !sound.audible) return;
   const weatherGain = 1 - 0.5 * clamp(state.turbulence, 0, 1);
   const phoneDuckGain = state.phone.playing || state.weatherTime < state.phone.duckReleaseAt ? 0.2 : 1;
   const targetGain = sound.baseGain * weatherGain * phoneDuckGain;
@@ -1076,8 +1101,8 @@ function updatePlane(dt, now) {
   const pitchInput = controlsEnabled ? keyAxis("w", "s") + state.gamepad.pitch : 0;
   const rollInput = controlsEnabled ? keyAxis("d", "a") + state.gamepad.roll : 0;
   const yawInput = controlsEnabled ? state.gamepad.yaw : 0;
-  const throttleUp = controlsEnabled ? (state.keys.has("q") || state.keys.has("Q") ? 1 : 0) + state.gamepad.throttleUp : 0;
-  const throttleDown = controlsEnabled ? (state.keys.has("e") || state.keys.has("E") ? 1 : 0) + state.gamepad.throttleDown : 1;
+  const throttleUp = controlsEnabled ? (state.keys.has("e") || state.keys.has("E") ? 1 : 0) + state.gamepad.throttleUp : 0;
+  const throttleDown = controlsEnabled ? (state.keys.has("q") || state.keys.has("Q") ? 1 : 0) + state.gamepad.throttleDown : 1;
   const accelInput = clamp(throttleUp - throttleDown, -1, 1);
   p.throttle += dt * (0.55 * throttleUp - 0.6 * throttleDown);
   p.throttle = clamp(p.throttle, 0, 1);
@@ -1086,8 +1111,8 @@ function updatePlane(dt, now) {
   p.yaw += clamp(yawInput, -1, 1) * dt * 0.9;
   if (controlsEnabled && (state.keys.has("b") || state.keys.has("B") || state.gamepad.brake)) p.vel = scale(p.vel, 0.965);
   if (controlsEnabled && (state.keys.has(" ") || state.gamepad.shoot)) shoot(now);
-  if (controlsEnabled && (state.keys.has("m") || state.keys.has("M") || state.gamepad.missile)) launchMissile(now);
-  if (controlsEnabled && state.gamepad.iconMissile) launchMissile(now, "icon-missile");
+  if (controlsEnabled && (state.keys.has("m") || state.keys.has("M") || state.keys.has("z") || state.keys.has("Z") || state.keys.has("c") || state.keys.has("C") || state.gamepad.missile)) launchMissile(now);
+  if (controlsEnabled && (state.keys.has("x") || state.keys.has("X") || state.gamepad.iconMissile)) launchMissile(now, "icon-missile");
   p.roll *= Math.pow(0.86, dt * 5);
   p.pitch = clamp(p.pitch, -0.85, 0.82);
   const { forward, up } = planeBasis();
@@ -1133,6 +1158,10 @@ function updatePlane(dt, now) {
     }
   }
   p.vel = scale(p.vel, Math.pow(DRAG, dt * 60));
+  if (controlsEnabled && throttleDown > 0) {
+    const brakeSpeed = length(p.vel);
+    if (brakeSpeed < MIN_BRAKE_SPEED) p.vel = scale(brakeSpeed > 0.001 ? normalize(p.vel) : forward, MIN_BRAKE_SPEED);
+  }
   p.pos = add(p.pos, scale(p.vel, dt));
   if (p.pos[2] < 7) {
     p.pos[2] = 7;
@@ -1793,7 +1822,7 @@ function update(dt, now) {
   altitudeEl.textContent = `ALT ${state.plane.pos[2].toFixed(0)}`;
   scoreEl.textContent = `SCORE ${state.score}`;
   modeEl.textContent = state.storm ? "STORM MODE" : "SUNNY CHAOS";
-  weatherButton.textContent = state.storm ? "sunny" : "storm";
+  weatherButton.textContent = state.storm ? "clear" : "storm";
   dayNightButton.textContent = state.night ? "day" : "night";
   const controllerText = state.gamepad.connected ? " / controller" : " / plug in your controller!";
   const tileCount = state.tiles.filter((tile) => tile?.loaded).length;
@@ -2343,8 +2372,9 @@ function drawLandmarkModels(m) {
 function drawOverlay(m) {
   ctx.clearRect(0, 0, state.width, state.height);
   ctx.save();
+  drawStarsOverlay(m);
   if (state.storm) {
-    ctx.fillStyle = "rgba(7, 13, 24, 0.22)";
+    ctx.fillStyle = state.night ? "rgba(0, 0, 0, 0.22)" : "rgba(16, 24, 34, 0.08)";
     ctx.fillRect(0, 0, state.width, state.height);
     drawRainOverlay();
   }
@@ -2404,6 +2434,26 @@ function drawOverlay(m) {
   ctx.lineTo(state.width / 2, state.height / 2 + 10);
   ctx.stroke();
   drawAttitudeCue();
+  ctx.restore();
+}
+
+function drawStarsOverlay(m) {
+  if (!state.night) return;
+  ctx.save();
+  ctx.fillStyle = "rgba(235,245,255,0.85)";
+  for (const star of state.stars) {
+    const pos = add(state.camera.eye, scale(star.dir, 18000));
+    const p = transformPoint(m, worldToGl(...pos));
+    if (p[2] < -1 || p[2] > 1) continue;
+    const x = (p[0] * 0.5 + 0.5) * state.width;
+    const y = (-p[1] * 0.5 + 0.5) * state.height;
+    if (x < -4 || x > state.width + 4 || y < -4 || y > state.height + 4) continue;
+    ctx.globalAlpha = star.alpha;
+    ctx.beginPath();
+    ctx.arc(x, y, star.size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
   ctx.restore();
 }
 
@@ -2536,7 +2586,7 @@ function drawLightningOverlay() {
 function render() {
   resize();
   gl.viewport(0, 0, state.width, state.height);
-  const sky = state.night ? [0, 0, 0, 1] : (state.storm ? [0.025, 0.045, 0.085, 1] : [0.43, 0.72, 0.92, 1]);
+  const sky = state.night ? [0, 0, 0, 1] : (state.storm ? [0.18, 0.22, 0.29, 1] : [0.43, 0.72, 0.92, 1]);
   gl.clearColor(...sky);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   const m = matrix();
@@ -2818,6 +2868,7 @@ async function toggleSound() {
       sound.audio.playbackRate = 0.96;
       sound.audio.play().catch(() => {
         sound.playing = false;
+        sound.audible = false;
         radioButton.textContent = "radio";
       });
     });
@@ -2859,7 +2910,7 @@ async function toggleSound() {
     sound.master = sound.context.createGain();
     const weatherGain = 1 - 0.5 * clamp(state.turbulence, 0, 1);
     const phoneDuckGain = state.phone.playing || state.weatherTime < state.phone.duckReleaseAt ? 0.2 : 1;
-    sound.master.gain.value = sound.baseGain * weatherGain * phoneDuckGain;
+    sound.master.gain.value = 0;
     sound.source
       .connect(sound.highpass)
       .connect(sound.lowpass)
@@ -2870,22 +2921,42 @@ async function toggleSound() {
       .connect(sound.context.destination);
   }
   if (sound.context.state === "suspended") await sound.context.resume();
-  if (sound.playing) {
-    sound.audio.pause();
-    sound.playing = false;
-    radioButton.textContent = "radio";
+  if (sound.audible) {
+    stopRadio();
     return;
   }
+  if (!sound.audio.src) {
+    sound.audio.src = sound.tracks[sound.trackIndex];
+  }
+  const weatherGain = 1 - 0.5 * clamp(state.turbulence, 0, 1);
+  const phoneDuckGain = state.phone.playing || state.weatherTime < state.phone.duckReleaseAt ? 0.2 : 1;
+  sound.master.gain.cancelScheduledValues(sound.context.currentTime);
+  sound.master.gain.setValueAtTime(0, sound.context.currentTime);
+  sound.master.gain.linearRampToValueAtTime(sound.baseGain * weatherGain * phoneDuckGain, sound.context.currentTime + 0.08);
   try {
     sound.audio.playbackRate = 0.96;
-    await sound.audio.play();
+    if (!sound.playing || sound.audio.paused) await sound.audio.play();
     sound.playing = true;
+    sound.audible = true;
     radioButton.textContent = "turn off";
     statusEl.textContent = "radio: busted distant signal";
   } catch (_error) {
+    sound.playing = false;
+    sound.audible = false;
     radioButton.textContent = "radio";
     statusEl.textContent = "missing radio tracks";
   }
+}
+
+function stopRadio() {
+  const sound = state.sound;
+  if (!sound.audio || !sound.master || !sound.context) return;
+  const now = sound.context.currentTime;
+  sound.audible = false;
+  radioButton.textContent = "radio";
+  sound.master.gain.cancelScheduledValues(now);
+  sound.master.gain.setValueAtTime(sound.master.gain.value, now);
+  sound.master.gain.linearRampToValueAtTime(0, now + 0.08);
 }
 
 function skipRadioTrack(direction) {
@@ -2897,6 +2968,7 @@ function skipRadioTrack(direction) {
   if (!sound.playing) return;
   sound.audio.play().catch(() => {
     sound.playing = false;
+    sound.audible = false;
     radioButton.textContent = "radio";
   });
 }
