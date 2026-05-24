@@ -95,6 +95,8 @@ http://127.0.0.1:8026/
 
 The UI has a couple of useful keyboard shortcuts, like `up`/`down` for list navigation, and `esc` (or `cmd+click`) to deselect.
 
+3D map view supports the most common Google Maps controls (`click+drag`, `cmd+click+drag`, etc), and `W`, `A`, `S`, `M` in addition to the arrow keys.
+
 ## Observation Editing
 
 The UI allows you to add, move, rename, and remove observations. These edits are stored locally in `data/observation_edits.json` and applied by the frontend on top of the current **gtamaplib** data. For now, these annotations are stictly private. We're going to add ways to share them in the near future.
