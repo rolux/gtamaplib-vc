@@ -51,6 +51,23 @@ const ICON_TEXTURE = "../ui/gtamaplib-vc.png";
 const WATER_COLOR = [44 / 255, 103 / 255, 164 / 255, 1];
 const NIGHT_MAP_BRIGHTNESS = 0.15;
 const MAP3D_POSE_STORAGE_KEY = "gtamaplib-vc.map3dPose";
+// Previous radio preset: highpass 1100/0.7, lowpass 3200/1.4, distortion 95,
+// compressor -34/4/18/0.005/0.16, tremolo 7.2 Hz at 0.16 depth.
+const RADIO_FILTER = {
+  highpassFrequency: 1700,
+  highpassQ: 0.9,
+  lowpassFrequency: 2850,
+  lowpassQ: 2.1,
+  distortion: 135,
+  compressorThreshold: -38,
+  compressorKnee: 3,
+  compressorRatio: 20,
+  compressorAttack: 0.004,
+  compressorRelease: 0.13,
+  tremoloFrequency: 8.5,
+  tremoloDepth: 0.12,
+  tremoloBase: 0.82,
+};
 const RADIO_LINES = [
   "Vice Tower: experimental flight plan denied, again.",
   "Leonida Approach: whoever is buzzing the postcards, please use a door.",
@@ -709,6 +726,8 @@ const BOAT_LINES = [
   "jason is a cop",
   "bunny is a rider",
   "this is fine",
+  "it's happening",
+  "what year is this?",
 ];
 const MAP_LABELS = [
   { text: "LTF Airfield", pos: [-2850, -4300, 0.08], width: 980, color: "#40ff4f" },
@@ -3641,32 +3660,32 @@ async function toggleSound() {
 
     sound.highpass = sound.context.createBiquadFilter();
     sound.highpass.type = "highpass";
-    sound.highpass.frequency.value = 1100;
-    sound.highpass.Q.value = 0.7;
+    sound.highpass.frequency.value = RADIO_FILTER.highpassFrequency;
+    sound.highpass.Q.value = RADIO_FILTER.highpassQ;
 
     sound.lowpass = sound.context.createBiquadFilter();
     sound.lowpass.type = "lowpass";
-    sound.lowpass.frequency.value = 3200;
-    sound.lowpass.Q.value = 1.4;
+    sound.lowpass.frequency.value = RADIO_FILTER.lowpassFrequency;
+    sound.lowpass.Q.value = RADIO_FILTER.lowpassQ;
 
     sound.shaper = sound.context.createWaveShaper();
-    sound.shaper.curve = distortionCurve();
+    sound.shaper.curve = distortionCurve(RADIO_FILTER.distortion);
     sound.shaper.oversample = "4x";
 
     sound.compressor = sound.context.createDynamicsCompressor();
-    sound.compressor.threshold.value = -34;
-    sound.compressor.knee.value = 4;
-    sound.compressor.ratio.value = 18;
-    sound.compressor.attack.value = 0.005;
-    sound.compressor.release.value = 0.16;
+    sound.compressor.threshold.value = RADIO_FILTER.compressorThreshold;
+    sound.compressor.knee.value = RADIO_FILTER.compressorKnee;
+    sound.compressor.ratio.value = RADIO_FILTER.compressorRatio;
+    sound.compressor.attack.value = RADIO_FILTER.compressorAttack;
+    sound.compressor.release.value = RADIO_FILTER.compressorRelease;
 
     sound.tremoloGain = sound.context.createGain();
-    sound.tremoloGain.gain.value = 0.78;
+    sound.tremoloGain.gain.value = RADIO_FILTER.tremoloBase;
     sound.tremolo = sound.context.createOscillator();
     sound.tremolo.type = "sine";
-    sound.tremolo.frequency.value = 7.2;
+    sound.tremolo.frequency.value = RADIO_FILTER.tremoloFrequency;
     const tremoloDepth = sound.context.createGain();
-    tremoloDepth.gain.value = 0.16;
+    tremoloDepth.gain.value = RADIO_FILTER.tremoloDepth;
     sound.tremolo.connect(tremoloDepth).connect(sound.tremoloGain.gain);
     sound.tremolo.start();
 
