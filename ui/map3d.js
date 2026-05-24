@@ -18,6 +18,7 @@ const YANIS_WATER_COLOR = [44 / 255, 103 / 255, 164 / 255, 1];
 const CAMERA_CONE_DISTANCE = 100;
 const CAMERA_THUMBNAIL_DISTANCE = CAMERA_CONE_DISTANCE * 0.995;
 const TOUR_DWELL_MS = 1200;
+const TOUR_EYE_CONTROL_MIN_Z = 10;
 const MAX_TARGET_RADIUS = 32768;
 
 const root = document.querySelector("#map3d-root");
@@ -528,14 +529,15 @@ function viewForCamera(camera) {
 
 function idSortKey(camera) {
   const id = String(camera.id || "");
-  const match = id.match(/^([A-Za-z]+)(\d+)(?:\/(\d+))?/);
-  if (!match) return [Number.POSITIVE_INFINITY, 99, Number.POSITIVE_INFINITY, camera.name];
+  const match = id.match(/^([A-Z])(\d+)(?:\/(\d+))?/i);
+  if (!match) return [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, id];
   const letterOrder = { L: 0, T: 1, S: 2 };
+  const letter = match[1].toUpperCase();
   return [
     Number(match[2]),
-    letterOrder[match[1][0].toUpperCase()] ?? 50,
-    Number(match[3] || 0),
-    camera.name,
+    letterOrder[letter] ?? Number.POSITIVE_INFINITY,
+    match[3] === undefined ? Number.POSITIVE_INFINITY : Number(match[3]),
+    id,
   ];
 }
 
@@ -546,7 +548,7 @@ function compareCameraIds(a, b) {
     if (ak[i] < bk[i]) return -1;
     if (ak[i] > bk[i]) return 1;
   }
-  return 0;
+  return (a.order ?? a.map3dOrder ?? 0) - (b.order ?? b.map3dOrder ?? 0);
 }
 
 function makeTourSegment(from, to) {
@@ -554,11 +556,15 @@ function makeTourSegment(from, to) {
   const toDirection = normalize(subtract(to.target, to.eye));
   const span = Math.hypot(to.eye[0] - from.eye[0], to.eye[1] - from.eye[1], to.eye[2] - from.eye[2]);
   const handle = Math.max(350, Math.min(2600, span * 0.35));
+  const eyeC1 = add(from.eye, scale(fromDirection, handle));
+  const eyeC2 = subtract(to.eye, scale(toDirection, handle));
+  eyeC1[1] = Math.max(eyeC1[1], TOUR_EYE_CONTROL_MIN_Z);
+  eyeC2[1] = Math.max(eyeC2[1], TOUR_EYE_CONTROL_MIN_Z);
   return {
     from,
     to,
-    eyeC1: add(from.eye, scale(fromDirection, handle)),
-    eyeC2: subtract(to.eye, scale(toDirection, handle)),
+    eyeC1,
+    eyeC2,
     targetC1: add(from.target, scale(fromDirection, handle)),
     targetC2: subtract(to.target, scale(toDirection, handle)),
     duration: Math.max(2600, Math.min(7000, span * 0.32)),
@@ -1109,6 +1115,9 @@ async function init() {
   } catch (_error) {
     // The 3D experiment can run from raw imported data alone.
   }
+  data.cameras.forEach((camera, index) => {
+    camera.map3dOrder = index;
+  });
   state.cameras = data.cameras.filter(isDisplayCamera);
   state.landmarks = data.landmarks.filter((landmark) => landmark.xyz);
   const colors = await loadJson(GTAMAPLIB_COLORS);
