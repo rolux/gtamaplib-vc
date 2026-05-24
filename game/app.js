@@ -390,7 +390,7 @@ const state = {
       { folder: "phone/conversation_04", count: 39 },
       { folder: "phone/conversation_05", count: 47 },
       { folder: "phone/conversation_06", count: 36 },
-      { folder: "phone/conversation_07", count: 36 },
+      { folder: "phone/conversation_07", count: 37 },
       { folder: "phone/conversation_08", count: 59 },
     ],
   },
