@@ -56,7 +56,7 @@ const state = {
   wireframes: [],
   colors: new Map(),
   thumbnails: new Map(),
-  blurLeaks: false,
+  blurLeaks: true,
   useMonospaceFont: false,
   tour: {
     active: false,
@@ -1166,8 +1166,8 @@ export function activateMap3d(options = {}) {
 }
 
 export function setMap3dSettings(options = {}) {
-  state.blurLeaks = Boolean(options.blurLeaks);
-  state.useMonospaceFont = Boolean(options.useMonospaceFont);
+  if (Object.hasOwn(options, "blurLeaks")) state.blurLeaks = Boolean(options.blurLeaks);
+  if (Object.hasOwn(options, "useMonospaceFont")) state.useMonospaceFont = Boolean(options.useMonospaceFont);
   if (!root.hidden) render();
 }
 
