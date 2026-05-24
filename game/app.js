@@ -213,6 +213,7 @@ const RADIO_LINES = [
   "deliver the calibration target to the marina. do not roll the aircraft. we will know.",
   "Screenshot Police. Hands up where I can see them!",
   "Stay clear of Ambrosia. No, that airfield does not exist! We call it the I-505. Yes, that's an Insider joke. But still...",
+  "Notice to airmen: you are not REALLY airmen, okay?",
 ];
 const DEBUG_COLORS = [
   "rgba(245,245,245,0.92)",
