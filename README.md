@@ -184,6 +184,6 @@ If you have trouble setting it up, ask your own AI first. They should be able to
 
 And if you have Claude or Codex, why not ask them to add your own favorite features? This is open source software, after all.
 
-<bn>
+## 3D Tour video
 
-[![3D Tour](https://img.youtube.com/vi/4l_GOzurTRA/maxresdefault.jpg)](https://www.youtube.com/watch?v=4l_GOzurTRA)
+[![](https://img.youtube.com/vi/4l_GOzurTRA/maxresdefault.jpg)](https://www.youtube.com/watch?v=4l_GOzurTRA)
