@@ -63,6 +63,7 @@ const state = {
   blurLeaks: true,
   useMonospaceFont: false,
   transitionRaf: null,
+  controlsRaf: null,
   tour: {
     active: false,
     paused: false,
@@ -602,6 +603,26 @@ function stopTransitionFrame() {
   }
 }
 
+function stopControlsFrame() {
+  if (state.controlsRaf) {
+    cancelAnimationFrame(state.controlsRaf);
+    state.controlsRaf = null;
+  }
+}
+
+function startControlsFrame() {
+  if (!state.controlsRaf) state.controlsRaf = requestAnimationFrame(updateControls);
+}
+
+function suspendMap3d() {
+  stopTour();
+  stopTransitionFrame();
+  stopControlsFrame();
+  state.keys.clear();
+  state.dragging = null;
+  state.dragGroundPoint = null;
+}
+
 function animateToView(to, onDone) {
   stopTourFrame();
   stopTransitionFrame();
@@ -822,7 +843,23 @@ function cameraThumbnailVertices(camera) {
   ]);
 }
 
+function cameraThumbnailInView(camera, matrix) {
+  if (!camera.xyz || !camera.ypr || !camera.fov) return false;
+  const hf = Math.tan((camera.fov[0] || 50) * Math.PI / 360);
+  const vf = Math.tan((camera.fov[1] || 35) * Math.PI / 360);
+  return [[-hf, vf], [hf, vf], [hf, -vf], [-hf, -vf]].some(([u, v]) => {
+    const d = directionFromYpr(camera.ypr, u, v);
+    const p = transformPoint(matrix, worldToGl(
+      camera.xyz[0] + d[0] * CAMERA_THUMBNAIL_DISTANCE,
+      camera.xyz[1] + d[1] * CAMERA_THUMBNAIL_DISTANCE,
+      camera.xyz[2] + d[2] * CAMERA_THUMBNAIL_DISTANCE,
+    ));
+    return p[2] >= -1 && p[2] <= 1 && p[0] >= -1.2 && p[0] <= 1.2 && p[1] >= -1.2 && p[1] <= 1.2;
+  });
+}
+
 function drawCameraThumbnail(camera, matrix) {
+  if (!cameraThumbnailInView(camera, matrix)) return;
   const thumbnail = thumbnailTexture(camera);
   if (!thumbnail?.loaded) return;
   const vertices = cameraThumbnailVertices(camera);
@@ -1018,6 +1055,29 @@ function zoomAt(clientX, clientY, factor) {
   render();
 }
 
+function updateControls() {
+  state.controlsRaf = null;
+  if (root.hidden) return;
+  if (state.tour.active) {
+    startControlsFrame();
+    return;
+  }
+  const move = state.distance * 0.01;
+  let dirty = false;
+  if (state.keys.has("w") || state.keys.has("W")) { panBy(0, -move); dirty = true; }
+  if (state.keys.has("s") || state.keys.has("S")) { panBy(0, move); dirty = true; }
+  if (state.keys.has("a") || state.keys.has("A")) { panBy(-move, 0); dirty = true; }
+  if (state.keys.has("d") || state.keys.has("D")) { panBy(move, 0); dirty = true; }
+  if (state.keys.has("q") || state.keys.has("Q")) { state.target[1] -= move; dirty = true; }
+  if (state.keys.has("e") || state.keys.has("E")) { state.target[1] += move; dirty = true; }
+  if (state.keys.has("ArrowLeft")) { state.yaw += 0.025; dirty = true; }
+  if (state.keys.has("ArrowRight")) { state.yaw -= 0.025; dirty = true; }
+  if (state.keys.has("ArrowUp")) { state.pitch = Math.min(1.45, state.pitch + 0.018); dirty = true; }
+  if (state.keys.has("ArrowDown")) { state.pitch = Math.max(0.12, state.pitch - 0.018); dirty = true; }
+  if (dirty) render();
+  startControlsFrame();
+}
+
 function installControls() {
   scene.tabIndex = 0;
   tourStartButton.addEventListener("click", startTour);
@@ -1032,7 +1092,8 @@ function installControls() {
   if (gameButton) {
     gameButton.addEventListener("click", () => {
       animateToView(gameStartView(), () => {
-        window.location.href = "/game";
+        suspendMap3d();
+        window.location.replace("/game");
       });
     });
   }
@@ -1118,27 +1179,7 @@ function installControls() {
   window.addEventListener("keyup", (event) => {
     state.keys.delete(event.key);
   });
-  function step() {
-    if (state.tour.active) {
-      requestAnimationFrame(step);
-      return;
-    }
-    const move = state.distance * 0.01;
-    let dirty = false;
-    if (state.keys.has("w") || state.keys.has("W")) { panBy(0, -move); dirty = true; }
-    if (state.keys.has("s") || state.keys.has("S")) { panBy(0, move); dirty = true; }
-    if (state.keys.has("a") || state.keys.has("A")) { panBy(-move, 0); dirty = true; }
-    if (state.keys.has("d") || state.keys.has("D")) { panBy(move, 0); dirty = true; }
-    if (state.keys.has("q") || state.keys.has("Q")) { state.target[1] -= move; dirty = true; }
-    if (state.keys.has("e") || state.keys.has("E")) { state.target[1] += move; dirty = true; }
-    if (state.keys.has("ArrowLeft")) { state.yaw += 0.025; dirty = true; }
-    if (state.keys.has("ArrowRight")) { state.yaw -= 0.025; dirty = true; }
-    if (state.keys.has("ArrowUp")) { state.pitch = Math.min(1.45, state.pitch + 0.018); dirty = true; }
-    if (state.keys.has("ArrowDown")) { state.pitch = Math.max(0.12, state.pitch - 0.018); dirty = true; }
-    if (dirty) render();
-    requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
+  startControlsFrame();
 }
 
 async function loadJson(path) {
@@ -1226,6 +1267,7 @@ export function activateMap3d(options = {}) {
   exitHandler = options.onExit || null;
   setMap3dSettings(options);
   root.hidden = false;
+  startControlsFrame();
   return init().then(() => {
     resize();
     applyStoredPose();
@@ -1244,8 +1286,6 @@ export function setMap3dSettings(options = {}) {
 }
 
 export function deactivateMap3d() {
-  stopTour();
-  state.keys.clear();
-  state.dragging = null;
+  suspendMap3d();
   root.hidden = true;
 }

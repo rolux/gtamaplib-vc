@@ -371,6 +371,8 @@ const state = {
   stickFlash: 0,
   deadZoneCrash: false,
   deadZoneResetAt: 0,
+  frame: null,
+  running: true,
   lastShot: 0,
   lastMissile: 0,
   lastTime: performance.now(),
@@ -1548,6 +1550,14 @@ function writeMap3dPose() {
     target: worldToGl(...state.camera.target),
     vfov: 45,
   }));
+}
+
+function stopGameLoop() {
+  state.running = false;
+  if (state.frame) {
+    cancelAnimationFrame(state.frame);
+    state.frame = null;
+  }
 }
 
 function updateAirliner(dt) {
@@ -2945,11 +2955,12 @@ async function loadData() {
 }
 
 function tick(now) {
+  if (!state.running) return;
   const dt = Math.min(0.035, (now - state.lastTime) / 1000 || 0.016);
   state.lastTime = now;
   update(dt, now);
   render();
-  requestAnimationFrame(tick);
+  state.frame = requestAnimationFrame(tick);
 }
 
 function distortionCurve(amount = 95) {
@@ -3232,7 +3243,8 @@ function installControls() {
   resetButton.addEventListener("click", resetPlane);
   exitButton.addEventListener("click", () => {
     writeMap3dPose();
-    window.location.href = "/#view=map3d";
+    stopGameLoop();
+    window.location.replace("/#view=map3d");
   });
 }
 
@@ -3246,7 +3258,7 @@ async function main() {
   loadTiles();
   await loadData();
   updateDetailTiles();
-  requestAnimationFrame((now) => {
+  state.frame = requestAnimationFrame((now) => {
     state.lastTime = now;
     tick(now);
   });
