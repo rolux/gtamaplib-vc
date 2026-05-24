@@ -43,13 +43,13 @@ body.use-monospace-font #map3d-root {
   position: fixed;
   display: flex;
   align-items: center;
-  height: 32px;
+  height: 28px;
   padding: 0 10px;
   border-radius: 6px;
   background: rgba(0, 0, 0, 0.58);
   color: rgba(255, 255, 255, 0.78);
   font-size: 13px;
-  line-height: 32px;
+  line-height: 28px;
 }
 
 #map3d-left-controls {
@@ -91,8 +91,7 @@ body.use-monospace-font #map3d-root {
   position: static;
   border: 0;
   font: inherit;
-  line-height: 30px;
-  padding-bottom: 1px;
+  line-height: 28px;
   cursor: pointer;
 }
 
