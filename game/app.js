@@ -24,6 +24,9 @@ const DRAG = 0.9862;
 const BULLET_SPEED = 520;
 const PRISON_DEFENSE_RADIUS = 500;
 const PRISON_SHOT_SPEED = 185;
+const FIGHTER_ROUTE_SPEED = 0.045;
+const FIGHTER_ATTACK_SECONDS = 15;
+const FIGHTER_SHOT_SPEED = 260;
 const LEAF_LINKS_CENTER = [730, 2390, 0];
 const LEAF_LINKS_RADIUS = 150;
 const CAMERA_CHASE = 46;
@@ -204,10 +207,10 @@ const RADIO_LINES = [
   "You are NOT on approach. This airfield is PURE SPECULATION.",
   "What do you mean \"where is the panhandle?\"",
   "Roger. I mean, no... not you!",
-  "Delta Alpha Foxtrott. I repeat: Foxtrott!",
+  "Delta Tango Foxtrott. I repeat: Foxtrott!",
   "the map is not the territory",
   "deliver the calibration target to the marina. do not roll the aircraft. we will know.",
-  "Screenshot Police. Hands where I can see them!",
+  "Screenshot Police. Hands up where I can see them!",
 ];
 const DEBUG_COLORS = [
   "rgba(245,245,245,0.92)",
@@ -312,6 +315,7 @@ const state = {
   bullets: [],
   prisonTowers: [],
   prisonShots: [],
+  fighterShots: [],
   iconTexture: null,
   screenshotHits: new Set(),
   particles: [],
@@ -377,10 +381,17 @@ const state = {
     lineIndex: 0,
     pauseTimeout: null,
     duckReleaseAt: 0,
+    availableAt: 5,
+    baseGain: 0.333,
     conversations: [
       { folder: "phone/conversation_01", count: 20 },
       { folder: "phone/conversation_02", count: 23 },
       { folder: "phone/conversation_03", count: 26 },
+      { folder: "phone/conversation_04", count: 39 },
+      { folder: "phone/conversation_05", count: 47 },
+      { folder: "phone/conversation_06", count: 36 },
+      { folder: "phone/conversation_07", count: 36 },
+      { folder: "phone/conversation_08", count: 59 },
     ],
   },
   gamepad: {
@@ -442,6 +453,18 @@ const state = {
     next: 95,
     pos: [-7000, 4500, 2],
     yaw: 0,
+  },
+  fighterJet: {
+    active: false,
+    direction: 1,
+    t: 0,
+    next: 260 + Math.random() * 220,
+    pos: [-6250, -6750, 260],
+    yaw: 0,
+    pitch: 0,
+    roll: 0,
+    route: null,
+    cooldown: 0,
   },
   keysSeaplane: {
     active: false,
@@ -1028,6 +1051,19 @@ function updateRadioVolume() {
   sound.master.gain.setTargetAtTime(targetGain, sound.context.currentTime, 0.5);
 }
 
+function updatePhoneButtonVisibility() {
+  const visible = state.phone.playing || state.weatherTime >= state.phone.availableAt;
+  phoneButton.hidden = !visible;
+  phoneButton.disabled = !visible;
+}
+
+function updatePhoneVolume() {
+  const phone = state.phone;
+  if (!phone.gain) return;
+  const deadZoneGain = state.plane.pos[1] > DEAD_ZONE_START ? 0.5 : 1;
+  phone.gain.gain.setTargetAtTime(phone.baseGain * deadZoneGain, phone.context.currentTime, 0.5);
+}
+
 function updatePlane(dt, now) {
   const p = state.plane;
   pollGamepad();
@@ -1108,6 +1144,7 @@ function updatePlane(dt, now) {
       statusEl.textContent = "bonk";
       if (state.deadZoneCrash && !state.deadZoneResetAt) {
         state.deadZoneResetAt = state.weatherTime + 1;
+        if (state.phone.playing) stopPhone("phone: signal lost");
         p.vel = [0, 0, 0];
         statusEl.textContent = "signal lost";
       }
@@ -1220,6 +1257,26 @@ function updateBullets(dt) {
   }
   state.bullets = state.bullets.filter((bullet) => bullet.life > 0);
   if (state.targets.every((target) => target.dead)) makeTargets();
+}
+
+function updateFighterShots(dt) {
+  const plane = state.plane.pos;
+  for (const shot of state.fighterShots) {
+    shot.life -= dt;
+    const speed = length(shot.vel);
+    const desired = normalize(subtract(add(plane, scale(state.plane.vel, 0.35)), shot.pos));
+    shot.vel = scale(normalize(add(scale(normalize(shot.vel), 0.95), scale(desired, 0.05))), speed);
+    shot.pos = add(shot.pos, scale(shot.vel, dt));
+    if (Math.random() < dt * 12) spawnParticles(shot.pos, [0.52, 0.54, 0.55, 0.42], 1, 7);
+    if (Math.hypot(shot.pos[0] - plane[0], shot.pos[1] - plane[1], shot.pos[2] - plane[2]) < 24) {
+      shot.life = 0;
+      state.plane.vel = add(state.plane.vel, scale(normalize(subtract(plane, shot.pos)), 22));
+      spawnParticles(plane, [0.52, 0.54, 0.55, 0.88], 28, 46);
+      statusEl.textContent = "fighter intercept: rude but accurate";
+      rumbleGamepad(150, 0.18, 0.52);
+    }
+  }
+  state.fighterShots = state.fighterShots.filter((shot) => shot.life > 0);
 }
 
 function updatePrisonDefense(dt) {
@@ -1392,6 +1449,7 @@ function updateAmbientActors(dt) {
   state.chopper.yaw = chopperAngle + Math.PI / 2;
 
   updateKeysSeaplane(dt);
+  updateFighterJet(dt);
   updateRouteShip(dt, state.cruiseShip, [[3000, -3500, 2], [500, -5500, 2], [-500, -7500, 2]], 0.0048, 180, 260);
   updateRouteShip(dt, state.containerShip, [[-7000, 4500, 2], [-8500, 3500, 2], [-10500, 4500, 2]], 0.0038, 220, 320);
 
@@ -1412,6 +1470,79 @@ function updateAmbientActors(dt) {
 
   updateJetSkis(dt);
   updateGolfCarts(dt);
+}
+
+function fighterRoutePoint(route, t) {
+  return quadraticRoutePoint(route, t, 1);
+}
+
+function scheduleNextFighterJet() {
+  state.fighterJet.next = 480 + Math.random() * 520;
+}
+
+function spawnFighterJet() {
+  const jet = state.fighterJet;
+  const airbase = [-6250, -6750, 260];
+  const spaceCenter = [500, 7000, 620];
+  const startAtAirbase = Math.random() < 0.5;
+  const start = startAtAirbase ? airbase : spaceCenter;
+  const end = startAtAirbase ? spaceCenter : airbase;
+  const player = state.plane.pos;
+  const intercept = [player[0], player[1], Math.max(190, player[2] + 70)];
+  jet.active = true;
+  jet.direction = startAtAirbase ? 1 : -1;
+  jet.t = 0;
+  jet.route = [start, intercept, end];
+  jet.pos = [...start];
+  jet.cooldown = 1.2 + Math.random() * 1.4;
+  statusEl.textContent = "unidentified fast mover";
+}
+
+function fireFighterShot() {
+  const jet = state.fighterJet;
+  const aim = add(state.plane.pos, scale(state.plane.vel, 0.35));
+  const dir = normalize(subtract(aim, jet.pos));
+  state.fighterShots.push({
+    pos: add(jet.pos, scale(dir, 24)),
+    vel: scale(dir, FIGHTER_SHOT_SPEED + Math.random() * 45),
+    life: 6.5,
+  });
+  spawnParticles(jet.pos, [0.62, 0.64, 0.66, 0.68], 5, 18);
+}
+
+function updateFighterJet(dt) {
+  const jet = state.fighterJet;
+  if (!jet.active) {
+    jet.next -= dt;
+    if (jet.next > 0) return;
+    spawnFighterJet();
+  }
+  jet.t += dt * FIGHTER_ROUTE_SPEED;
+  if (jet.t >= 1) {
+    jet.active = false;
+    jet.route = null;
+    scheduleNextFighterJet();
+    return;
+  }
+  const p0 = fighterRoutePoint(jet.route, Math.max(0, jet.t - 0.006));
+  const p1 = fighterRoutePoint(jet.route, jet.t);
+  const p2 = fighterRoutePoint(jet.route, Math.min(1, jet.t + 0.006));
+  const dx = p2[0] - p0[0];
+  const dy = p2[1] - p0[1];
+  const dz = p2[2] - p0[2];
+  jet.pos = p1;
+  jet.yaw = Math.atan2(-dx, dy);
+  jet.pitch = clamp(Math.atan2(dz, Math.hypot(dx, dy)), -0.28, 0.28);
+  jet.roll = clamp(-dx / Math.max(600, Math.hypot(dx, dy)), -0.42, 0.42);
+
+  const attackWindow = FIGHTER_ATTACK_SECONDS * FIGHTER_ROUTE_SPEED * 0.5;
+  if (Math.abs(jet.t - 0.5) < attackWindow) {
+    jet.cooldown -= dt;
+    if (jet.cooldown <= 0) {
+      fireFighterShot();
+      jet.cooldown = 1.05 + Math.random() * 1.35;
+    }
+  }
 }
 
 function quadraticRoutePoint(points, t, direction = 1) {
@@ -1647,12 +1778,15 @@ function update(dt, now) {
   updateDetailTiles();
   updateScreenshotFlyThroughs();
   updateBullets(dt);
+  updateFighterShots(dt);
   updatePrisonDefense(dt);
   updateParticles(dt);
   updateDebugOverlay();
   updateBlockedPopup();
   updateCamera(dt);
   updateRadioVolume();
+  updatePhoneVolume();
+  updatePhoneButtonVisibility();
   speedEl.textContent = `SPD ${length(state.plane.vel).toFixed(0)}`;
   latitudeEl.textContent = `LAT ${Math.round(state.plane.pos[1])}`;
   longitudeEl.textContent = `LNG ${Math.round(state.plane.pos[0])}`;
@@ -1661,12 +1795,12 @@ function update(dt, now) {
   modeEl.textContent = state.storm ? "STORM MODE" : "SUNNY CHAOS";
   weatherButton.textContent = state.storm ? "sunny" : "storm";
   dayNightButton.textContent = state.night ? "day" : "night";
-  const padText = state.gamepad.connected ? " / pad" : "";
+  const controllerText = state.gamepad.connected ? " / controller" : " / plug in your controller!";
   const tileCount = state.tiles.filter((tile) => tile?.loaded).length;
   const landmarkCount = state.landmarkModels.filter((model) => model.texture?.loaded).length;
-  tilesEl.textContent = `${tileCount} tiles / ${landmarkCount} landmarks${padText}`;
+  tilesEl.textContent = `${tileCount} tiles / ${landmarkCount} landmarks${controllerText}`;
   if (state.gamepad.connected && statusEl.textContent === "fresh floatplane, highly legal") {
-    statusEl.textContent = "pad: left stick fly, right stick look, L1/R1 throttle, X shoots, □/○/△ missiles";
+    statusEl.textContent = "controller: left stick fly, right stick look, L1/R1 throttle, X shoots, □/○/△ missiles";
   }
 }
 
@@ -1784,6 +1918,24 @@ function drawKeysSeaplane(m) {
     prop.push(...worldToGl(...p1), ...worldToGl(...p2));
   }
   drawColor(prop, [0.03, 0.035, 0.04, 0.45], m, gl.LINES);
+}
+
+function drawFighterJet(m) {
+  const jet = state.fighterJet;
+  if (!jet.active) return;
+  const b = actorBasis(jet);
+  const tri = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, jet.pos)));
+  const line = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, jet.pos)));
+  const body = [];
+  pushEllipsoid(body, [0, 0, 0], [5.8, 25, 4.7], 6, 12);
+  drawColor(meshVertices(body, b, jet.pos), [0.16, 0.18, 0.19, 1], m);
+  drawColor(tri([-4.4, 19, -1.2], [4.4, 19, -1.2], [0, 34, 0.2], [-4.0, 12, 2.8], [4.0, 12, 2.8], [0, 24, 4.1]), [0.09, 0.1, 0.11, 1], m);
+  drawColor(tri([-7, -5, 0], [-50, -18, 0.5], [-9, 8, 1.3], [7, -5, 0], [50, -18, 0.5], [9, 8, 1.3]), [0.2, 0.22, 0.23, 1], m);
+  drawColor(tri([-4.5, -18, 0.2], [-25, -33, 0.8], [-5, -9, 1.1], [4.5, -18, 0.2], [25, -33, 0.8], [5, -9, 1.1]), [0.17, 0.19, 0.2, 1], m);
+  drawColor(tri([0, -18, 0], [0, -34, 13], [0, -23, 1.4]), [0.13, 0.15, 0.16, 1], m);
+  drawColor(tri([-2.4, 18.5, 3.4], [2.4, 18.5, 3.4], [0, 9, 4.9]), [0.03, 0.04, 0.05, 1], m);
+  drawColor(tri([0, -31, 10.5], [0, -25, 8.1], [0, -28, 13.2], [-2.2, -26, 7.8], [-8.8, -35, 7.6], [-2.4, -31, 11.2], [2.2, -26, 7.8], [8.8, -35, 7.6], [2.4, -31, 11.2]), [0.88, 0.68, 0.08, 1], m);
+  drawColor(line([-4.8, -25, -1.6], [-10, -34, -2.2], [4.8, -25, -1.6], [10, -34, -2.2], [-50, -18, 0.5], [-62, -28, 0.2], [50, -18, 0.5], [62, -28, 0.2]), [0.46, 0.48, 0.5, 0.6], m, gl.LINES);
 }
 
 function drawAirliner(m) {
@@ -2006,6 +2158,7 @@ function drawBullets(m) {
   const lines = [];
   const missileLines = [];
   const prisonLines = [];
+  const fighterLines = [];
   const iconMissiles = [];
   const { right, up } = cameraBillboardBasis();
   for (const bullet of state.bullets) {
@@ -2018,9 +2171,14 @@ function drawBullets(m) {
     const tail = subtract(shot.pos, scale(normalize(shot.vel), 26));
     prisonLines.push(...worldToGl(...tail), ...worldToGl(...shot.pos));
   }
+  for (const shot of state.fighterShots) {
+    const tail = subtract(shot.pos, scale(normalize(shot.vel), 30));
+    fighterLines.push(...worldToGl(...tail), ...worldToGl(...shot.pos));
+  }
   drawColor(lines, [1, 0.9, 0.32, 1], m, gl.LINES);
   drawColor(missileLines, [1, 0.28, 0.08, 1], m, gl.LINES);
   drawColor(thickenLines(prisonLines, [0, 0.1, -0.1]), [0.04, 0.12, 0.46, 0.92], m, gl.LINES);
+  drawColor(thickenLines(fighterLines, [0, 0.12, -0.12]), [0.54, 0.56, 0.58, 0.95], m, gl.LINES);
   if (state.iconTexture?.loaded && iconMissiles.length) {
     drawTextured(iconMissiles, state.iconTexture.texture, m, 1);
   }
@@ -2403,6 +2561,7 @@ function render() {
   drawChopper(m);
   drawAirliner(m);
   drawKeysSeaplane(m);
+  drawFighterJet(m);
   drawPlane(m);
   drawSprites(m);
   gl.disable(gl.BLEND);
@@ -2565,7 +2724,8 @@ function ensurePhoneAudio() {
   phone.context = new AudioCtx();
   phone.source = phone.context.createMediaElementSource(phone.audio);
   phone.gain = phone.context.createGain();
-  phone.gain.gain.value = 0.333;
+  const deadZoneGain = state.plane.pos[1] > DEAD_ZONE_START ? 0.5 : 1;
+  phone.gain.gain.value = phone.baseGain * deadZoneGain;
   phone.source.connect(phone.gain).connect(phone.context.destination);
 }
 
@@ -2587,7 +2747,9 @@ function stopPhone(status = "phone: disconnected") {
   phone.activeConversation = null;
   phone.lineIndex = 0;
   phone.duckReleaseAt = state.weatherTime + 0.5;
+  phone.availableAt = state.weatherTime + 5;
   phoneButton.textContent = "phone";
+  updatePhoneButtonVisibility();
   statusEl.textContent = status;
 }
 
@@ -2626,6 +2788,7 @@ async function togglePhone() {
     stopPhone("phone: hung up");
     return;
   }
+  if (state.weatherTime < phone.availableAt) return;
 
   ensurePhoneAudio();
   if (phone.context.state === "suspended") await phone.context.resume();
@@ -2636,6 +2799,7 @@ async function togglePhone() {
   phone.duckReleaseAt = 0;
   phone.playing = true;
   phoneButton.textContent = "hang up";
+  updatePhoneButtonVisibility();
   statusEl.textContent = "phone: connected";
   playPhoneLine();
 }
