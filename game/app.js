@@ -2263,11 +2263,54 @@ function updateKeysSeaplane(dt) {
   plane.roll = Math.sin(plane.t * Math.PI * 2) * 0.08;
 }
 
+function balancedTextLines(text, targetLength = 62) {
+  if (text.length <= targetLength) return [text];
+  const words = text.split(/\s+/).filter(Boolean);
+  const lineCount = clamp(Math.ceil(text.length / targetLength), 2, 4);
+  const lengths = words.map((word) => word.length);
+  const prefix = [0];
+  for (const length of lengths) prefix.push(prefix[prefix.length - 1] + length);
+  const lineLength = (start, end) => prefix[end] - prefix[start] + end - start - 1;
+  const target = text.length / lineCount;
+  const costs = Array.from({ length: lineCount + 1 }, () => Array(words.length + 1).fill(Infinity));
+  const splits = Array.from({ length: lineCount + 1 }, () => Array(words.length + 1).fill(0));
+  costs[0][0] = 0;
+  for (let line = 1; line <= lineCount; line++) {
+    for (let end = line; end <= words.length; end++) {
+      for (let start = line - 1; start < end; start++) {
+        const length = lineLength(start, end);
+        const cost = costs[line - 1][start] + (length - target) ** 2;
+        if (cost < costs[line][end]) {
+          costs[line][end] = cost;
+          splits[line][end] = start;
+        }
+      }
+    }
+  }
+  const lines = [];
+  let end = words.length;
+  for (let line = lineCount; line > 0; line--) {
+    const start = splits[line][end];
+    lines.unshift(words.slice(start, end).join(" "));
+    end = start;
+  }
+  return lines;
+}
+
+function setRadioText(text) {
+  const lines = balancedTextLines(text);
+  radioEl.replaceChildren();
+  lines.forEach((line, index) => {
+    if (index) radioEl.appendChild(document.createElement("br"));
+    radioEl.appendChild(document.createTextNode(line));
+  });
+}
+
 function updateRadio(dt) {
   state.radioTime += dt;
   if (state.radioTime > state.radioNext) {
     if (!state.radioQueue.length) state.radioQueue = shuffle([...RADIO_LINES]);
-    radioEl.textContent = state.radioQueue.pop();
+    setRadioText(state.radioQueue.pop());
     radioEl.classList.add("visible");
     state.radioIndex += 1;
     state.radioUntil = state.radioTime + 4.2;
@@ -2289,11 +2332,20 @@ function nonInteractiveEventParts() {
 }
 
 const NON_INTERACTIVE_EVENT_PARTS = nonInteractiveEventParts();
+const NON_INTERACTIVE_EVENT_ACRONYMS = [
+  ...NON_INTERACTIVE_EVENT_PARTS.map((event) => event.acronym),
+  "NIECCCP",
+  "NIEPTSD",
+  "NIEADHD",
+  "NIEVVIP",
+  "NIEBSOD",
+  "NIEMALS",
+];
 
 function formatNonInteractiveEvent() {
   const maxLength = 50;
   const number = pick(NON_INTERACTIVE_EVENT_PARTS).number;
-  const acronym = pick(NON_INTERACTIVE_EVENT_PARTS).acronym;
+  const acronym = pick(NON_INTERACTIVE_EVENT_ACRONYMS);
   const words = NON_INTERACTIVE_EVENT_PARTS.flatMap((event) => event.words);
   let text = `${number} ${acronym} -`;
   const used = new Set();
@@ -3714,6 +3766,11 @@ function installControls() {
     if (event.metaKey || event.ctrlKey || event.altKey) return;
     if (event.key === " ") event.preventDefault();
     if (event.key === "/") {
+      event.preventDefault();
+      toggleSound();
+      return;
+    }
+    if (event.key === "\\") {
       event.preventDefault();
       toggleTrevorMode();
       return;
