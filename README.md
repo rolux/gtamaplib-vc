@@ -201,4 +201,4 @@ And if you have Claude or Codex, why not ask them to add your own favorite featu
 
 ## Game Mode screenshot
 
-![](https://gtadb.org/gtamaplib/game.jpg)
+![](https://gtadb.org/gtamaplib-vc/game.jpg)
