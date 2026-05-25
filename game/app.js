@@ -717,6 +717,8 @@ const DEBUG_COLORS = [
   "rgba(255,238,58,0.92)",
   "rgba(36,255,228,0.9)",
 ];
+const DEBUG_TYPE_CHAR_TIME = 0.0045;
+const DEBUG_TYPE_LINE_PAUSE = 0.025;
 const DEBUG_TEMPLATES = [
   "TASKS FULL",
   "TASKS BRIEF",
@@ -930,6 +932,7 @@ const state = {
     yaw: 0,
     target: [-5250, 7250, 0],
     pause: 2,
+    targetAge: 0,
     speed: 16,
   },
   fog: [],
@@ -2571,13 +2574,15 @@ function updateElephant(dt) {
     elephant.pause -= dt;
     if (elephant.pause <= 0) {
       elephant.target = randomElephantTarget();
+      elephant.targetAge = 0;
       elephant.speed = 8 + Math.random() * 18;
     }
     return;
   }
+  elephant.targetAge += dt;
   const delta = subtract(elephant.target, elephant.pos);
   const distance = Math.hypot(delta[0], delta[1]);
-  if (distance < 8) {
+  if (distance < 8 || elephant.targetAge > 15) {
     elephant.pause = 1.6 + Math.random() * 5.2;
     return;
   }
@@ -2773,7 +2778,8 @@ function makeDebugLine(template) {
 }
 
 function triggerDebugOverlay() {
-  const count = 16 + Math.floor(Math.random() * 7);
+  const baseline = 19;
+  const count = Math.round(baseline * (0.75 + Math.random() * 0.75));
   state.debugLines = shuffle([...DEBUG_TEMPLATES])
     .slice(0, count)
     .map((template, index) => ({
@@ -2781,10 +2787,10 @@ function triggerDebugOverlay() {
       color: index < 2 ? DEBUG_COLORS[0] : pick(DEBUG_COLORS),
       band: Math.random() < 0.72,
     }));
-  const longest = Math.max(...state.debugLines.map((line) => line.text.length));
+  const totalChars = state.debugLines.reduce((sum, line) => sum + line.text.length, 0);
   state.debugStarted = state.weatherTime;
-  state.debugHoldAt = state.debugStarted + count * 0.07 + longest * 0.014;
-  state.debugUntil = state.debugHoldAt + 2.4;
+  state.debugHoldAt = state.debugStarted + totalChars * DEBUG_TYPE_CHAR_TIME + count * DEBUG_TYPE_LINE_PAUSE;
+  state.debugUntil = state.debugHoldAt + 3.6;
 }
 
 function updateDebugOverlay() {
@@ -3670,33 +3676,32 @@ function drawDebugOverlay() {
   const alpha = Math.min(fadeIn, fadeOut);
   const fontSize = Math.max(15, Math.round(state.width / 119));
   const lineHeight = Math.round(fontSize * 1.08);
-  const x = Math.round(state.width * 0.02);
-  const y = Math.round(state.height * 0.02);
+  const x = 24;
+  const y = 0;
   const width = Math.min(Math.round(state.width * 0.72), 1500);
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.font = `${fontSize}px Menlo, Monaco, Consolas, "Courier New", monospace`;
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
-  ctx.fillStyle = "rgba(0,0,0,0.38)";
-  ctx.fillRect(x - 2, y - 2, width + 4, state.debugLines.length * lineHeight + 4);
   ctx.shadowColor = "rgba(220, 245, 230, 0.28)";
   ctx.shadowBlur = 1.2;
-  const elapsed = Math.max(0, state.weatherTime - state.debugStarted);
+  let elapsed = Math.max(0, state.weatherTime - state.debugStarted);
   for (let i = 0; i < state.debugLines.length; i++) {
     const line = state.debugLines[i];
-    const typed = clamp((elapsed - i * 0.07) / 0.014, 0, line.text.length);
+    const typed = clamp(elapsed / DEBUG_TYPE_CHAR_TIME, 0, line.text.length);
     const text = line.text.slice(0, Math.floor(typed));
-    if (!text) continue;
+    elapsed -= line.text.length * DEBUG_TYPE_CHAR_TIME + DEBUG_TYPE_LINE_PAUSE;
+    if (typed <= 0) continue;
     const yy = y + i * lineHeight;
-    if (line.band) {
-      ctx.fillStyle = i % 2 ? "rgba(232,238,240,0.54)" : "rgba(24,29,34,0.58)";
-      ctx.fillRect(x, yy, width, lineHeight);
-    }
+    ctx.fillStyle = line.band
+      ? (i % 2 ? "rgba(232,238,240,0.54)" : "rgba(24,29,34,0.58)")
+      : "rgba(0,0,0,0.38)";
+    ctx.fillRect(x - 2, yy, width + 4, lineHeight);
     ctx.fillStyle = line.color;
-    ctx.fillText(text, x + 4, yy - 1);
+    ctx.fillText(text, x + 4, yy + 1);
     if (state.weatherTime < state.debugHoldAt && Math.floor(typed) < line.text.length && Math.floor(state.weatherTime * 12) % 2 === 0) {
-      ctx.fillText("_", x + 4 + ctx.measureText(text).width + 2, yy - 1);
+      ctx.fillText("_", x + 4 + ctx.measureText(text).width + 2, yy + 1);
     }
   }
   ctx.restore();
@@ -4037,6 +4042,10 @@ function debugCommand(method, value) {
   if (command === "plane") return setPlaneDebugLocation(argument);
   if (command === "fireworks") return startDebugFireworks();
   if (command === "jet") return spawnDebugFighterJet();
+  if (command === "debug") {
+    triggerDebugOverlay();
+    return "debug: overlay";
+  }
   return `debug: unknown method ${command}`;
 }
 
