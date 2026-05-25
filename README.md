@@ -197,7 +197,7 @@ And if you have Claude or Codex, why not ask them to add your own favorite featu
 
 ## 3D Tour video
 
-[![](https://img.youtube.com/vi/4l_GOzurTRA/maxresdefault.jpg)](https://www.youtube.com/watch?v=4l_GOzurTRA)
+[![](https://img.youtube.com/vi/Bv-bgyZorok/maxresdefault.jpg)](https://www.youtube.com/watch?v=Bv-bgyZorok)
 
 ## Game Mode screenshot
 
