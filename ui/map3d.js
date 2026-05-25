@@ -1073,8 +1073,8 @@ function updateControls() {
   if (state.keys.has("e") || state.keys.has("E")) { state.target[1] += move; dirty = true; }
   if (state.keys.has("ArrowLeft")) { state.yaw += 0.025; dirty = true; }
   if (state.keys.has("ArrowRight")) { state.yaw -= 0.025; dirty = true; }
-  if (state.keys.has("ArrowUp")) { state.pitch = Math.min(1.45, state.pitch + 0.018); dirty = true; }
-  if (state.keys.has("ArrowDown")) { state.pitch = Math.max(0.12, state.pitch - 0.018); dirty = true; }
+  if (state.keys.has("ArrowUp")) { state.pitch = Math.max(0.12, state.pitch - 0.018); dirty = true; }
+  if (state.keys.has("ArrowDown")) { state.pitch = Math.min(1.45, state.pitch + 0.018); dirty = true; }
   if (dirty) render();
   startControlsFrame();
 }
