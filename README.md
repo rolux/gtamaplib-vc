@@ -44,7 +44,7 @@ git clone https://github.com/rolux/gtamaplib-vc.git
 cd gtamaplib-vc
 ```
 
-Install Python dependencies. That's just 'numpy', 'scipy', 'Pillow' and 'tqdm'. If you prefer `uv` over `pip`, use `uv`.
+Install Python dependencies. That's just `numpy`, `scipy`, `Pillow` and `tqdm`. If you prefer `uv` over `pip`, use `uv`.
 
 ```bash
 python3 -m pip install -r requirements.txt
@@ -187,7 +187,7 @@ To enter game mode, click `Fasten Seatbelts` in the 3D map view. The usual keybo
 
 Initial version inspired by prior work from Neutral_State on the GTA VI Mapping Discord.
 
-Please keep in mind that v1.0.0 is pre-release software. Some parts may change quickly, others may still be unfinished.
+Please keep in mind that v0.1.0 is pre-release software. Some parts may change quickly, others may still be unfinished.
 
 **gtamaplib-vc** was written by Codex. The quality and readability of the code will reflect this.
 
