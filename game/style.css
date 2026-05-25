@@ -11,6 +11,26 @@ body {
   user-select: none;
 }
 
+body.michael {
+  filter: brightness(0.75) sepia(1);
+  transform: none;
+}
+
+body.amanda {
+  filter: saturate(4);
+  transform: none;
+}
+
+body.jimmy {
+  filter: invert(1);
+  transform: none;
+}
+
+body.tracey {
+  filter: hue-rotate(90deg);
+  transform: none;
+}
+
 body.trevor {
   filter: blur(2px) brightness(1.25) contrast(1.5) hue-rotate(180deg) saturate(0.5);
   transform: rotate(-1deg) scaleX(-1.05) scaleY(1.05);

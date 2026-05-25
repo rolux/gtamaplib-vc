@@ -4,7 +4,16 @@ const ZERO_X = 16384;
 const ZERO_Y = 16384;
 const TILE_SIZE = 256;
 const TILE_Z = 3;
-const TILE_RANGE = [[0, 4], [19, 23]];
+const TILE_RANGES = {
+  0: [[0, 0], [2, 2]],
+  1: [[0, 1], [4, 5]],
+  2: [[0, 2], [9, 11]],
+  3: [[0, 4], [19, 23]],
+  4: [[0, 8], [38, 47]],
+  5: [[0, 17], [77, 95]],
+  6: [[0, 34], [155, 190]],
+};
+const TILE_RANGE = TILE_RANGES[TILE_Z];
 const TILE_ROOT = "../gtadb.org/maps/tiles/6/yanis,12";
 const DETAIL_TILE_Z = 5;
 const DETAIL_TILE_RADIUS = 7;
@@ -40,6 +49,7 @@ const SCHLOTT_PANEL_X = -16000;
 const SCHLOTT_PANEL_SOUTH = -3000;
 const SCHLOTT_PANEL_NORTH = -1000;
 const TREVOR_FLICKER_ZONE = { west: -7000, east: -6500, south: -6000, north: -5500 };
+const VISUAL_MODE_CLASSES = ["michael", "amanda", "jimmy", "tracey", "trevor"];
 const CAMERA_CHASE = 46;
 const CAMERA_UP = 15;
 const CAMERA_THUMBNAIL_DISTANCE = 100;
@@ -688,28 +698,100 @@ const DEBUG_COLORS = [
 ];
 const DEBUG_TEMPLATES = [
   "TASKS FULL",
+  "TASKS BRIEF",
+  "0x000000145EA29DB0 - SP_SCRIPT_VEHICLE_{slot}",
+  "FOLLOW_WAYPOINT_RECORDING:FollowRecording ({speed} {idle}/{poolMax})",
+  "DRIVE_TO_POINT:Drive ({hex}): {speed} {idle}/{poolMax}",
+  "Avoidance",
+  "Routine",
+  "Plough Through",
+  "Driving Mode: PloughThrough",
+  "Processes",
+  "Steer For Road Edges: Task GoTo Task",
+  "Steer For Buildings: Routine Routine",
+  "Slow For Road Edges: Task GoTo Task",
+  "Steer For Peds: Routine Routine",
+  "Steer For Vehicles: Routine Routine",
+  "Steer For Objects: Routine Routine",
+  "Slow For Peds: Routine Routine",
+  "Slow For Vehicles: Routine Routine",
+  "Slow For Object: Internal NotImplemented",
+  "Slow For Traffic: Routine Routine",
+  "Entities",
+  "Steering Entity: LOCAL_SP_SCRIPT_VEHICLE_{slot}",
   "LOCAL ped SY_IDLE upper_body idle ({idle}s) LC:{lc}m",
+  "LOCAL ped SP_SCRIPT_PED_{slot}, owner id (Local Machine)",
   "Population type: POPTYPE_RANDOM_PERSCHAR_S4S_IMPORT_GARAGE_GANG_MEMBER_4",
+  "Population type: Unknown type",
+  "Population type: POPTYPE_MISSION(story00)WYMAN_CS Wyman Profile:WYMAN",
+  "Population type: POPTYPE_MISSION(NoScript)A_F_O_BEACH_00 Profile:BeachFemaleOld",
   "SAS_IMPORT_GARAGE_GANG_MEMBER_4 Active All floor chars/Peds/Criminal",
+  "LO_INT_WYMAN Active:Interstate/Perschars/Peds/lo_int_wyman",
+  "Scenario:Lean_Wall_Smoke:1/2 (Inactive)",
   "TotHangOut2 [0-12-03] NOT_USING_SCHEDULE:{slot} LmdSchedule",
   "Idle: {idle} seconds while waiting on other place to go",
   "Prevented from using lower priority seats",
+  "COMBAT_UPPER_BODY:Combat {upper}",
+  "ADDITIONAL_COMBAT_TASK:AimingOrFiring [DontCare] {upper}",
+  "WEAPON:Use {upper}",
+  "GUN:CombatGraphHold1(17) SP_SCRIPT_PED_{slot} WCS_Fire_Doesn't_Want_to_fire_or_cock (NO Token)",
   "Health: 100/100 UBMotion component lksStateAnimated",
+  "Health: 100.00/100.00 [ALIVE][no component][NoDamage:ProtectedArea]",
   "<H> TASK_USE_SCENARIO Loop: high_energy_searching_unarmed_upper",
+  "Default (M):TASK_DO_NOTHING:Initial {idle}/{poolMax}",
   "TASK_LOCO_MOVING_STATE_MOVING normal_pa_walk_neutral {speed}m/s",
+  "TASK_MOVE_STAND_STILL:Running {idle}/{poolMax} (0.000 urgency [Still])",
+  "MOVE_LOCAL_MOVEMENT:Covered [ExposedAttack/Im] ({upper})",
+  "MOVE_GO_TO_POINT:GoingToPoint (1.0) {upper}",
+  "FOLLOW_ROUTE:FollowingRoute (1.0) {upper}",
+  "MOTION_PED:MSM SyncType_None {speed}",
+  "LOCO:Loco Lod(H) A: ambient_male_02 Ctl: default_drift_controller_ai_override",
+  "LOCO_MOVING:Moving READY:ta_walk_fwd_left_wide",
   "ANIM_HSH: PedMotion",
+  "ANIM_MSM: PedMotionRoot",
   "FSM_TRANSITION_POOL: PedMotion ({pool}/{poolMax})",
+  "FSM_TRANSITION_POOL: LocomotionMotionTaskState ({pool}/{poolMax})",
   "STATE_MOTION_TASK: locoUpperBody ({upper}/{upperMax})",
+  "STATE_MOTION_TASK: Loco ({pool})",
+  "TASK_LOCO:State_Loco: Idle (0.000 urgency [Still])",
+  "TASK_LOCO_IDLE:State Loop: normal:Idle {idle}/{poolMax}",
   "Layout: Current  LD_CNG_SAN4SAN_CUNH_DEFAULT",
+  "Loadout: Current: LOADOUT_DEFAULT({slot}) - Default: LOADOUT_DEFAULT",
+  "Ambient Voice: WYMAN [53 contexts][normal]",
+  "Ambient Voice: PED11_TEST_FEMALE_CIV_AGGRO_WHITE_02 [417 contexts][normal]",
+  "Spoken: WYMAN | UP_WYRNT_ADAD_01",
   "Cur Leon[LUN] INVESTIGATION_REQUEST_ACCEPTED! LSUSP_INIT",
+  "Cur Event[None]",
+  "Cur Event[None] (Blocking active - set by GameTests)",
+  "Cur Response Priority[285] Source[EventResponse]",
+  "Cur Response Priority[0] Source[DefaultTasking]",
   "Last Highest Priority Event: EVENT_INVESTIGATION_REQUEST_ACCEPTED",
+  "Last Highest Priority Event: EVENT_SCRIPT_COMMAND:TASK_TURN_TO_FACE_ENTITY",
+  "Last Highest Priority Event: None",
   "Decision Maker: Investigate <filtered: GUARDS>",
+  "Decision Maker: Avoid",
   "Creator Name: PerpCharPed CPedFactory(1) bank(perpCharPed)",
+  "Creator Name: SceneModule.cpp(4489): GameTests (CSceneModule::CreatePed)",
   "Inside Avoidance Area: Name(NULL) Creator(CVolumeManager::CreateVolumeAggregate)",
   "PersFlags: Guards PersChars Humans Beha_Misc",
   "Door: Unlocked  Access Flags: External",
   "TASK_LOCO_UPPERBODY_LOOP: State_Loop high_energy_searching_walk",
   "Motion Type[0.204] MotionBLD:{motion} UBMotion:{upper}",
+  "TS full update: 0.000",
+  "TS Event Scan: N/A | time-critical: N/A",
+  "TS MotionType[0.000] Motion[{upper}] UBMotionType[{motion}]",
+  "ANIMATIONS",
+  "<Motion W:1.000 gameplay@locomotion@female_type@ambient03@normal@standing/idle>",
+  "Anim RootBindHeight: -0.032(exported on female default skel)",
+  "CurrentSkel RootBindHeight: -0.032{female default skel}",
+  "TS To full update: 0 frames",
+  "TS Since last full update: 0.038 seconds",
+  "TS Forced anim update: NO",
+  "MovePed State: KStateAnimated",
+  "MovePed CurrentState: KStateAnimated",
+  "Breakout Config: Default (archetype: Default) [p:0, id:1, m:false]",
+  "ClosestStandardPose (tag): Pose_Standing_normal_idle",
+  "Skeleton lod: 0   Visibility lod: 0",
 ];
 const BOAT_LINES = [
   "nice weather!",
@@ -732,7 +814,15 @@ const BOAT_LINES = [
   "look at the 3d underwater!",
   "not here baby",
   "don't do it",
-  "do it for the memes"
+  "do it for the memes",
+  "fail",
+  "look, a fail whale",
+  "not what i expected",
+  "four stars. maybe three",
+  "that is not a bird",
+  "don't touch it!",
+  "almost",
+  "did he just respawn?"
 ];
 const MAP_LABELS = [
   { text: "LTF Airfield", pos: [-2850, -4300, 0.08], width: 980, color: "#40ff4f" },
@@ -821,7 +911,7 @@ const state = {
   blockedPopupNext: 180 + Math.random() * 240,
   blockedPopupCount: 0,
   trevorTimeout: null,
-  trevorManual: false,
+  visualMode: null,
   trevorZoneActive: false,
   trevorZoneSuppressed: false,
   turbulence: 0,
@@ -1264,6 +1354,8 @@ function loadTiles() {
 function loadTileRecord(z, x, y) {
   const tilesPerSide = 4 * Math.pow(2, z);
   if (x < 0 || y < 0 || x >= tilesPerSide || y >= tilesPerSide) return null;
+  const range = TILE_RANGES[z];
+  if (range && (x < range[0][0] || x > range[1][0] || y < range[0][1] || y > range[1][1])) return null;
   const key = `${z}/${x}/${y}`;
   if (state.tileCache.has(key)) return state.tileCache.get(key);
   const record = loadImageTexture(tileUrl(z, x, y));
@@ -1633,7 +1725,10 @@ function updateTrevorClass() {
   const zoneFlickerOn = state.trevorZoneActive &&
     !state.trevorZoneSuppressed &&
     Math.floor(state.weatherTime * 20) % 2 === 0;
-  document.body.classList.toggle("trevor", state.trevorManual || zoneFlickerOn);
+  const activeMode = zoneFlickerOn ? "trevor" : state.visualMode;
+  for (const mode of VISUAL_MODE_CLASSES) {
+    document.body.classList.toggle(mode, activeMode === mode);
+  }
 }
 
 function updateTrevorZone() {
@@ -3548,6 +3643,63 @@ function phoneLinePath(conversation, lineIndex) {
   return `${conversation.folder}/dialogue_${String(lineIndex + 1).padStart(2, "0")}.mp3`;
 }
 
+function phoneConversationNumber(conversation) {
+  const match = conversation.folder.match(/conversation_(\d+)$/);
+  return match ? Number(match[1]) : null;
+}
+
+function setNextPhoneConversation(number) {
+  const phone = state.phone;
+  const conversationNumber = Number(number);
+  if (!Number.isInteger(conversationNumber)) {
+    return `phone: invalid conversation ${number}`;
+  }
+  const index = phone.conversations.findIndex((conversation) =>
+    phoneConversationNumber(conversation) === conversationNumber);
+  if (index === -1) {
+    return `phone: conversation ${conversationNumber} not found`;
+  }
+  phone.conversationIndex = index;
+  if (!phone.playing) {
+    phone.availableAt = Math.min(phone.availableAt, state.weatherTime);
+    updatePhoneButtonVisibility();
+  }
+  return `phone: next conversation ${String(conversationNumber).padStart(2, "0")}`;
+}
+
+function setPlaneDebugLocation(location) {
+  if (location !== "zero") {
+    return `plane: unknown location ${location}`;
+  }
+  Object.assign(state.plane, {
+    pos: [0, 0, 100],
+    vel: [0, 92, 2],
+    yaw: 0,
+    pitch: 0.04,
+    roll: 0,
+    throttle: 0.68,
+    hp: 100,
+  });
+  state.deadZoneCrash = false;
+  state.deadZoneResetAt = 0;
+  state.camera.eye = add(state.plane.pos, [0, -CAMERA_CHASE * 1.6, CAMERA_UP + 35]);
+  state.camera.target = [...state.plane.pos];
+  statusEl.textContent = "debug plane zero";
+  return "plane: zero";
+}
+
+function debugCommand(method, value) {
+  let command = method;
+  let argument = value;
+  if (typeof method === "string" && value === undefined) {
+    const parts = method.trim().split(/\s+/);
+    [command, argument] = parts;
+  }
+  if (command === "phone") return setNextPhoneConversation(argument);
+  if (command === "plane") return setPlaneDebugLocation(argument);
+  return `debug: unknown method ${command}`;
+}
+
 function ensurePhoneAudio() {
   const phone = state.phone;
   if (phone.audio) return;
@@ -3760,8 +3912,8 @@ function skipRadioTrack(direction) {
   });
 }
 
-function exitTrevorMode() {
-  state.trevorManual = false;
+function exitVisualMode() {
+  state.visualMode = null;
   if (state.trevorTimeout) {
     clearTimeout(state.trevorTimeout);
     state.trevorTimeout = null;
@@ -3769,19 +3921,11 @@ function exitTrevorMode() {
   updateTrevorClass();
 }
 
-function toggleTrevorMode() {
-  if (state.trevorZoneActive) {
-    state.trevorZoneSuppressed = !state.trevorZoneSuppressed;
-    updateTrevorClass();
-    return;
-  }
-  if (state.trevorManual) {
-    exitTrevorMode();
-    return;
-  }
-  state.trevorManual = true;
+function cycleVisualMode() {
+  const index = VISUAL_MODE_CLASSES.indexOf(state.visualMode);
+  state.visualMode = VISUAL_MODE_CLASSES[index + 1] || null;
   if (state.trevorTimeout) clearTimeout(state.trevorTimeout);
-  state.trevorTimeout = setTimeout(exitTrevorMode, 60000);
+  state.trevorTimeout = state.visualMode ? setTimeout(exitVisualMode, 60000) : null;
   updateTrevorClass();
 }
 
@@ -3796,7 +3940,7 @@ function installControls() {
     }
     if (event.key === "\\") {
       event.preventDefault();
-      toggleTrevorMode();
+      cycleVisualMode();
       return;
     }
     if (event.key === ",") skipRadioTrack(-1);
@@ -3816,7 +3960,13 @@ function installControls() {
   });
   phoneButton.addEventListener("click", togglePhone);
   radioButton.addEventListener("click", toggleSound);
-  resetButton.addEventListener("click", resetPlane);
+  resetButton.addEventListener("click", (event) => {
+    if (event.shiftKey) {
+      setPlaneDebugLocation("zero");
+      return;
+    }
+    resetPlane();
+  });
   exitButton.addEventListener("click", () => {
     writeMap3dPose();
     stopGameLoop();
@@ -3829,6 +3979,7 @@ function isLeakCamera(camera) {
 }
 
 async function main() {
+  window._debug = debugCommand;
   resize();
   installControls();
   loadTiles();

@@ -1251,6 +1251,30 @@
       ]
     },
     {
+      "name": "1111 Lincoln Rd",
+      "id": "L104",
+      "photo_kind": "rl",
+      "xyz": [
+        1482.939259,
+        1340.645126,
+        56.061728
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 56.061728,
+      "texture": "landmarks/textures/L104,rl.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "1111 Lincoln Rd (NW)",
+        "1111 Lincoln Rd (SE)"
+      ]
+    },
+    {
       "name": "Capri South Beach",
       "id": "L111",
       "photo_kind": "ig",
@@ -2002,6 +2026,455 @@
       ]
     },
     {
+      "name": "Flagler on the River",
+      "id": "L210",
+      "photo_kind": "ig",
+      "xyz": [
+        -1071.059455,
+        -314.305177,
+        139.848768
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 139.848768,
+      "texture": "landmarks/textures/L210,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Flagler on the River"
+      ]
+    },
+    {
+      "name": "Turkey Point Nuclear Power Station (N)",
+      "id": "L256",
+      "photo_kind": "ig",
+      "xyz": [
+        -1552.5829,
+        -3464.344487,
+        57.692651
+      ],
+      "shape": "box",
+      "width": 50.0,
+      "height": 57.692651,
+      "texture": "landmarks/textures/L256,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Turkey Point Nuclear Power Station (N)"
+      ]
+    },
+    {
+      "name": "Turkey Point Nuclear Power Station (S)",
+      "id": "L879",
+      "photo_kind": "ig",
+      "xyz": [
+        -1551.21498,
+        -3528.990215,
+        57.473129
+      ],
+      "shape": "box",
+      "width": 50.0,
+      "height": 57.473129,
+      "texture": "landmarks/textures/L879,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Turkey Point Nuclear Power Station (S)"
+      ]
+    },
+    {
+      "name": "Turkey Point Nuclear Power Station (1)",
+      "id": "L880",
+      "photo_kind": "ig",
+      "xyz": [
+        -1476.802074,
+        -3683.95607,
+        81.99588
+      ],
+      "shape": "box",
+      "width": 5.0,
+      "height": 81.99588,
+      "texture": "landmarks/textures/L880,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Turkey Point Nuclear Power Station (1)"
+      ]
+    },
+    {
+      "name": "Turkey Point Nuclear Power Station (2)",
+      "id": "L881",
+      "photo_kind": "ig",
+      "xyz": [
+        -1475.220931,
+        -3723.982088,
+        81.777335
+      ],
+      "shape": "box",
+      "width": 5.0,
+      "height": 81.777335,
+      "texture": "landmarks/textures/L881,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Turkey Point Nuclear Power Station (2)"
+      ]
+    },
+    {
+      "name": "Turkey Point Nuclear Power Station (3)",
+      "id": "L882",
+      "photo_kind": "ig",
+      "xyz": [
+        -1475.986508,
+        -3765.309078,
+        81.513731
+      ],
+      "shape": "box",
+      "width": 5.0,
+      "height": 81.513731,
+      "texture": "landmarks/textures/L882,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Turkey Point Nuclear Power Station (3)"
+      ]
+    },
+    {
+      "name": "Central District Wastewater Treatment Plant",
+      "id": "L433",
+      "photo_kind": "ig",
+      "xyz": [
+        465.542643,
+        -1247.033935,
+        37.18754
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 37.18754,
+      "texture": "landmarks/textures/L433,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Central District Wastewater Treatment Plant (Tank)"
+      ]
+    },
+    {
+      "name": "419 NE 4th Ave",
+      "id": "L475",
+      "photo_kind": "rl",
+      "xyz": [
+        -428.914733,
+        1210.657194,
+        34.081392
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 34.081392,
+      "texture": "landmarks/textures/L475,rl.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "419 NE 4th Ave (W)"
+      ]
+    },
+    {
+      "name": "Hotel Victor",
+      "id": "L32",
+      "photo_kind": "ig",
+      "xyz": [
+        1945.101,
+        733.085,
+        33.587
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 33.587,
+      "texture": "landmarks/textures/L32,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Hotel Victor (SW)"
+      ]
+    },
+    {
+      "name": "Miami Beach Parking Garage",
+      "id": "L73",
+      "photo_kind": "ig",
+      "xyz": [
+        1850.104,
+        682.393,
+        34.083
+      ],
+      "shape": "box",
+      "width": 50.0,
+      "height": 34.083,
+      "texture": "landmarks/textures/L73,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Miami Beach Parking Garage (SE)"
+      ]
+    },
+    {
+      "name": "City View Parking Garage",
+      "id": "L169",
+      "photo_kind": "ig",
+      "xyz": [
+        -172.1665,
+        2060.7615,
+        33.161
+      ],
+      "shape": "box",
+      "width": 50.0,
+      "height": 33.161,
+      "texture": "landmarks/textures/L169,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "City View Parking Garage (S)",
+        "City View Parking Garage (SE)"
+      ]
+    },
+    {
+      "name": "Magic City Casino",
+      "id": "L1351",
+      "photo_kind": "ig",
+      "xyz": [
+        -2101.995039,
+        -1310.849301,
+        44.53912
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 44.53912,
+      "texture": "landmarks/textures/L1351,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Magic City Casino (?)"
+      ]
+    },
+    {
+      "name": "Jenny Hostel",
+      "id": "L71",
+      "photo_kind": "ig",
+      "xyz": [
+        1911.175917,
+        602.761763,
+        30.979872
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 30.979872,
+      "texture": "landmarks/textures/L71,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Jenny Hostel (NE)"
+      ]
+    },
+    {
+      "name": "Springfield Community Church",
+      "id": "L303",
+      "photo_kind": "ig",
+      "xyz": [
+        -6320.701863,
+        4068.741544,
+        30.165553
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 30.165553,
+      "texture": "landmarks/textures/L303,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Springfield Community Church (CW)"
+      ]
+    },
+    {
+      "name": "Star Island Water Tower",
+      "id": "L382",
+      "photo_kind": "rl",
+      "xyz": [
+        760.596058,
+        480.349304,
+        28.730438
+      ],
+      "shape": "box",
+      "width": 5.0,
+      "height": 28.730438,
+      "texture": "landmarks/textures/L382,rl.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Star Island Water Tower"
+      ]
+    },
+    {
+      "name": "Radio Tower (Ambrosia)",
+      "id": "L888",
+      "photo_kind": "ig",
+      "xyz": [
+        -2074.852,
+        3169.762,
+        64.5215
+      ],
+      "shape": "box",
+      "width": 5.0,
+      "height": 64.5215,
+      "texture": "landmarks/textures/L888,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Radio Tower (Ambrosia)",
+        "Radio Tower (Ambrosia) (B)"
+      ]
+    },
+    {
+      "name": "Flamingo South Beach",
+      "id": "L112",
+      "photo_kind": "ig",
+      "xyz": [
+        1278.921766,
+        950.054444,
+        76.391526
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 76.391526,
+      "texture": "landmarks/textures/L112,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Flamingo South Beach (NENE)",
+        "Flamingo South Beach (NERNE)",
+        "Flamingo South Beach (NWNE)",
+        "Flamingo South Beach (NWNW)",
+        "Flamingo South Beach (SDS)",
+        "Flamingo South Beach (SRSE)",
+        "Flamingo South Beach (SRSW)",
+        "Flamingo South Beach (TE)",
+        "Flamingo South Beach (TNE)",
+        "Flamingo South Beach (TSE)",
+        "Flamingo South Beach (TSW)"
+      ]
+    },
+    {
+      "name": "Cruise Terminal D",
+      "id": "L420",
+      "photo_kind": "rl",
+      "xyz": [
+        664.468526,
+        -431.343236,
+        34.787769
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 34.787769,
+      "texture": "landmarks/textures/L420,rl.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Cruise Terminal D"
+      ]
+    },
+    {
+      "name": "Hotel Breakwater",
+      "id": "L40",
+      "photo_kind": "ig",
+      "xyz": [
+        1949.860241,
+        563.745698,
+        25.796447
+      ],
+      "shape": "box",
+      "width": 25.0,
+      "height": 25.796447,
+      "texture": "landmarks/textures/L40,ig.jpg",
+      "faces": [
+        "north",
+        "east",
+        "south",
+        "west"
+      ],
+      "source_points": [
+        "Hotel Breakwater"
+      ]
+    },
+    {
       "name": "Mount Waffles",
       "id": "L528",
       "photo_kind": "ig",
@@ -2054,20 +2527,6 @@
       "name": "Y Vice City",
       "reason": "no GTA MapLib XYZ",
       "match_name": "Y Vice City"
-    },
-    {
-      "name": "1111 Lincoln Rd",
-      "reason": "no downloadable photo",
-      "gtadb_photo_ids": [
-        "L104"
-      ],
-      "photo_kinds": [
-        "ig"
-      ],
-      "source_points": [
-        "1111 Lincoln Rd (NW)",
-        "1111 Lincoln Rd (SE)"
-      ]
     }
   ],
   "fallbacks": [
@@ -2080,6 +2539,12 @@
     {
       "name": "Continuum on South Beach (S)",
       "id": "L61",
+      "photo_kind": "rl",
+      "reason": "in-game photo unavailable"
+    },
+    {
+      "name": "1111 Lincoln Rd",
+      "id": "L104",
       "photo_kind": "rl",
       "reason": "in-game photo unavailable"
     },
@@ -2116,6 +2581,24 @@
     {
       "name": "Palazzo del Sol",
       "id": "L124",
+      "photo_kind": "rl",
+      "reason": "in-game photo unavailable"
+    },
+    {
+      "name": "419 NE 4th Ave",
+      "id": "L475",
+      "photo_kind": "rl",
+      "reason": "in-game photo unavailable"
+    },
+    {
+      "name": "Star Island Water Tower",
+      "id": "L382",
+      "photo_kind": "rl",
+      "reason": "in-game photo unavailable"
+    },
+    {
+      "name": "Cruise Terminal D",
+      "id": "L420",
       "photo_kind": "rl",
       "reason": "in-game photo unavailable"
     }
