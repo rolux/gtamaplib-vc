@@ -37,6 +37,7 @@ PLAYER_CROSS_RADIUS_M = 1.0
 PLAYER_CONFIDENCE_HALF_SIZE_M = 0.1
 PLAYER_TIER3_CONFIDENCE_HALF_SIZE_M = 0.001
 THUMBNAIL_SCALE = 4
+LEGACY_THUMBNAIL_RE = re.compile(r"^[0-9a-f]{12}-\d+x\.jpg$")
 
 
 L1_CAMERA_RIGIDITY = {
@@ -249,7 +250,8 @@ def thumbnail_path_for(camera_name: str) -> str | None:
         return None
     THUMBNAIL_DIR.mkdir(parents=True, exist_ok=True)
     digest = hashlib.sha1(camera_name.encode("utf-8")).hexdigest()[:12]
-    target = THUMBNAIL_DIR / f"{digest}-{THUMBNAIL_SCALE}x.jpg"
+    legacy_target = THUMBNAIL_DIR / f"{digest}-{THUMBNAIL_SCALE}x.jpg"
+    target = THUMBNAIL_DIR / f"{camera_name}.jpg"
     if target.exists() and target.stat().st_mtime >= source.stat().st_mtime:
         return f"ui/thumbnails/{target.name}"
     with Image.open(source) as image:
@@ -257,7 +259,19 @@ def thumbnail_path_for(camera_name: str) -> str | None:
         height = max(1, image.size[1] // THUMBNAIL_SCALE)
         thumbnail = image.convert("RGB").resize((width, height), Image.LANCZOS)
         thumbnail.save(target, quality=82, optimize=True)
-    return f"ui/thumbnails/{target.name}"
+    if target.exists():
+        return f"ui/thumbnails/{target.name}"
+    if legacy_target.exists():
+        return f"ui/thumbnails/{legacy_target.name}"
+    return None
+
+
+def remove_legacy_thumbnails() -> None:
+    if not THUMBNAIL_DIR.exists():
+        return
+    for path in THUMBNAIL_DIR.iterdir():
+        if path.is_file() and LEGACY_THUMBNAIL_RE.match(path.name):
+            path.unlink()
 
 
 def get_color(name: str) -> str:
@@ -1068,6 +1082,8 @@ def main() -> None:
                     "color": get_color(landmark_name),
                 }
             )
+
+    remove_legacy_thumbnails()
 
     camera_observation_counts = observation_counts(observations, "camera")
     landmark_observation_counts = observation_counts(observations, "landmark")
