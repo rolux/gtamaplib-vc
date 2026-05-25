@@ -121,6 +121,8 @@ This keeps **gtamaplib** as the upstream source of cameras, landmarks, frames, a
 
 ## Optimizer
 
+The general idea is to use the `find_camera` results from **gtamaplib** to initialize a `least_squares` optimizer, which runs along a predefined chain of cameras and performs a local pass, followed by a global pass.
+
 The optimizer chain lives in `optimizer/`:
 
 ```text
