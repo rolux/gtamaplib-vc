@@ -689,7 +689,7 @@ function applyTourView(view) {
 
 function ensureTourCameras() {
   state.tour.cameras = state.cameras
-    .filter((camera) => camera.xyz && camera.ypr && camera.fov)
+    .filter((camera) => camera.xyz && camera.ypr && camera.fov && !(state.blurLeaks && camera.id?.startsWith("L")))
     .sort(compareCameraIds);
   return state.tour.cameras.length > 0;
 }
@@ -847,7 +847,7 @@ function cameraThumbnailInView(camera, matrix) {
   if (!camera.xyz || !camera.ypr || !camera.fov) return false;
   const hf = Math.tan((camera.fov[0] || 50) * Math.PI / 360);
   const vf = Math.tan((camera.fov[1] || 35) * Math.PI / 360);
-  return [[-hf, vf], [hf, vf], [hf, -vf], [-hf, -vf]].some(([u, v]) => {
+  return [[0, 0], [-hf, vf], [hf, vf], [hf, -vf], [-hf, -vf]].some(([u, v]) => {
     const d = directionFromYpr(camera.ypr, u, v);
     const p = transformPoint(matrix, worldToGl(
       camera.xyz[0] + d[0] * CAMERA_THUMBNAIL_DISTANCE,

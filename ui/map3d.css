@@ -34,6 +34,7 @@ body.use-monospace-font #map3d-root {
 }
 
 #map3d-left-controls,
+#map3d-right-controls,
 #map3d-exit,
 #map3d-reset,
 #map3d-game,
@@ -61,6 +62,15 @@ body.use-monospace-font #map3d-root {
   background: transparent;
 }
 
+#map3d-right-controls {
+  top: 12px;
+  right: 12px;
+  left: auto;
+  gap: 6px;
+  padding: 0;
+  background: transparent;
+}
+
 #map3d-exit,
 #map3d-reset,
 #map3d-game {
@@ -76,7 +86,7 @@ body.use-monospace-font #map3d-root {
 }
 
 #map3d-game {
-  top: 12px;
+  bottom: 12px;
   right: 12px;
 }
 
