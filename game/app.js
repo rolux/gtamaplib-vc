@@ -38,7 +38,7 @@ const PRISON_DEFENSE_RADIUS = 500;
 const PRISON_SHOT_SPEED = 185;
 const FIGHTER_ROUTE_SPEED = 0.015;
 const FIGHTER_ATTACK_SECONDS = 15;
-const FIGHTER_SHOT_SPEED = 260;
+const FIGHTER_SHOT_SPEED = 390;
 const LEAF_LINKS_CENTER = [730, 2390, 0];
 const LEAF_LINKS_RADIUS = 150;
 const SKYVIEW_WHEEL_POS = [-57, 257, 0];
@@ -49,6 +49,27 @@ const SCHLOTT_PANEL_X = -16000;
 const SCHLOTT_PANEL_SOUTH = -3000;
 const SCHLOTT_PANEL_NORTH = -1000;
 const TREVOR_FLICKER_ZONE = { west: -7000, east: -6500, south: -6000, north: -5500 };
+const VCIA_RUNWAY_LIGHT_START = [-2100, -256, 0];
+const VCIA_RUNWAY_LIGHT_END = [-3500, -256, 0];
+const VCIA_RUNWAY_LIGHT_COUNT = 12;
+const VCIA_RUNWAY_LIGHT_STEP = 0.25;
+const FIREWORK_LANDMARKS = ["Magic City Casino", "Loews Miami Beach"];
+const FIREWORK_COLORS = [
+  [1, 0.92, 0.08, 0.95],
+  [1, 0.44, 0.04, 0.95],
+  [1, 0.06, 0.04, 0.95],
+  [0.02, 0.95, 1, 0.95],
+  [0.12, 0.32, 1, 0.95],
+  [1, 0.08, 0.9, 0.95],
+];
+const ELEPHANT_ROAM_BOUNDS = { west: -5500, east: -5000, south: 7000, north: 7500 };
+const MEXICAN_RESTAURANT_SIGN = {
+  pos: [-2558.5, -3460, 0],
+  width: 57.6,
+  height: 20,
+  bottom: 28,
+  postHeight: 28,
+};
 const VISUAL_MODE_CLASSES = ["michael", "amanda", "jimmy", "tracey", "trevor"];
 const CAMERA_CHASE = 46;
 const CAMERA_UP = 15;
@@ -826,7 +847,7 @@ const BOAT_LINES = [
 ];
 const MAP_LABELS = [
   { text: "LTF Airfield", pos: [-2850, -4300, 0.08], width: 980, color: "#40ff4f" },
-  { text: "Scree Hill", pos: [-6350, 6100, 0.08], width: 820, color: "#ff3fb6" },
+  { text: "Scree Hill", pos: [-6350, 6350, 0.08], width: 820, color: "#ff3fb6" },
   {
     text: "THE GREAT PAYWALL OF GLORIANA",
     pos: [-4200, ZERO_Y, 0],
@@ -883,12 +904,34 @@ const state = {
   prisonShots: [],
   fighterShots: [],
   iconTexture: null,
+  mexicanRestaurantTexture: null,
   screenshotHits: new Set(),
   particles: [],
+  fireworkRockets: [],
+  fireworks: {
+    active: false,
+    until: 0,
+    next: 420 + Math.random() * 500,
+    cooldown: 0,
+    origin: null,
+  },
+  debugFireworks: {
+    active: false,
+    until: 0,
+    cooldown: 0,
+    origin: null,
+  },
   birds: [],
   boats: [],
   jetSkis: [],
   golfCarts: [],
+  elephant: {
+    pos: [-5250, 7250, 0],
+    yaw: 0,
+    target: [-5250, 7250, 0],
+    pause: 2,
+    speed: 16,
+  },
   fog: [],
   stars: makeStars(230),
   fires: [],
@@ -1042,6 +1085,7 @@ const state = {
     route: null,
     cooldown: 0,
   },
+  debugFighters: [],
   keysSeaplane: {
     active: false,
     direction: 1,
@@ -1325,6 +1369,31 @@ function createTextTexture(text, color, options = {}) {
   labelCtx.strokeText(text, width / 2, height / 2 + 4);
   labelCtx.fillStyle = color;
   labelCtx.fillText(text, width / 2, height / 2 + 4);
+  return { loaded: true, failed: false, texture: makeTexture(offscreen), width, height };
+}
+
+function createMexicanRestaurantTexture() {
+  const width = 1024;
+  const height = 360;
+  const offscreen = document.createElement("canvas");
+  offscreen.width = width;
+  offscreen.height = height;
+  const signCtx = offscreen.getContext("2d");
+  signCtx.fillStyle = "#8b8070";
+  signCtx.fillRect(0, 0, width, height);
+  signCtx.fillStyle = "#b8ad9a";
+  signCtx.fillRect(54, 54, width - 108, height - 108);
+  signCtx.strokeStyle = "#f1eee4";
+  signCtx.lineWidth = 34;
+  signCtx.strokeRect(46, 46, width - 92, height - 92);
+  signCtx.font = "bold 68px Georgia, 'Times New Roman', serif";
+  signCtx.textAlign = "center";
+  signCtx.textBaseline = "middle";
+  signCtx.lineWidth = 5;
+  signCtx.strokeStyle = "rgba(70,32,18,0.45)";
+  signCtx.strokeText("MEXICAN RESTAURANT", width / 2, height / 2 + 5);
+  signCtx.fillStyle = "#d64b19";
+  signCtx.fillText("MEXICAN RESTAURANT", width / 2, height / 2 + 5);
   return { loaded: true, failed: false, texture: makeTexture(offscreen), width, height };
 }
 
@@ -1628,10 +1697,12 @@ function launchMissile(now, variant = "missile") {
   if (now - state.lastMissile < 650) return;
   state.lastMissile = now;
   const { forward, up } = planeBasis();
+  const velocity = add(state.plane.vel, scale(forward, 310));
+  if (variant === "icon-missile") velocity[2] -= 45;
   state.bullets.push({
     type: variant,
     pos: add(add(state.plane.pos, scale(forward, 20)), scale(up, -2)),
-    vel: add(state.plane.vel, scale(forward, 310)),
+    vel: velocity,
     life: 4.5,
     radius: 20,
   });
@@ -2025,7 +2096,7 @@ function updateParticles(dt) {
   for (const particle of state.particles) {
     particle.life -= dt;
     particle.pos = add(particle.pos, scale(particle.vel, dt));
-    particle.vel[2] += (particle.color[0] > 0.9 ? 10 : -18) * dt;
+    particle.vel[2] += (particle.gravity ?? (particle.color[0] > 0.9 ? 10 : -18)) * dt;
   }
   state.particles = state.particles.filter((particle) => particle.life > 0);
   if (state.storm && Math.random() < dt * 90) {
@@ -2146,6 +2217,8 @@ function updateAmbientActors(dt) {
 
   updateKeysSeaplane(dt);
   updateFighterJet(dt);
+  updateDebugFighters(dt);
+  updateFireworks(dt);
   updateRouteShip(dt, state.cruiseShip, [[3000, -3500, 2], [500, -5500, 2], [-500, -7500, 2]], 0.0048, 180, 260);
   updateRouteShip(dt, state.containerShip, [[-7000, 4500, 2], [-8500, 3500, 2], [-10500, 4500, 2]], 0.0038, 220, 320);
 
@@ -2166,6 +2239,7 @@ function updateAmbientActors(dt) {
 
   updateJetSkis(dt);
   updateGolfCarts(dt);
+  updateElephant(dt);
 }
 
 function fighterRoutePoint(route, t) {
@@ -2176,8 +2250,122 @@ function scheduleNextFighterJet() {
   state.fighterJet.next = 480 + Math.random() * 520;
 }
 
-function spawnFighterJet() {
-  const jet = state.fighterJet;
+function landmarkPosition(name) {
+  const model = state.landmarkModels.find((item) => item.name === name);
+  if (model?.xyz) return model.xyz;
+  const landmark = state.landmarks.find((item) => item.name === name);
+  return landmark?.xyz || null;
+}
+
+function fireworkOrigin() {
+  const names = shuffle([...FIREWORK_LANDMARKS]);
+  for (const name of names) {
+    const pos = landmarkPosition(name);
+    if (pos) return { name, pos: [pos[0], pos[1], Math.max(8, pos[2] + 4)] };
+  }
+  return null;
+}
+
+function scheduleNextFireworks() {
+  state.fireworks.next = 430 + Math.random() * 560;
+}
+
+function spawnFireworkRocket(show = state.fireworks) {
+  if (!show.origin) return;
+  const color = pick(FIREWORK_COLORS);
+  const drift = [(Math.random() - 0.5) * 36, (Math.random() - 0.5) * 36, 0];
+  state.fireworkRockets.push({
+    pos: add(show.origin.pos, drift),
+    vel: [(Math.random() - 0.5) * 22, (Math.random() - 0.5) * 22, 220 + Math.random() * 105],
+    targetZ: 500 + Math.random() * 1000,
+    color,
+    life: 7.5,
+    size: 2.5 + Math.random() * 2.5,
+  });
+}
+
+function burstFirework(rocket) {
+  const count = 48 + Math.floor(Math.random() * 46);
+  const speed = 70 + Math.random() * 105;
+  for (let i = 0; i < count; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const b = Math.random() * Math.PI - Math.PI / 2;
+    const velocity = [
+      Math.cos(a) * Math.cos(b) * speed * (0.45 + Math.random() * 0.75),
+      Math.sin(a) * Math.cos(b) * speed * (0.45 + Math.random() * 0.75),
+      Math.sin(b) * speed * (0.45 + Math.random() * 0.75),
+    ];
+    state.particles.push({
+      pos: [...rocket.pos],
+      vel: velocity,
+      color: pick(FIREWORK_COLORS),
+      life: 1.6 + Math.random() * 1.7,
+      size: 2 + Math.random() * 5.5,
+      gravity: -52,
+    });
+  }
+  spawnParticles(rocket.pos, rocket.color, 14, 34);
+}
+
+function updateFireworkRockets(dt) {
+  for (const rocket of state.fireworkRockets) {
+    rocket.life -= dt;
+    rocket.pos = add(rocket.pos, scale(rocket.vel, dt));
+    rocket.vel[2] -= 18 * dt;
+    if (rocket.pos[2] >= rocket.targetZ || rocket.life <= 0) {
+      rocket.life = 0;
+      burstFirework(rocket);
+    }
+  }
+  state.fireworkRockets = state.fireworkRockets.filter((rocket) => rocket.life > 0);
+}
+
+function startFireworkShow(show, label = "fireworks") {
+  show.origin = fireworkOrigin();
+  if (!show.origin) return false;
+  show.active = true;
+  show.until = state.weatherTime + 45;
+  show.cooldown = 0.2;
+  statusEl.textContent = `${label} near ${show.origin.name}`;
+  return true;
+}
+
+function updateActiveFireworkShow(show, dt) {
+  if (!show.active) return false;
+  show.cooldown -= dt;
+  if (show.cooldown <= 0) {
+    spawnFireworkRocket(show);
+    show.cooldown = 1.05 + Math.random() * 1.55;
+  }
+  if (state.weatherTime < show.until) return false;
+  show.active = false;
+  show.origin = null;
+  return true;
+}
+
+function updateFireworks(dt) {
+  updateFireworkRockets(dt);
+  updateActiveFireworkShow(state.debugFireworks, dt);
+  const show = state.fireworks;
+  if (!show.active) {
+    show.next -= dt;
+    if (show.next > 0) return;
+    if (!startFireworkShow(show)) {
+      scheduleNextFireworks();
+      return;
+    }
+  }
+  if (updateActiveFireworkShow(show, dt)) {
+    scheduleNextFireworks();
+  }
+}
+
+function startDebugFireworks() {
+  if (!startFireworkShow(state.debugFireworks, "debug fireworks")) return "fireworks: no origin";
+  return `fireworks: ${state.debugFireworks.origin.name}`;
+}
+
+function createFighterJetActor() {
   const airbase = [-6250, -6750, 55];
   const spaceCenter = [500, 7000, 70];
   const startAtAirbase = Math.random() < 0.5;
@@ -2185,17 +2373,34 @@ function spawnFighterJet() {
   const end = startAtAirbase ? spaceCenter : airbase;
   const player = state.plane.pos;
   const intercept = [player[0], player[1], Math.max(190, player[2] + 70)];
-  jet.active = true;
-  jet.direction = startAtAirbase ? 1 : -1;
-  jet.t = 0;
-  jet.route = [start, intercept, end];
-  jet.pos = [...start];
-  jet.cooldown = 1.2 + Math.random() * 1.4;
+  return {
+    active: true,
+    direction: startAtAirbase ? 1 : -1,
+    t: 0,
+    route: [start, intercept, end],
+    pos: [...start],
+    yaw: 0,
+    pitch: 0,
+    roll: 0,
+    cooldown: 1.2 + Math.random() * 1.4,
+    originName: startAtAirbase ? "Naval Air Station" : "SERA",
+  };
+}
+
+function spawnFighterJet() {
+  Object.assign(state.fighterJet, createFighterJetActor());
   statusEl.textContent = "unidentified fast mover";
 }
 
-function fireFighterShot() {
-  const jet = state.fighterJet;
+function spawnDebugFighterJet() {
+  const jet = createFighterJetActor();
+  state.debugFighters.push(jet);
+  if (state.debugFighters.length > 3) state.debugFighters.shift();
+  statusEl.textContent = `debug fast mover from ${jet.originName}`;
+  return `jet: launched from ${jet.originName}`;
+}
+
+function fireFighterShot(jet = state.fighterJet) {
   const aim = add(state.plane.pos, scale(state.plane.vel, 0.35));
   const dir = normalize(subtract(aim, jet.pos));
   state.fighterShots.push({
@@ -2206,19 +2411,13 @@ function fireFighterShot() {
   spawnParticles(jet.pos, [0.62, 0.64, 0.66, 0.68], 5, 18);
 }
 
-function updateFighterJet(dt) {
-  const jet = state.fighterJet;
-  if (!jet.active) {
-    jet.next -= dt;
-    if (jet.next > 0) return;
-    spawnFighterJet();
-  }
+function updateFighterJetActor(jet, dt) {
+  if (!jet.active) return false;
   jet.t += dt * FIGHTER_ROUTE_SPEED;
   if (jet.t >= 1) {
     jet.active = false;
     jet.route = null;
-    scheduleNextFighterJet();
-    return;
+    return false;
   }
   const p0 = fighterRoutePoint(jet.route, Math.max(0, jet.t - 0.006));
   const p1 = fighterRoutePoint(jet.route, jet.t);
@@ -2235,10 +2434,27 @@ function updateFighterJet(dt) {
   if (Math.abs(jet.t - 0.5) < attackWindow) {
     jet.cooldown -= dt;
     if (jet.cooldown <= 0) {
-      fireFighterShot();
+      fireFighterShot(jet);
       jet.cooldown = 1.05 + Math.random() * 1.35;
     }
   }
+  return true;
+}
+
+function updateFighterJet(dt) {
+  const jet = state.fighterJet;
+  if (!jet.active) {
+    jet.next -= dt;
+    if (jet.next > 0) return;
+    spawnFighterJet();
+  }
+  if (!updateFighterJetActor(jet, dt)) {
+    scheduleNextFighterJet();
+  }
+}
+
+function updateDebugFighters(dt) {
+  state.debugFighters = state.debugFighters.filter((jet) => updateFighterJetActor(jet, dt));
 }
 
 function quadraticRoutePoint(points, t, direction = 1) {
@@ -2339,6 +2555,42 @@ function updateGolfCarts(dt) {
     const fromCenter = Math.hypot(cart.pos[0] - LEAF_LINKS_CENTER[0], cart.pos[1] - LEAF_LINKS_CENTER[1]);
     if (fromCenter > LEAF_LINKS_RADIUS + 12) cart.target = randomGolfCartPoint();
   }
+}
+
+function randomElephantTarget() {
+  return [
+    lerp(ELEPHANT_ROAM_BOUNDS.west, ELEPHANT_ROAM_BOUNDS.east, Math.random()),
+    lerp(ELEPHANT_ROAM_BOUNDS.south, ELEPHANT_ROAM_BOUNDS.north, Math.random()),
+    0,
+  ];
+}
+
+function updateElephant(dt) {
+  const elephant = state.elephant;
+  if (elephant.pause > 0) {
+    elephant.pause -= dt;
+    if (elephant.pause <= 0) {
+      elephant.target = randomElephantTarget();
+      elephant.speed = 8 + Math.random() * 18;
+    }
+    return;
+  }
+  const delta = subtract(elephant.target, elephant.pos);
+  const distance = Math.hypot(delta[0], delta[1]);
+  if (distance < 8) {
+    elephant.pause = 1.6 + Math.random() * 5.2;
+    return;
+  }
+  const desiredYaw = Math.atan2(-delta[0], delta[1]);
+  let yawDelta = desiredYaw - elephant.yaw;
+  while (yawDelta > Math.PI) yawDelta -= Math.PI * 2;
+  while (yawDelta < -Math.PI) yawDelta += Math.PI * 2;
+  elephant.yaw += clamp(yawDelta, -dt * 0.7, dt * 0.7);
+  const forward = [-Math.sin(elephant.yaw), Math.cos(elephant.yaw), 0];
+  const step = Math.min(distance, elephant.speed * dt);
+  elephant.pos = add(elephant.pos, scale(forward, step));
+  elephant.pos[0] = clamp(elephant.pos[0], ELEPHANT_ROAM_BOUNDS.west - 90, ELEPHANT_ROAM_BOUNDS.east + 90);
+  elephant.pos[1] = clamp(elephant.pos[1], ELEPHANT_ROAM_BOUNDS.south - 180, ELEPHANT_ROAM_BOUNDS.north + 180);
 }
 
 function keysSeaplanePoint(t, direction) {
@@ -2726,8 +2978,7 @@ function drawKeysSeaplane(m) {
   drawColor(prop, [0.03, 0.035, 0.04, 0.45], m, gl.LINES);
 }
 
-function drawFighterJet(m) {
-  const jet = state.fighterJet;
+function drawFighterJetActor(m, jet) {
   if (!jet.active) return;
   const b = actorBasis(jet);
   const tri = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, jet.pos)));
@@ -2742,6 +2993,11 @@ function drawFighterJet(m) {
   drawColor(tri([-2.4, 18.5, 3.4], [2.4, 18.5, 3.4], [0, 9, 4.9]), [0.03, 0.04, 0.05, 1], m);
   drawColor(tri([0, -31, 10.5], [0, -25, 8.1], [0, -28, 13.2], [-2.2, -26, 7.8], [-8.8, -35, 7.6], [-2.4, -31, 11.2], [2.2, -26, 7.8], [8.8, -35, 7.6], [2.4, -31, 11.2]), [0.88, 0.68, 0.08, 1], m);
   drawColor(line([-4.8, -25, -1.6], [-10, -34, -2.2], [4.8, -25, -1.6], [10, -34, -2.2], [-50, -18, 0.5], [-62, -28, 0.2], [50, -18, 0.5], [62, -28, 0.2]), [0.46, 0.48, 0.5, 0.6], m, gl.LINES);
+}
+
+function drawFighterJet(m) {
+  drawFighterJetActor(m, state.fighterJet);
+  for (const jet of state.debugFighters) drawFighterJetActor(m, jet);
 }
 
 function drawAirliner(m) {
@@ -2902,6 +3158,69 @@ function drawGolfCarts(m) {
   }
 }
 
+function drawElephant(m) {
+  const elephant = state.elephant;
+  const b = actorBasis({ yaw: elephant.yaw, pitch: 0, roll: 0 });
+  const bodyColor = [0.5, 0.45, 0.38, 1];
+  const eyeColor = [0.9, 0.86, 0.78, 1];
+  const body = [];
+  pushEllipsoid(body, [0, 0, 14], [18, 32, 13], 7, 14);
+  pushEllipsoid(body, [0, 28, 18], [13, 12, 11], 6, 12);
+  drawColor(meshVertices(body, b, elephant.pos), bodyColor, m);
+  const legs = [];
+  pushBox(legs, [-12, -20, 0], [-5, -12, 13]);
+  pushBox(legs, [5, -20, 0], [12, -12, 13]);
+  pushBox(legs, [-12, 13, 0], [-5, 21, 13]);
+  pushBox(legs, [5, 13, 0], [12, 21, 13]);
+  pushBox(legs, [-3.2, 35, 2], [3.2, 43, 17]);
+  drawColor(meshVertices(legs, b, elephant.pos), bodyColor, m);
+  const trunk = [];
+  pushBox(trunk, [-3.5, 38, -6], [3.5, 46, 13]);
+  pushBox(trunk, [-2.4, 44, -11], [2.4, 50, -2]);
+  drawColor(meshVertices(trunk, b, elephant.pos), [0.43, 0.39, 0.33, 1], m);
+  const ears = [];
+  pushBox(ears, [-22, 19, 10], [-12, 29, 25]);
+  pushBox(ears, [12, 19, 10], [22, 29, 25]);
+  drawColor(meshVertices(ears, b, elephant.pos), [0.47, 0.42, 0.35, 1], m);
+  const eyes = [];
+  pushBox(eyes, [-8.5, 36.5, 21], [-6.2, 38.5, 23.2]);
+  pushBox(eyes, [6.2, 36.5, 21], [8.5, 38.5, 23.2]);
+  drawColor(meshVertices(eyes, b, elephant.pos), eyeColor, m);
+}
+
+function mexicanRestaurantVertices() {
+  const sign = MEXICAN_RESTAURANT_SIGN;
+  const y = sign.pos[1];
+  const west = sign.pos[0] - 24;
+  const east = west + sign.width;
+  const bottom = sign.bottom;
+  const top = sign.bottom + sign.height;
+  return [
+    ...worldToGl(west, y, top), 1, 1,
+    ...worldToGl(east, y, top), 0, 1,
+    ...worldToGl(east, y, bottom), 0, 0,
+    ...worldToGl(west, y, top), 1, 1,
+    ...worldToGl(east, y, bottom), 0, 0,
+    ...worldToGl(west, y, bottom), 1, 0,
+  ];
+}
+
+function drawMexicanRestaurantSign(m) {
+  const sign = MEXICAN_RESTAURANT_SIGN;
+  const basis = { right: [1, 0, 0], forward: [0, 1, 0], up: [0, 0, 1] };
+  const west = sign.pos[0] - 24;
+  const east = west + sign.width;
+  const localX = (x) => x - sign.pos[0];
+  const posts = [];
+  pushBox(posts, [localX(west + 4), -1.2, 0], [localX(west + 6.6), 1.2, sign.postHeight]);
+  pushBox(posts, [localX(east - 6.6), -1.2, 0], [localX(east - 4), 1.2, sign.postHeight]);
+  pushBox(posts, [localX(west - 1), -1.5, sign.bottom - 1.2], [localX(east + 1), 1.5, sign.bottom + 1.2]);
+  drawColor(meshVertices(posts, basis, sign.pos), [0.82, 0.82, 0.78, 1], m);
+  if (state.mexicanRestaurantTexture?.loaded) {
+    drawTextured(mexicanRestaurantVertices(), state.mexicanRestaurantTexture.texture, m, 1);
+  }
+}
+
 function billboardQuad(pos, size, cameraRight, cameraUp) {
   const r = scale(cameraRight, size);
   const u = scale(cameraUp, size);
@@ -2954,6 +3273,9 @@ function drawSprites(m) {
       p[0], p[1] - r, p[2],
       p[0], p[1] + r, p[2],
     ], [0.4, 1, 0.7, 0.85], m, gl.LINES);
+  }
+  for (const rocket of state.fireworkRockets) {
+    drawColor(billboardQuad(rocket.pos, rocket.size, right, up).filter((_, i) => i % 5 < 3), rocket.color, m);
   }
   for (const particle of state.particles) {
     drawColor(billboardQuad(particle.pos, particle.size, right, up).filter((_, i) => i % 5 < 3), particle.color, m);
@@ -3056,6 +3378,18 @@ function drawSunshineSkywayBlinkers(m) {
     const mesh = [];
     pushBox(mesh, [-2.25, -2.25, -2.25], [2.25, 2.25, 2.25]);
     drawColor(meshVertices(mesh, basis, origin), i === active ? [1, 0.02, 0.01, 0.98] : [0.45, 0.01, 0.01, 0.24], m);
+  }
+}
+
+function drawVciaRunwayLights(m) {
+  const active = Math.floor(state.weatherTime / VCIA_RUNWAY_LIGHT_STEP) % VCIA_RUNWAY_LIGHT_COUNT;
+  const basis = { right: [1, 0, 0], forward: [0, 1, 0], up: [0, 0, 1] };
+  for (let i = 0; i < VCIA_RUNWAY_LIGHT_COUNT; i++) {
+    const t = i / (VCIA_RUNWAY_LIGHT_COUNT - 1);
+    const pos = lerp3(VCIA_RUNWAY_LIGHT_START, VCIA_RUNWAY_LIGHT_END, t);
+    const mesh = [];
+    pushBox(mesh, [-4.5, -4.5, 0], [4.5, 4.5, 9]);
+    drawColor(meshVertices(mesh, basis, pos), i === active ? [1, 0.02, 0.01, 0.98] : [0.45, 0.01, 0.01, 0.24], m);
   }
 }
 
@@ -3474,7 +3808,9 @@ function render() {
   drawLandmarkModels(m);
   drawWireframes(m);
   drawSunshineSkywayBlinkers(m);
+  drawVciaRunwayLights(m);
   drawSkyViewWheel(m);
+  drawMexicanRestaurantSign(m);
   drawCameraThumbnails(m);
   drawBullets(m);
   drawBirds(m);
@@ -3482,6 +3818,7 @@ function render() {
   drawCruiseShip(m);
   drawContainerShip(m);
   drawGolfCarts(m);
+  drawElephant(m);
   drawBlimp(m);
   drawChopper(m);
   drawAirliner(m);
@@ -3560,6 +3897,7 @@ async function loadData() {
   initializeMapLabels();
   initializeImagePanels();
   state.iconTexture = loadImageTexture(ICON_TEXTURE);
+  state.mexicanRestaurantTexture = createMexicanRestaurantTexture();
   const [base, result, colors, fourSeasons, sunshineSkyway, hanksWaffles, landmarkModels] = await Promise.all([
     fetch(VC_DATA).then((r) => r.json()),
     fetch(VC_RESULT).then((r) => r.ok ? r.json() : null).catch(() => null),
@@ -3697,6 +4035,8 @@ function debugCommand(method, value) {
   }
   if (command === "phone") return setNextPhoneConversation(argument);
   if (command === "plane") return setPlaneDebugLocation(argument);
+  if (command === "fireworks") return startDebugFireworks();
+  if (command === "jet") return spawnDebugFighterJet();
   return `debug: unknown method ${command}`;
 }
 
