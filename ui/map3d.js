@@ -15,6 +15,7 @@ const HANKS_WAFFLES_WIREFRAME = "/ui/data/map3d-hanks-waffles.json";
 const FAKE_CAMERA_SUFFIX = " Fake Cam";
 const AIWE_CAMERA_NAME = "AI World Editor Map (4K)";
 const YANIS_WATER_COLOR = [44 / 255, 103 / 255, 164 / 255, 1];
+const DAY_SKY_COLOR = [0.43, 0.72, 0.92, 1];
 const CAMERA_CONE_DISTANCE = 100;
 const CAMERA_THUMBNAIL_DISTANCE = CAMERA_CONE_DISTANCE * 0.995;
 const TOUR_DWELL_MS = 1200;
@@ -939,7 +940,7 @@ function drawOverlay(matrix) {
 function render() {
   resize();
   gl.viewport(0, 0, state.width, state.height);
-  gl.clearColor(0.83, 0.81, 0.75, 1);
+  gl.clearColor(...DAY_SKY_COLOR);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.lineWidth(1);
   const matrix = viewProjection();
