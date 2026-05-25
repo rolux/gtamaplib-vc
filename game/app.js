@@ -722,12 +722,17 @@ const BOAT_LINES = [
   "we saw nothing",
   "wrong canal!",
   "five stars on boat trip",
+  "scuba brothers!",
   "we are scuba brothers now",
   "jason is a cop",
   "bunny is a rider",
   "this is fine",
   "it's happening",
   "what year is this?",
+  "look at the 3d underwater!",
+  "not here baby",
+  "don't do it",
+  "do it for the memes"
 ];
 const MAP_LABELS = [
   { text: "LTF Airfield", pos: [-2850, -4300, 0.08], width: 980, color: "#40ff4f" },
@@ -870,8 +875,8 @@ const state = {
       { folder: "phone/conversation_04", count: 39 },
       { folder: "phone/conversation_05", count: 47 },
       { folder: "phone/conversation_06", count: 36 },
-      { folder: "phone/conversation_07", count: 37 },
-      { folder: "phone/conversation_08", count: 59 },
+      { folder: "phone/conversation_07", count: 59 },
+      { folder: "phone/conversation_08", count: 37 },
       { folder: "phone/conversation_09", count: 5 },
     ],
   },
