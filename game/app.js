@@ -156,7 +156,6 @@ const RADIO_LINES = [
   "Mission updated. Just kind of keep flying",
   "This is the year we lost contact.",
   "Airspace temporarily closed. Reopening soon. Just fixing some leaks...",
-  "JASON IS A COP",
   "SPOILER: THE DOG DIES",
   "Prevented from using lower priority seats",
   "No, you can't see Ambrosia from here.",
@@ -243,6 +242,7 @@ const RADIO_LINES = [
   "Stay clear of Ambrosia. No, that airfield does not exist! We call it the I-505. Yes, that's an Insider joke. But still...",
   "Notice to airmen: you are not REALLY airmen, okay?",
   "My strongest hunch is still orphaned RAF loops.",
+  "DMCA_TAKE_DOWN_PREVENTED_BY_LOCAL_HOST_RULE",
 ];
 const NON_INTERACTIVE_EVENTS = [
   "2 NIECH - Multi Car Hangout at PGH Soccer Field",
