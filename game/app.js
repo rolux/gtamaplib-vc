@@ -155,133 +155,136 @@ const RADIO_LINES = [
   "Coast Guard: one boat reports being called 'little white boat'.",
   "Mapping error: please return immediately.",
   "News 9: we go now to our sky correspondent, who is also confused.",
-  "MAPPING IN PROGRESS - PLEASE VACATE AIRSPACE",
+  "Mapping in progress - please vacate airspace!",
   "[WARNING] Camera 0041 has negative focal length. Ignoring.",
-  "we're working on it.",
-  "Authorities confirm the map is, quote, \"mostly right\"",
-  "we're live above what appears to be... a triangulation error.",
-  "prior: vibes",
-  "landmark confidence: 12%. proceeding anyway.",
-  "do NOT fly through that. ...okay you flew through that.",
-  "the ocean is load-bearing. please do not touch it.",
-  "four seasons still on fire. this is noted. this is filed. this is ignored.",
-  "reprojection error, please stand by",
-  "[BUNDLE ADJUSTMENT COMPLETE] errors redistributed evenly. you're welcome.",
-  "please be advised: the Keys are approximately 40 meters further south than expected. have a nice day.",
-  "unknown aircraft, please identify yourself. unknown aircraft, we can see you. unknown aircraft, okay fine.",
-  "the blimp is not supposed to be doing that.",
-  "weather: suspicious",
-  "uh, tower, we have a... the thing is...",
-  "this airspace is rated E for Errors",
-  "you are now leaving the reconstruction zone. your coordinates are now someone else's problem.",
-  "that is not a designated flight path!!",
-  "small boat traffic is expressing emotions again. we are monitoring.",
-  "lightning strike detected. adding to the dataset.",
-  "sir this is a Wendy's",
-  "altitude looks fine. everything else: jury's out.",
-  "please stop flying in circles.",
-  "mayday is a strong word.",
-  "you appear to be flying through a screenshot. this is technically legal.",
-  "news chopper, can we go off the record for a moment?",
-  "do not approach the calibration checkerboard. do not make eye contact with it.",
+  "We're working on it.",
+  "Authorities confirm the map is, quote, \"mostly right.\"",
+  "We're live above what appears to be... a triangulation error.",
+  "Prior: vibes",
+  "Landmark confidence: 12%. Proceeding anyway.",
+  "DO NOT fly through that ... okay you flew through that.",
+  "The ocean is load-bearing. please do not touch it.",
+  "Four seasons still on fire. This is noted. This is filed. This is ignored.",
+  "Reprojection error, please stand by.",
+  "[BUNDLE ADJUSTMENT COMPLETE] Errors redistributed evenly. You're welcome.",
+  "Please be advised: the Keys are approximately 40 meters further south than expected. Have a nice day.",
+  "Unknown aircraft, please identify yourself. Unknown aircraft, we can see you. Unknown aircraft, okay fine.",
+  "The blimp is not supposed to be doing that.",
+  "Weather: suspicious",
+  "Uh, tower, we have a... the thing is...",
+  "This airspace is rated E for Errors.",
+  "You are now leaving the reconstruction zone. From here on, your coordinates are someone else's problem.",
+  "That is not a designated flight path!!",
+  "Small boat traffic is expressing emotions again. We are monitoring.",
+  "Lightning strike detected. Adding to the dataset.",
+  "Sir this is a Wendy's",
+  "Altitude looks fine. Everything else: jury's out.",
+  "Please stop flying in circles.",
+  "Mayday is a strong word.",
+  "You appear to be flying through a screenshot. This is technically legal.",
+  "News chopper, can we go off the record for a moment?",
+  "Do not approach the calibration checkerboard. Do not make eye contact with it.",
   "SPARSE747, you don't have landing gear.",
-  "CAUTION: LOW CONFIDENCE SWAMP REGION",
-  "WARNING: BRIDGE CURRENTLY APPROXIMATE",
-  "WARNING: PHOTOGRAMMETRY EVENT IN PROGRESS",
-  "Air Traffic Control would like a word",
-  "NO FLY ZONE except for you apparently",
-  "PLEASE STOP FLYING THROUGH ACTIVE BUNDLE ADJUSTMENT OR OPTIMIZATION",
-  "Seaplane entering low-polygon weather cell",
-  "Mission updated. Just kind of keep flying",
+  "CAUTION: Low confidence swamp region",
+  "WARNING: Bridge currently approximate",
+  "WARNING: Photogrammetry event in progress",
+  "Air Traffic Control would like a word...",
+  "NO FLY ZONE except for you apparently...",
+  "Please stop flying through active bundle adjustment or optimization.",
+  "Seaplane entering low-polygon weather cell.",
+  "Mission updated. Just kind of keep flying.",
   "This is the year we lost contact.",
   "Airspace temporarily closed. Reopening soon. Just fixing some leaks...",
-  "SPOILER: THE DOG DIES",
-  "Prevented from using lower priority seats",
+  "SPOILER: The dog dies.",
+  "Prevented from using lower priority seats.",
   "No, you can't see Ambrosia from here.",
   "If you think this is Watson Bay, you are fundamentally mistaken.",
   "Do not complain about lack of airfields. We have nothing to do with this.",
   "Do you need vectors? ... Hmm... looks like you don't.",
   "That VOR beacon is really just decorative, ignore at all costs.",
-  "No, these boats are not clipping. They are ambhibious vehicles",
-  "Sparse747 heavy, descend to one thousand, report pelican in sight.",
-  "all aircraft be advised, the ILS is working but it is not happy about it.",
-  "unknown traffic, you are not on our radar. you are not on any radar. please advise.",
+  "No, these boats are not clipping. They are ambhibious vehicles.",
+  "SPARSE747 heavy, descend to one thousand, report pelican in sight.",
+  "All aircraft be advised, the ILS is working but it is not happy about it.",
+  "Unknown traffic, you are not on our radar. You are not on any radar. Please advise.",
   "Citation on left base, say intentions. Citation, say intentions. Citation, you just did a loop, we saw it.",
-  "winds calm, visibility unlimited, one boat on fire, otherwise clear.",
-  "traffic alert, twelve o'clock, two miles, altitude unknown, nature unknown, it's the blimp again.",
-  "say souls on board. ...say souls on board. that's a lot of souls for a seaplane.",
+  "Winds calm, visibility unlimited, one boat on fire, otherwise clear.",
+  "Traffic alert, twelve o'clock, two miles, altitude unknown, nature unknown, it's the blimp again.",
+  "Say souls on board... Say souls on board. That's a lot of souls for a seaplane.",
   "Leonida ground, be advised, runway 27 is temporarily a crime scene. expect delays.",
   "November four-niner tango, you are cleared direct, but we want you to think about what you did.",
-  "all stations, all stations, be advised there is a man on the taxiway. he seems confident. do not encourage him.",
-  "squawk seven-seven-zero-zero. ...that's not why we use that code but sure.",
-  "say altitude. say altitude again. that's not an altitude. that's a feeling.",
-  "traffic, ten o'clock, same altitude, they say they don't see you either, nobody knows what's happening.",
-  "cleared to land, runway two-four, caution, surface condition reported as, quote, \"damp and philosophical.\"",
-  "Sparse747 confirm you are not on fire. Sparse747, that was not rhetorical.",
-  "be advised, the VOR is operational but has strong opinions today.",
-  "contact approach on one-two-zero-decimal-nine. they know. they're waiting. they're calm about it. too calm.",
-  "Leonida tower to all aircraft: the Keys are a no-fly zone until further - actually it's fine. disregard. do not disregard.",
-  "maintain visual separation from the news helicopter. the news helicopter is not maintaining visual separation from you.",
-  "radar contact lost. radar contact reacquired. radar has questions.",
-  "you are number one for the approach. number two is a pelican. number two does not understand ATC instructions.",
-  "unable to issue traffic advisories at this time. we are aware of the irony.",
-  "Leonida approach, request lower. request denied. request noted. request denied again.",
-  "aircraft on the beach heading, say callsign. ...say callsign. we're going to call you Boat Guy.",
-  "altimeter two-niner-niner-two. that's probably fine.",
-  "...and the mayor confirmed he has never been to Florida, has always been to Florida, and will not be taking further questions.",
-  "roger, radar contact, two miles east of where you think you are.",
-  "climb and maintain four thousand. or three thousand. we're having a conversation about it internally.",
-  "traffic in your vicinity is squawking twelve hundred and appears to be having a great time.",
-  "Leonida tower, say again, you're breaking up. Leonida tower, you were never breaking up, we just needed a moment.",
-  "correction, correction, disregard last, disregard disregard, stand by.",
-  "number two for the approach behind a Cessna, a flamingo, and something we're still classifying.",
-  "cleared ILS runway two-four. the glideslope is suggestive rather than authoritative today.",
-  "say aircraft type. ...we don't have that in the database. we're adding it now. under \"misc.\"",
-  "expect vectors for sequencing. do not expect an explanation.",
-  "all aircraft, be advised, sunset is occurring. this is not a drill.",
-  "the yellow seaplane, say altitude again. the yellow seaplane, we are going to need you to pick a number.",
-  "you are in controlled airspace. you appear unbothered by this information.",
-  "negative, that is not an approved approach. that was incredible, but it is not approved.",
-  "say fuel state. ...say fuel state in units we recognize.",
-  "you are now outside radar coverage. you are on your own. godspeed. we mean that genuinely.",
+  "All stations, all stations, be advised there is a man on the taxiway. He seems confident. Do not encourage him.",
+  "Squawk seven-seven-zero-zero. ...that's not why we use that code, but sure.",
+  "Say altitude. say altitude again. That's not an altitude. That's a feeling.",
+  "Traffic, ten o'clock, same altitude, they say they don't see you either, nobody knows what's happening.",
+  "Cleared to land, runway two-four, caution, surface condition reported as, quote, \"damp and philosophical.\"",
+  "SPARSE747 confirm you are not on fire. SPARSE747, that was not rhetorical.",
+  "Be advised, the VOR is operational but has strong opinions today.",
+  "Contact approach on one-two-zero-decimal-nine. They know. They're waiting. They're calm about it. Too calm.",
+  "Leonida tower to all aircraft: the Keys are a no-fly zone until further - actually it's fine. Disregard. Do not disregard.",
+  "Maintain visual separation from the news helicopter. The news helicopter is not maintaining visual separation from you.",
+  "Radar contact lost. Radar contact reacquired. Radar has questions.",
+  "You are number one for the approach. Number two is a pelican. Number two does not understand ATC instructions.",
+  "Unable to issue traffic advisories at this time. We are aware of the irony.",
+  "Leonida approach, request lower. Request denied. Request noted. Request denied again.",
+  "Aircraft on the beach heading, say callsign... say callsign. We're going to call you Boat Guy.",
+  "Altimeter two-niner-niner-two. That's probably fine.",
+  "... and the mayor confirmed he has never been to Florida, has always been to Florida, and will not be taking further questions.",
+  "Roger, radar contact, two miles east of where you think you are.",
+  "Climb and maintain four thousand. Or three thousand. We're having a conversation about it internally.",
+  "Traffic in your vicinity is squawking twelve hundred and appears to be having a great time.",
+  "Leonida Tower, say again, you're breaking up. Leonida Tower, you were never breaking up, we just needed a moment.",
+  "Correction, correction, disregard last, disregard disregard, stand by.",
+  "Number two for the approach behind a Cessna, a flamingo, and something we're still classifying.",
+  "Cleared ILS runway two-four. The glideslope is suggestive rather than authoritative today.",
+  "Say aircraft type... We don't have that in the database. We're adding it now. Under \"misc.\"",
+  "Expect vectors for sequencing. Do not expect an explanation.",
+  "All aircraft, be advised, sunset is occurring. This is not a drill.",
+  "The yellow seaplane, say altitude again. The yellow seaplane, we are going to need you to pick a number.",
+  "You are in controlled airspace. You appear unbothered by this information.",
+  "Negative, that is not an approved approach. That was incredible, but it is not approved.",
+  "Say fuel state... Say fuel state in units we recognize.",
+  "You are now outside radar coverage. You are on your own. Godspeed. We mean that genuinely.",
   "Boat Guy, climb to VFR cruising altitude. Boat Guy you are skimming the water. Boat Guy.",
-  "be advised you just flew through a camera position. this has been logged.",
-  "lost sight of your aircraft. regained sight of your aircraft. we need a minute.",
-  "November niner-niner whiskey, say intentions. ...that's not an intention, that's a direction, and it's straight down.",
-  "squawk VFR and remain clear of - you know what, just try not to hit anything sentimental.",
-  "all aircraft, SIGMET issued for the Keys area. phenomenon described as \"a lot.\"",
-  "be advised, a runway incursion has been reported on the taxiway. the incursion has a jetski.",
-  "Leonida ground, aircraft on the ramp is refusing to file a flight plan. says he knows where he's going. we do not share this confidence.",
-  "declaring minimum fuel. tower acknowledges. tower sympathizes. tower asks what your plan was originally.",
-  "aircraft on right downwind, are you aware you're upside down. aircraft on right downwind.",
-  "go around, go around, I say again go around. thank you. now do it right-side up.",
-  "Leonida approach, we have a pilot report of turbulence at three thousand over the bridge. pilot describes it as \"spiritually significant.\"",
-  "be advised the four seasons hotel is still on fire. this has been notamed. pilots are advised to treat it as a visual landmark.",
-  "wake turbulence caution, heavy aircraft departed two minutes ago. also it was on fire when it departed. just a heads up.",
-  "bird strike reported on short final. bird is fine. aircraft is thinking about its choices.",
-  "Leonida tower is temporarily operating with reduced staff. by which we mean Dave left.",
+  "Be advised you just flew through a camera position. This has been logged.",
+  "Lost sight of your aircraft. Regained sight of your aircraft. We need a minute.",
+  "November niner-niner whiskey, say intentions... That's not an intention, that's a direction, and it's straight down.",
+  "Squawk VFR and remain clear of - you know what, just try not to hit anything sentimental.",
+  "All aircraft, SIGMET issued for the Keys area. Phenomenon described as \"a lot.\"",
+  "All aircraft, SEGFAULT issued for Leonard County. Unfortunately, Waning Sands is no longer with us.",
+  "Ne advised, a runway incursion has been reported on the taxiway. The incursion has a jetski.",
+  "Leonida ground, aircraft on the ramp is refusing to file a flight plan. Says he knows where he's going. We do not share this confidence.",
+  "Declaring minimum fuel. Tower acknowledges. Tower sympathizes. Tower asks what your plan was originally.",
+  "Jason? Jason Duval? If you can hear this... call me back, okay?",
+  "Aircraft on right downwind, are you aware you're upside down. Aircraft on right downwind.",
+  "Go around, go around, I say again go around. Thank you. Now do it right-side up.",
+  "Leonida approach, we have a pilot report of turbulence at three thousand over the bridge. Pilot describes it as \"spiritually significant.\"",
+  "Be advised the Four Seasons Hotel is still on fire. This has been notamed. Pilots are advised to treat it as a visual landmark.",
+  "Wake turbulence caution, heavy aircraft departed two minutes ago. Also it was on fire when it departed. just a heads up.",
+  "Bird strike reported on short final. Bird is fine. Aircraft is thinking about its choices.",
+  "Leonida Tower is temporarily operating with reduced staff. By which we mean Dave left.",
   "ATIS information Kilo is current. ATIS information Kilo is a lie, but a comforting one.",
-  "radar maintenance complete. radar is back online and has forgotten everything it knew about you.",
-  "all frequencies will be monitored. all frequencies will also be judged.",
-  "Leonida approach control closed at two-three-zero-zero local. after that you're on your own and so are we.",
-  "stand by, we are resolving a disagreement between two radar returns that are both claiming to be you.",
-  "frequency change approved. new frequency is one-two-three-decimal-four-five. they're friendlier there. different vibe.",
-  "tower is experiencing a brief philosophical crisis. expect minor delays.",
-  "this is a reminder that VFR flight following is a service and not a guarantee and definitely not a friendship. although. you know.",
-  "Leonida departure, be advised — actually, just. be advised. generally. as a practice.",
-  "#39 is lowkey my favorite",
+  "Radar maintenance complete. Radar is back online and has forgotten everything it knew about you.",
+  "All frequencies will be monitored. All frequencies will also be judged.",
+  "Leonida approach control closed at two-three-zero-zero local. After that you're on your own and so are we.",
+  "Stand by, we are resolving a disagreement between two radar returns that are both claiming to be you.",
+  "Frequency change approved. New frequency is one-two-three-decimal-four-five. They're friendlier there. Different vibe.",
+  "Tower is experiencing a brief philosophical crisis. Expect minor delays.",
+  "This is a reminder that VFR flight following is a service and not a guarantee and definitely not a friendship. Although. You know.",
+  "Leonida departure, be advised — actually, just. Be advised. Generally. As a practice.",
+  "#39 is lowkey my favorite.",
   "Yorktown at 3 o'clock. Sober up, ladies.",
-  "You are NOT on approach. This airfield is PURE SPECULATION.",
+  "You are NOT on approach. This airfield is pure speculation.",
   "What do you mean \"where is the panhandle?\"",
   "Roger. I mean, no... not you!",
   "Delta Tango Foxtrott. I repeat: Foxtrott!",
-  "the map is not the territory",
-  "deliver the calibration target to the marina. do not roll the aircraft. we will know.",
+  "The map is not the territory.",
+  "Deliver the calibration target to the marina. Do not roll the aircraft. We will know.",
   "Screenshot Police. Hands up where I can see them!",
-  "Stay clear of Ambrosia. No, that airfield does not exist! We call it the I-505. Yes, that's an Insider joke. But still...",
+  "Stay clear of Ambrosia. No, that airfield does not exist! We call it the I-505. Yes, that's an Insider joke. But still.",
   "Notice to airmen: you are not REALLY airmen, okay?",
   "My strongest hunch is still orphaned RAF loops.",
   "DMCA_TAKE_DOWN_PREVENTED_BY_LOCAL_HOST_RULE",
+  "Please convert your heading to RAGE degrees immediately."
 ];
 const NON_INTERACTIVE_EVENTS = [
   "2 NIECH - Multi Car Hangout at PGH Soccer Field",
@@ -882,7 +885,7 @@ const altitudeEl = document.querySelector("#altitude");
 const yawEl = document.querySelector("#yaw");
 const scoreEl = document.querySelector("#score");
 const statusEl = document.querySelector("#status");
-const modeEl = document.querySelector("#mode");
+const weatherStatusEl = document.querySelector("#weather-status");
 const tilesEl = document.querySelector("#tiles");
 const metarEl = document.querySelector("#metar");
 const radioEl = document.querySelector("#radio");
@@ -916,6 +919,7 @@ const state = {
   fighterShots: [],
   iconTexture: null,
   classicIconTexture: null,
+  upgradeHideAt: 0,
   mexicanRestaurantTexture: null,
   screenshotHits: new Set(),
   particles: [],
@@ -959,6 +963,8 @@ const state = {
   radioQueue: [],
   eventMode: "metar",
   eventUntil: 5,
+  weatherStatusUntil: 0,
+  statusUntil: 0,
   debugUntil: 0,
   debugStarted: 0,
   debugHoldAt: 0,
@@ -1042,7 +1048,13 @@ const state = {
     missile: false,
     iconMissile: false,
     brake: false,
-    stickPressed: false,
+    leftStickPressed: false,
+    rightStickPressed: false,
+  },
+  horns: {
+    context: null,
+    left: null,
+    right: null,
   },
   plane: {
     pos: [-6250, 5250, 250],
@@ -1658,6 +1670,27 @@ function drawWater(matrix) {
   ], mapColor(WATER_COLOR), matrix);
 }
 
+function setStatus(text, duration = 15) {
+  statusEl.textContent = text;
+  state.statusUntil = state.weatherTime + duration;
+}
+
+function clearStatus() {
+  statusEl.textContent = "";
+  state.statusUntil = 0;
+}
+
+function weatherStatusText() {
+  if (state.storm) return "STORM MODE: TASTEFUL APOCALYPSE";
+  return `${state.night ? "STARRY" : "SUNNY"} CHAOS: LOCALLY NORMAL`;
+}
+
+function showWeatherStatus() {
+  weatherStatusEl.textContent = weatherStatusText();
+  state.weatherStatusUntil = state.weatherTime + 5;
+  weatherStatusEl.classList.add("visible");
+}
+
 function resetPlane() {
   const model = state.plane.model;
   Object.assign(state.plane, {
@@ -1672,7 +1705,7 @@ function resetPlane() {
   });
   state.deadZoneCrash = false;
   state.deadZoneResetAt = 0;
-  statusEl.textContent = "fresh floatplane, highly legal";
+  setStatus("fresh floatplane, highly legal");
 }
 
 function makeStars(count) {
@@ -1771,7 +1804,7 @@ function igniteFourSeasons() {
   const landmark = state.landmarks.find((item) => item.name === FOUR_SEASONS_NAME);
   if (!landmark?.xyz) return;
   state.fires.push({ name: FOUR_SEASONS_NAME, pos: [landmark.xyz[0], landmark.xyz[1], landmark.xyz[2] + 35], radius: 135, height: 90, rate: 95, life: 999 });
-  statusEl.textContent = "Four Seasons: unfortunately flambé";
+  setStatus("Four Seasons: unfortunately flambé");
 }
 
 function turbulenceFactor(pos) {
@@ -1878,7 +1911,7 @@ function updatePlane(dt, now) {
     p.vel[0] *= Math.pow(0.991, dt * 60);
     p.vel[1] *= Math.pow(0.991, dt * 60);
     if (Math.random() < dt * 36) spawnParticles(p.pos, [0.9, 0.76, 0.48, 0.78], 2, 28);
-    statusEl.textContent = "dead zone: controls offline";
+    setStatus("dead zone: controls offline");
   }
   const turbulence = turbulenceFactor(p.pos);
   state.turbulence = lerp(state.turbulence, turbulence, 1 - Math.pow(0.18, dt));
@@ -1911,12 +1944,12 @@ function updatePlane(dt, now) {
       p.vel[0] *= 0.72;
       p.vel[1] *= 0.72;
       spawnParticles(p.pos, [0.9, 0.76, 0.48, 1], 22, 26);
-      statusEl.textContent = "bonk";
+      setStatus("bonk");
       if (state.deadZoneCrash && !state.deadZoneResetAt) {
         state.deadZoneResetAt = state.weatherTime + 1;
         if (state.phone.playing) stopPhone("phone: signal lost");
         p.vel = [0, 0, 0];
-        statusEl.textContent = "signal lost";
+        setStatus("signal lost");
       }
     }
   }
@@ -1942,6 +1975,57 @@ function applyDeadzone(value, deadzone = 0.12) {
   return sign * (Math.abs(value) - deadzone) / (1 - deadzone);
 }
 
+function startHorn(name, options) {
+  const horns = state.horns;
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx || horns[name]) return;
+  if (!horns.context) horns.context = new AudioCtx();
+  if (horns.context.state === "suspended") horns.context.resume();
+  const now = horns.context.currentTime;
+  const master = horns.context.createGain();
+  const filter = horns.context.createBiquadFilter();
+  const oscillator = horns.context.createOscillator();
+  const wobble = horns.context.createOscillator();
+  const wobbleGain = horns.context.createGain();
+  master.gain.setValueAtTime(0.0001, now);
+  master.gain.exponentialRampToValueAtTime(options.gain, now + 0.08);
+  filter.type = "lowpass";
+  filter.frequency.value = options.lowpass;
+  filter.Q.value = options.q;
+  oscillator.type = options.type;
+  oscillator.frequency.setValueAtTime(options.startFrequency, now);
+  oscillator.frequency.linearRampToValueAtTime(options.endFrequency, now + 0.18);
+  wobble.type = "sine";
+  wobble.frequency.value = options.wobbleFrequency;
+  wobbleGain.gain.value = options.wobbleGain;
+  wobble.connect(wobbleGain).connect(oscillator.frequency);
+  oscillator.connect(filter).connect(master).connect(horns.context.destination);
+  oscillator.start(now);
+  wobble.start(now);
+  horns[name] = { master, filter, oscillator, wobble, wobbleGain };
+}
+
+function stopHorn(name) {
+  const horns = state.horns;
+  const horn = horns[name];
+  if (!horns.context || !horn) return;
+  const now = horns.context.currentTime;
+  const { master, filter, oscillator, wobble, wobbleGain } = horn;
+  master.gain.cancelScheduledValues(now);
+  master.gain.setValueAtTime(Math.max(0.0001, master.gain.value), now);
+  master.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
+  oscillator.stop(now + 0.1);
+  wobble.stop(now + 0.1);
+  oscillator.addEventListener("ended", () => {
+    oscillator.disconnect();
+    wobble.disconnect();
+    wobbleGain.disconnect();
+    filter.disconnect();
+    master.disconnect();
+  }, { once: true });
+  horns[name] = null;
+}
+
 function pollGamepad() {
   const pads = navigator.getGamepads ? [...navigator.getGamepads()].filter(Boolean) : [];
   const pad = pads[0];
@@ -1960,7 +2044,10 @@ function pollGamepad() {
     state.gamepad.missile = false;
     state.gamepad.iconMissile = false;
     state.gamepad.brake = false;
-    state.gamepad.stickPressed = false;
+    if (state.gamepad.leftStickPressed) stopHorn("left");
+    if (state.gamepad.rightStickPressed) stopHorn("right");
+    state.gamepad.leftStickPressed = false;
+    state.gamepad.rightStickPressed = false;
     return;
   }
   state.gamepad.pad = pad;
@@ -1977,12 +2064,38 @@ function pollGamepad() {
   state.gamepad.missile = Boolean(pad.buttons[1]?.pressed || pad.buttons[2]?.pressed);
   state.gamepad.iconMissile = Boolean(pad.buttons[3]?.pressed);
   state.gamepad.brake = false;
-  const stickPressed = Boolean(pad.buttons[10]?.pressed || pad.buttons[11]?.pressed);
-  if (stickPressed && !state.gamepad.stickPressed) {
-    state.stickFlash = 1;
-    statusEl.textContent = "stick click: absolutely acknowledged";
+  const leftStickPressed = Boolean(pad.buttons[10]?.pressed);
+  const rightStickPressed = Boolean(pad.buttons[11]?.pressed);
+  if (leftStickPressed && !state.gamepad.leftStickPressed) {
+    startHorn("left", {
+      type: "sawtooth",
+      startFrequency: 164,
+      endFrequency: 138,
+      wobbleFrequency: 5.4,
+      wobbleGain: 7.5,
+      lowpass: 1200,
+      q: 0.6,
+      gain: 0.043,
+    });
+    setStatus("stick click: absolutely acknowledged");
   }
-  state.gamepad.stickPressed = stickPressed;
+  if (!leftStickPressed && state.gamepad.leftStickPressed) stopHorn("left");
+  if (rightStickPressed && !state.gamepad.rightStickPressed) {
+    startHorn("right", {
+      type: "triangle",
+      startFrequency: 92,
+      endFrequency: 78,
+      wobbleFrequency: 3.1,
+      wobbleGain: 0,
+      lowpass: 420,
+      q: 1.1,
+      gain: 0.15,
+    });
+    setStatus("honk");
+  }
+  if (!rightStickPressed && state.gamepad.rightStickPressed) stopHorn("right");
+  state.gamepad.leftStickPressed = leftStickPressed;
+  state.gamepad.rightStickPressed = rightStickPressed;
 }
 
 function rumbleGamepad(duration = 180, weakMagnitude = 0.35, strongMagnitude = 0.9) {
@@ -2022,7 +2135,7 @@ function updateBullets(dt) {
         bullet.life = 0;
         state.score += bullet.type === "missile" ? 250 : 100;
         spawnParticles(target.pos, bullet.type === "missile" ? [1, 0.32, 0.06, 1] : [0.4, 1, 0.7, 1], bullet.type === "missile" ? 90 : 48, bullet.type === "missile" ? 80 : 55);
-        statusEl.textContent = bullet.type === "missile" ? `missile hit: ${target.name}` : `target deleted: ${target.name}`;
+        setStatus(bullet.type === "missile" ? `missile hit: ${target.name}` : `target deleted: ${target.name}`);
       }
     }
   }
@@ -2043,7 +2156,7 @@ function updateFighterShots(dt) {
       shot.life = 0;
       state.plane.vel = add(state.plane.vel, scale(normalize(subtract(plane, shot.pos)), 22));
       spawnParticles(plane, [0.52, 0.54, 0.55, 0.88], 28, 46);
-      statusEl.textContent = "fighter intercept: rude but accurate";
+      setStatus("fighter intercept: rude but accurate");
       rumbleGamepad(150, 0.18, 0.52);
     }
   }
@@ -2076,7 +2189,7 @@ function updatePrisonDefense(dt) {
       shot.life = 0;
       state.plane.vel = add(state.plane.vel, scale(normalize(subtract(plane, shot.pos)), 18));
       spawnParticles(plane, [0.04, 0.12, 0.55, 0.9], 24, 40);
-      statusEl.textContent = "prison tower says no";
+      setStatus("prison tower says no");
       rumbleGamepad(120, 0.16, 0.42);
     }
   }
@@ -2137,7 +2250,6 @@ function updateParticles(dt) {
       bend: Math.random() * 0.25 - 0.125,
     };
     rumbleGamepad();
-    statusEl.textContent = "weather: tasteful apocalypse";
   }
   state.lightning = Math.max(0, state.lightning - dt);
   if (!state.lightning) state.lightningBolt = null;
@@ -2348,7 +2460,7 @@ function startFireworkShow(show, label = "fireworks") {
   show.active = true;
   show.until = state.weatherTime + 45;
   show.cooldown = 0.2;
-  statusEl.textContent = `${label} near ${show.origin.name}`;
+  setStatus(`${label} near ${show.origin.name}`);
   return true;
 }
 
@@ -2411,14 +2523,14 @@ function createFighterJetActor() {
 
 function spawnFighterJet() {
   Object.assign(state.fighterJet, createFighterJetActor());
-  statusEl.textContent = "unidentified fast mover";
+  setStatus("unidentified fast mover");
 }
 
 function spawnDebugFighterJet() {
   const jet = createFighterJetActor();
   state.debugFighters.push(jet);
   if (state.debugFighters.length > 3) state.debugFighters.shift();
-  statusEl.textContent = `debug fast mover from ${jet.originName}`;
+  setStatus(`debug fast mover from ${jet.originName}`);
   return `jet: launched from ${jet.originName}`;
 }
 
@@ -2922,7 +3034,7 @@ function updateScreenshotFlyThroughs() {
     if (planeDistance < 16 && horizontal < length(subtract(rightEdge, center)) && vertical < length(subtract(topEdge, center))) {
       state.screenshotHits.add(camera.name);
       state.score += 1;
-      statusEl.textContent = `screenshot fly-through: ${camera.name}`;
+      setStatus(`screenshot fly-through: ${camera.name}`);
       spawnParticles(state.plane.pos, [1, 1, 0.72, 1], 16, 20);
     }
   }
@@ -2954,16 +3066,21 @@ function update(dt, now) {
   altitudeEl.textContent = `ALT ${state.plane.pos[2].toFixed(0)}`;
   yawEl.textContent = `YAW ${Math.round((state.plane.yaw * 180 / Math.PI % 360 + 360) % 360)}`;
   scoreEl.textContent = `SCORE ${state.score}`;
-  modeEl.textContent = state.storm ? "STORM MODE" : "SUNNY CHAOS";
+  weatherStatusEl.textContent = weatherStatusText();
+  weatherStatusEl.classList.toggle("visible", state.weatherTime < state.weatherStatusUntil);
+  if (state.statusUntil && state.weatherTime >= state.statusUntil) {
+    clearStatus();
+    state.statusUntil = 0;
+  }
   weatherButton.textContent = state.storm ? "clear" : "storm";
   dayNightButton.textContent = state.night ? "day" : "night";
-  upgradeButton.textContent = state.plane.model === "seaplane" ? "downgrade" : "upgrade";
+  upgradeButton.hidden = state.plane.model === "seaplane" && state.weatherTime >= state.upgradeHideAt;
   const controllerText = state.gamepad.connected ? " / controller" : " / plug in your controller!";
   const tileCount = state.tiles.filter((tile) => tile?.loaded).length;
   const landmarkCount = state.landmarkModels.filter((model) => model.texture?.loaded).length;
   tilesEl.textContent = `${tileCount} tiles / ${landmarkCount} landmarks${controllerText}`;
   if (state.gamepad.connected && statusEl.textContent === "fresh floatplane, highly legal") {
-    statusEl.textContent = "controller: left stick fly, right stick look, L1/R1 throttle, X shoots, □/○/△ missiles";
+    setStatus("controller: left stick fly, right stick look, L1/R1 throttle, X shoots, □/○/△ missiles");
   }
 }
 
@@ -4184,14 +4301,26 @@ function setPlaneDebugLocation(location) {
   state.deadZoneResetAt = 0;
   state.camera.eye = add(state.plane.pos, [0, -CAMERA_CHASE * 1.6, CAMERA_UP + 35]);
   state.camera.target = [...state.plane.pos];
-  statusEl.textContent = "debug plane zero";
+  setStatus("debug plane zero");
   return "plane: zero";
 }
 
-function togglePlaneModel() {
-  state.plane.model = state.plane.model === "seaplane" ? "classic" : "seaplane";
-  upgradeButton.textContent = state.plane.model === "seaplane" ? "downgrade" : "upgrade";
-  statusEl.textContent = state.plane.model === "seaplane" ? "floatplane upgraded" : "classic floatplane restored";
+function setPlaneModel(model, hideUpgrade = false) {
+  if (!PLANE_CONFIGS[model]) return `plane: unknown model ${model}`;
+  state.plane.model = model;
+  if (model === "seaplane" && hideUpgrade) {
+    state.upgradeHideAt = state.weatherTime + 0.25;
+  } else if (model === "classic") {
+    state.upgradeHideAt = 0;
+    upgradeButton.hidden = false;
+  }
+  setStatus(model === "seaplane" ? "floatplane upgraded" : "classic floatplane restored");
+  return model === "seaplane" ? "plane: upgraded" : "plane: downgraded";
+}
+
+function upgradePlaneModel() {
+  if (state.plane.model === "seaplane") return;
+  setPlaneModel("seaplane", true);
 }
 
 function debugCommand(method, value) {
@@ -4203,6 +4332,8 @@ function debugCommand(method, value) {
   }
   if (command === "phone") return setNextPhoneConversation(argument);
   if (command === "plane") return setPlaneDebugLocation(argument);
+  if (command === "upgrade") return setPlaneModel("seaplane");
+  if (command === "downgrade") return setPlaneModel("classic");
   if (command === "fireworks") return startDebugFireworks();
   if (command === "jet") return spawnDebugFighterJet();
   if (command === "debug") {
@@ -4251,7 +4382,7 @@ function stopPhone(status = "phone: disconnected") {
   phone.availableAt = state.weatherTime + 5;
   phoneButton.textContent = "phone";
   updatePhoneButtonVisibility();
-  statusEl.textContent = status;
+  setStatus(status);
 }
 
 async function playPhoneLine() {
@@ -4301,7 +4432,7 @@ async function togglePhone() {
   phone.playing = true;
   phoneButton.textContent = "hang up";
   updatePhoneButtonVisibility();
-  statusEl.textContent = "phone: connected";
+  setStatus("phone: connected");
   playPhoneLine();
 }
 
@@ -4390,12 +4521,12 @@ async function toggleSound() {
     sound.playing = true;
     sound.audible = true;
     radioButton.textContent = "turn off";
-    statusEl.textContent = "radio: busted distant signal";
+    setStatus("radio: busted distant signal");
   } catch (_error) {
     sound.playing = false;
     sound.audible = false;
     radioButton.textContent = "radio";
-    statusEl.textContent = "missing radio tracks";
+    setStatus("missing radio tracks");
   }
 }
 
@@ -4458,7 +4589,10 @@ function installControls() {
     if (event.key === ",") skipRadioTrack(-1);
     if (event.key === ".") skipRadioTrack(1);
     if (event.key === "r" || event.key === "R") resetPlane();
-    if (event.key === "t" || event.key === "T") state.storm = !state.storm;
+    if (event.key === "t" || event.key === "T") {
+      state.storm = !state.storm;
+      showWeatherStatus();
+    }
     state.keys.add(event.key);
   });
   window.addEventListener("keyup", (event) => {
@@ -4466,13 +4600,15 @@ function installControls() {
   });
   weatherButton.addEventListener("click", () => {
     state.storm = !state.storm;
+    showWeatherStatus();
   });
   dayNightButton.addEventListener("click", () => {
     state.night = !state.night;
+    showWeatherStatus();
   });
   phoneButton.addEventListener("click", togglePhone);
   radioButton.addEventListener("click", toggleSound);
-  upgradeButton.addEventListener("click", togglePlaneModel);
+  upgradeButton.addEventListener("click", upgradePlaneModel);
   resetButton.addEventListener("click", (event) => {
     if (event.shiftKey) {
       setPlaneDebugLocation("zero");
