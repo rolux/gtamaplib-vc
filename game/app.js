@@ -39,6 +39,7 @@ const PRISON_SHOT_SPEED = 185;
 const FIGHTER_ROUTE_SPEED = 0.015;
 const FIGHTER_ATTACK_SECONDS = 15;
 const FIGHTER_SHOT_SPEED = 390;
+const FIGHTER_ATTACK_CENTER = 0.46;
 const LEAF_LINKS_CENTER = [730, 2390, 0];
 const LEAF_LINKS_RADIUS = 150;
 const SKYVIEW_WHEEL_POS = [-57, 257, 0];
@@ -2438,7 +2439,7 @@ function updateFighterJetActor(jet, dt) {
   jet.roll = clamp(-dx / Math.max(600, Math.hypot(dx, dy)), -0.42, 0.42);
 
   const attackWindow = FIGHTER_ATTACK_SECONDS * FIGHTER_ROUTE_SPEED * 0.5;
-  if (Math.abs(jet.t - 0.5) < attackWindow) {
+  if (Math.abs(jet.t - FIGHTER_ATTACK_CENTER) < attackWindow) {
     jet.cooldown -= dt;
     if (jet.cooldown <= 0) {
       fireFighterShot(jet);
