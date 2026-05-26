@@ -101,10 +101,6 @@ python3 utils/import_data.py
 
 The importer writes `data/gtamapdata.json` from **gtamaplib**, creates editable `data/special.json` and `data/config.json` files if missing, writes generated VC additions to `data/import_extras.json`, creates `ui/data/overlay.json`, and generates thumbnails in `ui/thumbnails/`.
 
-## Development Helpers
-
-`generate_optimizer_chain.py` is an experimental helper for proposing a greedy optimizer chain from currently available calibration constraints. It writes the proposed chain and configs to `optimizer/generated/`, which can be run with `python3 optimize.py --generated`. Its ranking logic is still provisional.
-
 ## Observation Editing
 
 The UI allows you to add, move, rename, and remove observations. These edits are stored locally in `data/observation_edits.json` and applied by the frontend on top of the current **gtamaplib** data. For now, these annotations are strictly private. We're going to add ways to share them in the near future.
@@ -121,7 +117,7 @@ This keeps **gtamaplib** as the upstream source of cameras, landmarks, frames, a
 
 ## Optimizer
 
-The general idea is to use the `find_camera` results from **gtamaplib** to initialize a `least_squares` optimizer, which runs along a predefined chain of cameras and performs a local pass, followed by a global pass.
+The general idea is to use the `find_camera` results from **gtamaplib** to initialize a `least_squares` optimizer, which runs along a predefined chain of cameras and, for each stage, performs a local pass followed by a global pass.
 
 The optimizer chain lives in `optimizer/`:
 
@@ -180,6 +176,10 @@ python3 project.py map-into-cam "Leonida Keys 01 (Airplane) (X)" --output map-in
 python3 project.py cam-into-cam "Leonida Keys Postcard (X)" "Leonida Keys 01 (Airplane) (X)" --output cam-into-cam.png
 python3 project.py map -5220 5580 200 135 -10 0 60 --output map.png
 ```
+
+## Development Helpers
+
+`generate_optimizer_chain.py` is an experimental helper for proposing a greedy optimizer chain from currently available calibration constraints. It writes the proposed chain and configs to `optimizer/generated/`, which can be run with `python3 optimize.py --generated`. Its ranking logic is still provisional.
 
 ## Game Mode
 
