@@ -63,6 +63,8 @@ const FIREWORK_COLORS = [
   [1, 0.08, 0.9, 0.95],
 ];
 const ELEPHANT_ROAM_BOUNDS = { west: -5500, east: -5000, south: 7000, north: 7500 };
+const ALLIGATOR_ROAM_BOUNDS = { west: -4500, east: -3000, south: -4500, north: -4000 };
+const ALLIGATOR_SLOTS = 4;
 const MEXICAN_RESTAURANT_SIGN = {
   pos: [-2558.5, -3460, 0],
   width: 57.6,
@@ -927,6 +929,7 @@ const state = {
   boats: [],
   jetSkis: [],
   golfCarts: [],
+  alligators: [],
   elephant: {
     pos: [-5250, 7250, 0],
     yaw: 0,
@@ -2242,6 +2245,7 @@ function updateAmbientActors(dt) {
 
   updateJetSkis(dt);
   updateGolfCarts(dt);
+  updateAlligators(dt);
   updateElephant(dt);
 }
 
@@ -2566,6 +2570,85 @@ function randomElephantTarget() {
     lerp(ELEPHANT_ROAM_BOUNDS.south, ELEPHANT_ROAM_BOUNDS.north, Math.random()),
     0,
   ];
+}
+
+function randomAlligatorTarget() {
+  return [
+    lerp(ALLIGATOR_ROAM_BOUNDS.west, ALLIGATOR_ROAM_BOUNDS.east, Math.random()),
+    lerp(ALLIGATOR_ROAM_BOUNDS.south, ALLIGATOR_ROAM_BOUNDS.north, Math.random()),
+    0.35,
+  ];
+}
+
+function makeAlligator(active = true, delay = 0) {
+  const pos = randomAlligatorTarget();
+  return {
+    active,
+    pos,
+    yaw: Math.random() * Math.PI * 2,
+    target: randomAlligatorTarget(),
+    pause: 0.6 + Math.random() * 2.4,
+    targetAge: 0,
+    speed: 5 + Math.random() * 9,
+    movesLeft: 4 + Math.floor(Math.random() * 3),
+    respawnAt: state.weatherTime + delay,
+  };
+}
+
+function ensureAlligators() {
+  if (state.alligators.length) return;
+  for (let i = 0; i < ALLIGATOR_SLOTS; i++) {
+    state.alligators.push(makeAlligator(i < 3, 18 + Math.random() * 24));
+  }
+}
+
+function updateAlligators(dt) {
+  ensureAlligators();
+  for (let i = 0; i < state.alligators.length; i++) {
+    let alligator = state.alligators[i];
+    if (!alligator.active) {
+      if (state.weatherTime >= alligator.respawnAt) {
+        alligator = makeAlligator(true);
+        state.alligators[i] = alligator;
+      } else {
+        continue;
+      }
+    }
+    if (alligator.pause > 0) {
+      alligator.pause -= dt;
+      if (alligator.pause <= 0) {
+        alligator.target = randomAlligatorTarget();
+        alligator.targetAge = 0;
+        alligator.speed = 5 + Math.random() * 9;
+      }
+      continue;
+    }
+    alligator.targetAge += dt;
+    const delta = subtract(alligator.target, alligator.pos);
+    const distance = Math.hypot(delta[0], delta[1]);
+    if (distance < 5 || alligator.targetAge > 13) {
+      alligator.movesLeft -= 1;
+      if (alligator.movesLeft <= 0) {
+        alligator.active = false;
+        alligator.respawnAt = state.weatherTime + 10 + Math.random() * 28;
+      } else {
+        alligator.pause = 0.8 + Math.random() * 4.2;
+      }
+      continue;
+    }
+    const desiredYaw = Math.atan2(-delta[0], delta[1]);
+    let yawDelta = desiredYaw - alligator.yaw;
+    while (yawDelta > Math.PI) yawDelta -= Math.PI * 2;
+    while (yawDelta < -Math.PI) yawDelta += Math.PI * 2;
+    alligator.yaw += clamp(yawDelta, -dt * 0.9, dt * 0.9);
+    const forward = [-Math.sin(alligator.yaw), Math.cos(alligator.yaw), 0];
+    const turnFactor = clamp(1 - Math.abs(yawDelta) / 1.6, 0.22, 1);
+    const nearFactor = clamp(distance / 24, 0.35, 1);
+    const step = Math.min(distance, alligator.speed * turnFactor * nearFactor * dt);
+    alligator.pos = add(alligator.pos, scale(forward, step));
+    alligator.pos[0] = clamp(alligator.pos[0], ALLIGATOR_ROAM_BOUNDS.west - 25, ALLIGATOR_ROAM_BOUNDS.east + 25);
+    alligator.pos[1] = clamp(alligator.pos[1], ALLIGATOR_ROAM_BOUNDS.south - 25, ALLIGATOR_ROAM_BOUNDS.north + 25);
+  }
 }
 
 function updateElephant(dt) {
@@ -3161,6 +3244,34 @@ function drawGolfCarts(m) {
     drawColor(meshVertices(dark, b, cart.pos), [0.08, 0.1, 0.09, 1], m);
     const line = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, cart.pos)));
     drawColor(line([-3.4, -4.8, 0], [-4.8, -4.8, 0], [3.4, -4.8, 0], [4.8, -4.8, 0], [-3.4, 4.8, 0], [-4.8, 4.8, 0], [3.4, 4.8, 0], [4.8, 4.8, 0]), [0.04, 0.04, 0.035, 1], m, gl.LINES);
+  }
+}
+
+function drawAlligators(m) {
+  const bodyColor = [0.34, 0.43, 0.35, 1];
+  const backColor = [0.22, 0.3, 0.24, 1];
+  const eyeColor = [0.9, 0.94, 0.84, 1];
+  for (const alligator of state.alligators) {
+    if (!alligator.active) continue;
+    const b = actorBasis({ yaw: alligator.yaw, pitch: 0, roll: 0 });
+    const body = [];
+    pushBox(body, [-3.2, -18, 0], [3.2, 18, 3.2]);
+    pushBox(body, [-4.3, 14, 0.4], [4.3, 25, 3.8]);
+    pushBox(body, [-1.8, -28, 0.4], [1.8, -17, 2.2]);
+    drawColor(meshVertices(body, b, alligator.pos), bodyColor, m);
+    const spine = [];
+    pushBox(spine, [-1.1, -15, 3.1], [1.1, 15, 4.8]);
+    drawColor(meshVertices(spine, b, alligator.pos), backColor, m);
+    const legs = [];
+    pushBox(legs, [-8.8, -9, 0.1], [-3, -5, 1.7]);
+    pushBox(legs, [3, -9, 0.1], [8.8, -5, 1.7]);
+    pushBox(legs, [-8.8, 7, 0.1], [-3, 11, 1.7]);
+    pushBox(legs, [3, 7, 0.1], [8.8, 11, 1.7]);
+    drawColor(meshVertices(legs, b, alligator.pos), [0.28, 0.37, 0.3, 1], m);
+    const eyes = [];
+    pushBox(eyes, [-2.8, 22.2, 3.5], [-1.4, 24.1, 5.3]);
+    pushBox(eyes, [1.4, 22.2, 3.5], [2.8, 24.1, 5.3]);
+    drawColor(meshVertices(eyes, b, alligator.pos), eyeColor, m);
   }
 }
 
@@ -3823,6 +3934,7 @@ function render() {
   drawCruiseShip(m);
   drawContainerShip(m);
   drawGolfCarts(m);
+  drawAlligators(m);
   drawElephant(m);
   drawBlimp(m);
   drawChopper(m);
