@@ -203,6 +203,6 @@ And if you have Claude or Codex, why not ask them to add your own favorite featu
 
 [![](https://img.youtube.com/vi/Bv-bgyZorok/maxresdefault.jpg)](https://www.youtube.com/watch?v=Bv-bgyZorok)
 
-## Game Mode screenshot
+## Game Mode video
 
-![](https://gtadb.org/gtamaplib-vc/game.jpg)
+[![](https://img.youtube.com/vi/jbF3jBo3npU/maxresdefault.jpg)](https://www.youtube.com/watch?v=jbF3jBo3npU)
