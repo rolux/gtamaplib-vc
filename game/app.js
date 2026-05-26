@@ -32,6 +32,10 @@ const GRAVITY = 9.8;
 const THROTTLE_FORCE = 46;
 const DIVE_ACCEL = 7;
 const DRAG = 0.9862;
+const PLANE_CONFIGS = {
+  classic: { throttleForce: THROTTLE_FORCE, diveAccel: DIVE_ACCEL, drag: DRAG, cameraChase: 1 },
+  seaplane: { throttleForce: 50, diveAccel: 12, drag: 0.988, cameraChase: 1.18 },
+};
 const MIN_BRAKE_SPEED = 10;
 const BULLET_SPEED = 520;
 const PRISON_DEFENSE_RADIUS = 500;
@@ -82,6 +86,7 @@ const TURBULENCE_NORTH_FULL = 7500;
 const DEAD_ZONE_START = 11000;
 const DEAD_ZONE_FULL = 12000;
 const ICON_TEXTURE = "../ui/gtamaplib-vc.png";
+const CLASSIC_ICON_TEXTURE = "../gtamaplib/readme/gtamaplib.png";
 const WATER_COLOR = [44 / 255, 103 / 255, 164 / 255, 1];
 const NIGHT_MAP_BRIGHTNESS = 0.15;
 const MAP3D_POSE_STORAGE_KEY = "gtamaplib-vc.map3dPose";
@@ -885,6 +890,7 @@ const phoneButton = document.querySelector("#phone-button");
 const radioButton = document.querySelector("#radio-button");
 const weatherButton = document.querySelector("#weather");
 const dayNightButton = document.querySelector("#day-night");
+const upgradeButton = document.querySelector("#upgrade");
 const resetButton = document.querySelector("#reset");
 const exitButton = document.querySelector("#exit");
 
@@ -909,6 +915,7 @@ const state = {
   prisonShots: [],
   fighterShots: [],
   iconTexture: null,
+  classicIconTexture: null,
   mexicanRestaurantTexture: null,
   screenshotHits: new Set(),
   particles: [],
@@ -1045,6 +1052,7 @@ const state = {
     roll: 0,
     throttle: 0.68,
     hp: 100,
+    model: "classic",
   },
   airliner: {
     center: [-2500, -560, 0],
@@ -1651,6 +1659,7 @@ function drawWater(matrix) {
 }
 
 function resetPlane() {
+  const model = state.plane.model;
   Object.assign(state.plane, {
     pos: [-6250, 5250, 250],
     vel: [0, -92, 2],
@@ -1659,6 +1668,7 @@ function resetPlane() {
     roll: 0,
     throttle: 0.68,
     hp: 100,
+    model,
   });
   state.deadZoneCrash = false;
   state.deadZoneResetAt = 0;
@@ -1708,6 +1718,7 @@ function launchMissile(now, variant = "missile") {
   if (variant === "icon-missile") velocity[2] -= 45;
   state.bullets.push({
     type: variant,
+    icon: variant === "icon-missile" ? (state.plane.model === "seaplane" ? "upgraded" : "classic") : null,
     pos: add(add(state.plane.pos, scale(forward, 20)), scale(up, -2)),
     vel: velocity,
     life: 4.5,
@@ -1819,6 +1830,7 @@ function updateTrevorZone() {
 
 function updatePlane(dt, now) {
   const p = state.plane;
+  const config = PLANE_CONFIGS[p.model] || PLANE_CONFIGS.classic;
   pollGamepad();
   const deadZoneWarning = smoothstep(DEAD_ZONE_START, DEAD_ZONE_FULL, p.pos[1]);
   if (p.pos[1] > DEAD_ZONE_START && Math.random() < dt * (0.7 + deadZoneWarning * 2.4)) {
@@ -1847,15 +1859,16 @@ function updatePlane(dt, now) {
   const speed = length(p.vel);
   p.yaw -= p.roll * clamp(speed / 95, 0.35, 1.45) * dt * 0.82;
   const lift = Math.min(58, speed * speed * 0.0065);
-  const diveAccel = Math.max(0, -forward[2]) * DIVE_ACCEL;
-  p.vel = add(p.vel, scale(forward, (THROTTLE_FORCE * p.throttle + Math.max(0, accelInput) * 18 + diveAccel) * dt));
+  const diveAccel = Math.max(0, -forward[2]) * config.diveAccel;
+  p.vel = add(p.vel, scale(forward, (config.throttleForce * p.throttle + Math.max(0, accelInput) * 18 + diveAccel) * dt));
   if (accelInput < 0) p.vel = scale(p.vel, Math.pow(0.985, -accelInput * dt * 60));
   p.vel[2] += (lift * (0.35 + Math.max(-0.2, forward[2])) - GRAVITY * 0.34) * dt;
-  if (state.storm) {
+  const weatherSway = state.storm ? 1 : 0.15;
+  if (weatherSway > 0) {
     const gust = Math.sin(now * 0.0017) * 0.55 + Math.sin(now * 0.0041) * 0.22;
-    p.vel[0] += Math.cos(now * 0.0013) * gust * dt * 9;
-    p.vel[1] += Math.sin(now * 0.0011) * gust * dt * 9;
-    p.roll += gust * dt * 0.16;
+    p.vel[0] += Math.cos(now * 0.0013) * gust * weatherSway * dt * 9;
+    p.vel[1] += Math.sin(now * 0.0011) * gust * weatherSway * dt * 9;
+    p.roll += gust * weatherSway * dt * 0.16;
   }
   if (state.deadZoneCrash) {
     p.throttle = 0;
@@ -1885,7 +1898,7 @@ function updatePlane(dt, now) {
       state.lastTurbulenceRumble = state.weatherTime;
     }
   }
-  p.vel = scale(p.vel, Math.pow(DRAG, dt * 60));
+  p.vel = scale(p.vel, Math.pow(config.drag, dt * 60));
   if (controlsEnabled && throttleDown > 0) {
     const brakeSpeed = length(p.vel);
     if (brakeSpeed < MIN_BRAKE_SPEED) p.vel = scale(brakeSpeed > 0.001 ? normalize(p.vel) : forward, MIN_BRAKE_SPEED);
@@ -2153,17 +2166,18 @@ function updateFog(dt) {
 }
 
 function updateCamera(dt) {
+  const config = PLANE_CONFIGS[state.plane.model] || PLANE_CONFIGS.classic;
   const { forward, up } = planeBasis();
   const right = normalize(cross(forward, up));
   if (state.keys.has("ArrowLeft")) state.camera.lookYaw -= dt * 1.8;
   if (state.keys.has("ArrowRight")) state.camera.lookYaw += dt * 1.8;
   if (state.keys.has("ArrowUp")) state.camera.lookPitch += dt * 1.2;
-  if (state.keys.has("ArrowDown")) state.camera.lookPitch -= dt * 1.2;
+  if (state.keys.has("ArrowDown")) state.camera.lookPitch -= dt * 2.8;
   state.camera.lookYaw += state.gamepad.lookYaw * dt * 1.8;
-  state.camera.lookPitch += state.gamepad.lookPitch * dt * 1.2;
-  state.camera.lookYaw = clamp(state.camera.lookYaw, -1.05, 1.05) * Math.pow(0.965, dt * 60);
-  state.camera.lookPitch = clamp(state.camera.lookPitch, -0.68, 0.68) * Math.pow(0.965, dt * 60);
-  let desiredEye = add(add(state.plane.pos, scale(forward, -CAMERA_CHASE * 0.98)), scale(up, CAMERA_UP + 24 + length(state.plane.vel) * 0.025));
+  state.camera.lookPitch += state.gamepad.lookPitch * dt * (state.gamepad.lookPitch < 0 ? 2.8 : 1.2);
+  state.camera.lookYaw = clamp(state.camera.lookYaw, -1.26, 1.26) * Math.pow(0.965, dt * 60);
+  state.camera.lookPitch = clamp(state.camera.lookPitch, -2.45, 1.63) * Math.pow(0.965, dt * 60);
+  let desiredEye = add(add(state.plane.pos, scale(forward, -CAMERA_CHASE * config.cameraChase * 0.98)), scale(up, CAMERA_UP + 24 + length(state.plane.vel) * 0.025));
   desiredEye[2] = Math.max(desiredEye[2], state.plane.pos[2] + 16);
   const lookOffset = add(add(scale(forward, 20), scale(right, state.camera.lookYaw * 32)), scale(up, state.camera.lookPitch * 24));
   let desiredTarget = add(state.plane.pos, lookOffset);
@@ -2943,6 +2957,7 @@ function update(dt, now) {
   modeEl.textContent = state.storm ? "STORM MODE" : "SUNNY CHAOS";
   weatherButton.textContent = state.storm ? "clear" : "storm";
   dayNightButton.textContent = state.night ? "day" : "night";
+  upgradeButton.textContent = state.plane.model === "seaplane" ? "downgrade" : "upgrade";
   const controllerText = state.gamepad.connected ? " / controller" : " / plug in your controller!";
   const tileCount = state.tiles.filter((tile) => tile?.loaded).length;
   const landmarkCount = state.landmarkModels.filter((model) => model.texture?.loaded).length;
@@ -3011,6 +3026,10 @@ function meshVertices(mesh, basis, origin) {
 }
 
 function drawPlane(m) {
+  if (state.plane.model === "seaplane") {
+    drawSeaplaneModel(m, { ...state.plane, pos: state.plane.pos });
+    return;
+  }
   const b = planeBasis();
   const tri = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b)));
   drawColor(tri([-3.8, 14, -0.8], [3.8, 14, -0.8], [0, -17, 1.2]), [1, 0.96, 0.84, 1], m);
@@ -3033,9 +3052,7 @@ function drawPlane(m) {
   drawColor(prop, [0.05, 0.06, 0.07, 0.45], m, gl.LINES);
 }
 
-function drawKeysSeaplane(m) {
-  const plane = state.keysSeaplane;
-  if (!plane.active) return;
+function drawSeaplaneModel(m, plane) {
   const b = actorBasis(plane);
   const tri = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, plane.pos)));
   const line = (...points) => points.flatMap((p) => worldToGl(...modelPoint(p, b, plane.pos)));
@@ -3055,7 +3072,19 @@ function drawKeysSeaplane(m) {
   pushBox(floats, [-8.8, -18, -7.5], [-4.2, 18, -4.4]);
   pushBox(floats, [4.2, -18, -7.5], [8.8, 18, -4.4]);
   drawColor(meshVertices(floats, b, plane.pos), [0.35, 0.31, 0.22, 1], m);
-  drawColor(tri([0, -17, 0], [0, -30, 12], [0, -19, 1.6]), [0.96, 0.74, 0.12, 1], m);
+  const tailFin = [];
+  const leftRoot = [-1.4, -10.7, 2.0];
+  const leftBack = [-1.4, -23.7, 2.2];
+  const leftTop = [-1.4, -21.4, 13.2];
+  const rightRoot = [1.4, -10.7, 2.0];
+  const rightBack = [1.4, -23.7, 2.2];
+  const rightTop = [1.4, -21.4, 13.2];
+  pushTri(tailFin, leftRoot, leftBack, leftTop);
+  pushTri(tailFin, rightRoot, rightTop, rightBack);
+  pushQuad(tailFin, leftRoot, rightRoot, rightBack, leftBack);
+  pushQuad(tailFin, leftBack, rightBack, rightTop, leftTop);
+  pushQuad(tailFin, leftTop, rightTop, rightRoot, leftRoot);
+  drawColor(meshVertices(tailFin, b, plane.pos), [0.96, 0.74, 0.12, 1], m);
   drawColor(line([-8, 9, -4.4], [-16, 2, 4.8], [8, 9, -4.4], [16, 2, 4.8], [-8, -10, -4.4], [-13, -5, 3.0], [8, -10, -4.4], [13, -5, 3.0]), [0.08, 0.08, 0.075, 0.95], m, gl.LINES);
   const prop = [];
   const center = modelPoint([0, 27, -0.5], b, plane.pos);
@@ -3065,7 +3094,13 @@ function drawKeysSeaplane(m) {
     const p2 = add(center, add(scale(b.right, Math.cos(a + Math.PI) * 6), scale(b.up, Math.sin(a + Math.PI) * 6)));
     prop.push(...worldToGl(...p1), ...worldToGl(...p2));
   }
-  drawColor(prop, [0.03, 0.035, 0.04, 0.45], m, gl.LINES);
+  drawColor(thickenLines(prop, [0, 0.12, -0.12, 0.24, -0.24]), [0.03, 0.035, 0.04, 0.45], m, gl.LINES);
+}
+
+function drawKeysSeaplane(m) {
+  const plane = state.keysSeaplane;
+  if (!plane.active) return;
+  drawSeaplaneModel(m, plane);
 }
 
 function drawFighterJetActor(m, jet) {
@@ -3405,13 +3440,17 @@ function drawBullets(m) {
   const missileLines = [];
   const prisonLines = [];
   const fighterLines = [];
-  const iconMissiles = [];
+  const classicIconMissiles = [];
+  const upgradedIconMissiles = [];
   const { right, up } = cameraBillboardBasis();
   for (const bullet of state.bullets) {
     const tail = subtract(bullet.pos, scale(normalize(bullet.vel), bullet.type === "missile" ? 36 : 18));
     if (bullet.type === "missile" || bullet.type === "icon-missile") missileLines.push(...worldToGl(...tail), ...worldToGl(...bullet.pos));
     else lines.push(...worldToGl(...tail), ...worldToGl(...bullet.pos));
-    if (bullet.type === "icon-missile") iconMissiles.push(...billboardQuad(bullet.pos, 12, right, up));
+    if (bullet.type === "icon-missile") {
+      const target = bullet.icon === "classic" ? classicIconMissiles : upgradedIconMissiles;
+      target.push(...billboardQuad(bullet.pos, 12, right, up));
+    }
   }
   for (const shot of state.prisonShots) {
     const tail = subtract(shot.pos, scale(normalize(shot.vel), 26));
@@ -3425,8 +3464,11 @@ function drawBullets(m) {
   drawColor(missileLines, [1, 0.28, 0.08, 1], m, gl.LINES);
   drawColor(thickenLines(prisonLines, [0, 0.1, -0.1]), [0.04, 0.12, 0.46, 0.92], m, gl.LINES);
   drawColor(thickenLines(fighterLines, [0, 0.12, -0.12]), [0.54, 0.56, 0.58, 0.95], m, gl.LINES);
-  if (state.iconTexture?.loaded && iconMissiles.length) {
-    drawTextured(iconMissiles, state.iconTexture.texture, m, 1);
+  if (state.classicIconTexture?.loaded && classicIconMissiles.length) {
+    drawTextured(classicIconMissiles, state.classicIconTexture.texture, m, 1);
+  }
+  if (state.iconTexture?.loaded && upgradedIconMissiles.length) {
+    drawTextured(upgradedIconMissiles, state.iconTexture.texture, m, 1);
   }
 }
 
@@ -4015,6 +4057,7 @@ async function loadData() {
   initializeMapLabels();
   initializeImagePanels();
   state.iconTexture = loadImageTexture(ICON_TEXTURE);
+  state.classicIconTexture = loadImageTexture(CLASSIC_ICON_TEXTURE);
   state.mexicanRestaurantTexture = createMexicanRestaurantTexture();
   const [base, result, colors, fourSeasons, sunshineSkyway, hanksWaffles, landmarkModels] = await Promise.all([
     fetch(VC_DATA).then((r) => r.json()),
@@ -4135,6 +4178,7 @@ function setPlaneDebugLocation(location) {
     roll: 0,
     throttle: 0.68,
     hp: 100,
+    model: state.plane.model,
   });
   state.deadZoneCrash = false;
   state.deadZoneResetAt = 0;
@@ -4142,6 +4186,12 @@ function setPlaneDebugLocation(location) {
   state.camera.target = [...state.plane.pos];
   statusEl.textContent = "debug plane zero";
   return "plane: zero";
+}
+
+function togglePlaneModel() {
+  state.plane.model = state.plane.model === "seaplane" ? "classic" : "seaplane";
+  upgradeButton.textContent = state.plane.model === "seaplane" ? "downgrade" : "upgrade";
+  statusEl.textContent = state.plane.model === "seaplane" ? "floatplane upgraded" : "classic floatplane restored";
 }
 
 function debugCommand(method, value) {
@@ -4422,6 +4472,7 @@ function installControls() {
   });
   phoneButton.addEventListener("click", togglePhone);
   radioButton.addEventListener("click", toggleSound);
+  upgradeButton.addEventListener("click", togglePlaneModel);
   resetButton.addEventListener("click", (event) => {
     if (event.shiftKey) {
       setPlaneDebugLocation("zero");
