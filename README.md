@@ -4,7 +4,7 @@
 
 (vc stands for vibe-coded, not for Vice City!)
 
-**gtamaplib-vc** is a collection of interfaces and tools on top of [gtamaplib](https://github.com/rolux/gtamaplib), including a UI for browsing the map, cameras and landmarks, an annotation editor, and a fast and furious optimizer that improves existing calibrations and triangulations. (We have also just added a full-3D game mode.)
+**gtamaplib-vc** is a collection of tools and interfaces on top of [gtamaplib](https://github.com/rolux/gtamaplib), including a UI for browsing the map, cameras and landmarks, an annotation editor, and a fast and furious optimizer that improves existing calibrations and triangulations. (We have also just added a full-3D game mode.)
 
 ## TL;DR
 
