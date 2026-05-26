@@ -8,7 +8,9 @@
 
 ## TL;DR
 
-Run:
+If you don't have python or git, install them first.
+
+Then run:
 
 ```bash
 git clone https://github.com/rolux/gtamaplib-vc.git
@@ -117,7 +119,7 @@ This keeps **gtamaplib** as the upstream source of cameras, landmarks, frames, a
 
 ## Optimizer
 
-The general idea is to use the `find_camera` results from **gtamaplib** to initialize a `least_squares` optimizer, which runs along a predefined chain of cameras and, for each stage, performs a local pass followed by a global pass.
+The general idea is to use the `find_camera` results from **gtamaplib** to initialize a `least_squares` optimizer, which runs along a predefined chain of cameras and, for each stage, performs a local pass followed by a global pass. The world displayed in the UI, including the 3D map and game mode, corresponds to your latest optimizer result.
 
 The optimizer chain lives in `optimizer/`:
 
