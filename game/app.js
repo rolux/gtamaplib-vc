@@ -3617,22 +3617,53 @@ function thickenLines(lines, offsets) {
 }
 
 function wireframeLines(wireframe) {
-  const groups = { thin: [], bold: [] };
+  const groups = { single: [], thin: [], bold: [] };
   for (const segment of wireframe.segments || []) {
     const points = Array.isArray(segment) ? segment : segment.points;
     const style = Array.isArray(segment) ? "thin" : segment.style || "thin";
     if (!points || points.length !== 2) continue;
-    const target = style === "bold" ? groups.bold : groups.thin;
+    const target = style === "bold" ? groups.bold : style === "single" ? groups.single : groups.thin;
     target.push(...worldToGl(points[0][0], points[0][1], points[0][2]));
     target.push(...worldToGl(points[1][0], points[1][1], points[1][2]));
   }
   return groups;
 }
 
+function createWdnaFmWireframe(landmarks) {
+  const points = new Map(landmarks.map((landmark) => [landmark.name, landmark.xyz]));
+  const top = points.get("WDNA FM");
+  const rings = [0, 1, 2, 3, 4].map((level) => [
+    points.get(`WDNA FM (N${level})`),
+    points.get(`WDNA FM (SE${level})`),
+    points.get(`WDNA FM (SW${level})`),
+  ]);
+  if (!top || rings.some((ring) => ring.some((point) => !point))) return null;
+
+  const segments = [];
+  const line = (a, b, style = "single") => segments.push({ points: [a, b], style });
+  const ring = (points, style = "single") => {
+    line(points[0], points[1], style);
+    line(points[1], points[2], style);
+    line(points[2], points[0], style);
+  };
+
+  ring(rings[0]);
+  ring(rings[1]);
+  ring(rings[2]);
+  ring(rings[3]);
+  ring(rings[4]);
+  for (let i = 0; i < 3; i++) {
+    line(rings[0][i], rings[4][i]);
+    line(rings[4][i], top);
+  }
+  return { name: "WDNA FM", color: colorForName("WDNA FM"), segments };
+}
+
 function drawWireframes(m) {
   for (const wireframe of state.wireframes) {
     const groups = wireframeLines(wireframe);
     const color = wireframe.color || [1, 1, 1];
+    if (groups.single.length) drawColor(groups.single, [...color, 0.86], m, gl.LINES);
     if (groups.thin.length) drawColor(thickenLines(groups.thin, [0, 0.18, -0.18, 0.36]), [...color, 0.78], m, gl.LINES);
     if (groups.bold.length) drawColor(thickenLines(groups.bold, [0, 0.18, -0.18, 0.36, -0.36, 0.54]), [...color, 0.92], m, gl.LINES);
   }
@@ -3656,6 +3687,17 @@ function drawSunshineSkywayBlinkers(m) {
     pushBox(mesh, [-2.25, -2.25, -2.25], [2.25, 2.25, 2.25]);
     drawColor(meshVertices(mesh, basis, origin), i === active ? [1, 0.02, 0.01, 0.98] : [0.45, 0.01, 0.01, 0.24], m);
   }
+}
+
+function drawWdnaFmBeacon(m) {
+  const top = state.landmarks.find((item) => item.name === "WDNA FM")?.xyz;
+  if (!top) return;
+  const active = Math.floor(state.weatherTime * 2) % 2 === 0;
+  const basis = { right: [1, 0, 0], forward: [0, 1, 0], up: [0, 0, 1] };
+  const origin = [top[0], top[1], top[2] + 2.25];
+  const mesh = [];
+  pushBox(mesh, [-2.25, -2.25, -2.25], [2.25, 2.25, 2.25]);
+  drawColor(meshVertices(mesh, basis, origin), active ? [1, 0.02, 0.01, 0.98] : [0.45, 0.01, 0.01, 0.24], m);
 }
 
 function drawVciaRunwayLights(m) {
@@ -4084,6 +4126,7 @@ function render() {
   drawLandmarkModels(m);
   drawWireframes(m);
   drawSunshineSkywayBlinkers(m);
+  drawWdnaFmBeacon(m);
   drawVciaRunwayLights(m);
   drawSkyViewWheel(m);
   drawMexicanRestaurantSign(m);
@@ -4214,6 +4257,8 @@ async function loadData() {
     landmarkMap.set(name, { ...(landmarkMap.get(name) || { name }), xyz });
   }
   state.landmarks = [...landmarkMap.values()].filter((item) => item.xyz);
+  const wdnaFm = createWdnaFmWireframe(state.landmarks);
+  if (wdnaFm) state.wireframes.push(wdnaFm);
   state.prisonTowers = state.landmarks
     .filter((item) => /^Prison Tower \([1-6]\)$/.test(item.name))
     .map((item) => ({
