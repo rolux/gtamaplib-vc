@@ -80,6 +80,8 @@ The UI has a couple of useful keyboard shortcuts, like `up`/`down` for list navi
 
 In game mode, the usual keyboard controls work as well, but we recommend using a controller.
 
+Note that the UI is written in plain vanilla JavaScript, using WebGL. There are zero dependencies on external libraries.
+
 ## Updating
 
 To update **gtamaplib-vc**, along with the linked **gtamaplib** and **gtadb.org** checkouts, and regenerate local browser data, run:
