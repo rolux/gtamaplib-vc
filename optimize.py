@@ -3059,6 +3059,22 @@ def result_path_for_stage(stage_index: int, camera_name: str) -> Path:
     return ACTIVE_RESULTS_DIR / f"{stage_index + 1:02d} {camera_name}.json"
 
 
+def invalidate_chain_results(chain: list[str], stage_index: int) -> None:
+    removed: list[Path] = []
+    for index, camera_name in enumerate(chain[stage_index:], start=stage_index):
+        path = result_path_for_stage(index, camera_name)
+        if path.exists():
+            path.unlink()
+            removed.append(path)
+    if ACTIVE_OPTIMIZER_RESULT_PATH.exists():
+        ACTIVE_OPTIMIZER_RESULT_PATH.unlink()
+        removed.append(ACTIVE_OPTIMIZER_RESULT_PATH)
+    if removed:
+        print("Removing stale optimizer result(s):")
+        for path in removed:
+            print(f"  {path}")
+
+
 def latest_chain_result(chain: list[str]) -> tuple[int, dict[str, Any]] | None:
     if ACTIVE_OPTIMIZER_RESULT_PATH.exists():
         try:
@@ -3661,6 +3677,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--stage", help="Camera name or 1-based index from optimizer/chain.json")
     parser.add_argument("--all", action="store_true", help="Run all optimizer stages and render once at the end.")
+    parser.add_argument("--to-stage", help="Run optimizer stages from the beginning through this 1-based stage index or camera name.")
     parser.add_argument("--generated", action="store_true", help="Run all stages from optimizer/generated/ and write results/renders there.")
     parser.add_argument("--config", action="store_true", help="Print available and configured inputs for the stage.")
     parser.add_argument("--result", action="store_true", help="Print the saved result summary for the stage.")
@@ -3709,15 +3726,22 @@ def main() -> None:
     if args.results:
         print_chain_results_summary(chain)
         return
+    if args.to_stage:
+        if args.stage:
+            parser.error("--to-stage cannot be combined with --stage")
+        args.all = True
     if args.all:
         if args.config or args.result:
-            parser.error("--all cannot be combined with --config or --result")
+            parser.error("--all/--to-stage cannot be combined with --config or --result")
         if args.output:
-            parser.error("--output cannot be used with --all")
+            parser.error("--output cannot be used with --all/--to-stage")
+        last_stage_index = stage_index_for_id(chain, args.to_stage) if args.to_stage else len(chain) - 1
+        run_chain = chain[: last_stage_index + 1]
+        invalidate_chain_results(chain, 0)
         final_report = None
-        for stage_index, camera_name in enumerate(chain):
+        for stage_index, camera_name in enumerate(run_chain):
             print()
-            print(f"Running stage {stage_index + 1}/{len(chain)}: {camera_name}")
+            print(f"Running stage {stage_index + 1}/{len(run_chain)}: {camera_name}")
             final_report = run_optimizer_stage(args, chain, stage_index, render=False)
         if final_report is None:
             parser.error(f"{ACTIVE_CHAIN_PATH} is empty")
@@ -3725,7 +3749,7 @@ def main() -> None:
             refresh_ui_overlay_from_world_snapshot()
         if not args.no_render:
             print()
-            solves = load_chain_solves(chain, len(chain) - 1)
+            solves = load_chain_solves(chain, last_stage_index)
             render_camera_names = render_camera_names_for_step(solves, final_report)
             rendered = render_optimizer_result(
                 final_report,
@@ -3760,6 +3784,8 @@ def main() -> None:
         result = json.loads(output.read_text())
         print_optimizer_camera_report(result["local"], result["global"], local_pass=False)
         return
+    if args.output is None:
+        invalidate_chain_results(chain, stage_index)
     run_optimizer_stage(args, chain, stage_index, render=not args.no_render, output_override=args.output)
 
 
