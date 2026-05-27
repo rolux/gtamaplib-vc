@@ -875,7 +875,7 @@ function renderCameraCones(layer) {
     const coneCamera = cameraByName.get(cone.camera);
     const group = svg("g", { class: "camera-cone" });
     const title = svg("title");
-    title.textContent = cone.camera;
+    title.textContent = cameraLabel(coneCamera || { name: cone.camera });
     group.append(title);
     for (const [index, segment] of cone.segments.entries()) {
       group.append(svg("line", {
@@ -1028,7 +1028,7 @@ function renderMap() {
       stroke: camera.color,
     });
     const title = svg("title");
-    title.textContent = camera.name;
+    title.textContent = cameraLabel(camera);
     marker.append(title);
     group.append(marker);
     group.addEventListener("mousedown", (event) => {
