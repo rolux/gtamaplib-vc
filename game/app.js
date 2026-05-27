@@ -90,6 +90,7 @@ const CLASSIC_ICON_TEXTURE = "../gtamaplib/readme/gtamaplib.png";
 const WATER_COLOR = [44 / 255, 103 / 255, 164 / 255, 1];
 const NIGHT_MAP_BRIGHTNESS = 0.15;
 const MAP3D_POSE_STORAGE_KEY = "gtamaplib-vc.map3dPose";
+const GAME_SPAWN_STORAGE_KEY = "gtamaplib-vc.gameSpawn";
 // Previous radio preset: highpass 1100/0.7, lowpass 3200/1.4, distortion 95,
 // compressor -34/4/18/0.005/0.16, tremolo 7.2 Hz at 0.16 depth.
 const RADIO_FILTER = {
@@ -1706,6 +1707,34 @@ function resetPlane() {
   state.deadZoneCrash = false;
   state.deadZoneResetAt = 0;
   setStatus("fresh floatplane, highly legal");
+}
+
+function applyStoredGameSpawn() {
+  const raw = sessionStorage.getItem(GAME_SPAWN_STORAGE_KEY);
+  if (!raw) return false;
+  sessionStorage.removeItem(GAME_SPAWN_STORAGE_KEY);
+  try {
+    const spawn = JSON.parse(raw);
+    if (!Array.isArray(spawn.pos) || spawn.pos.length < 3 || !Number.isFinite(spawn.yaw)) return false;
+    const yaw = spawn.yaw;
+    const speed = 92;
+    Object.assign(state.plane, {
+      pos: [spawn.pos[0], spawn.pos[1], Math.max(80, spawn.pos[2])],
+      vel: [-Math.sin(yaw) * speed, Math.cos(yaw) * speed, 2],
+      yaw,
+      pitch: 0.04,
+      roll: 0,
+      throttle: 0.68,
+      hp: 100,
+      model: state.plane.model,
+    });
+    state.deadZoneCrash = false;
+    state.deadZoneResetAt = 0;
+    setStatus("current-position takeoff");
+    return true;
+  } catch (_error) {
+    return false;
+  }
 }
 
 function makeStars(count) {
@@ -4276,6 +4305,7 @@ async function loadData() {
   makeTargets();
   initializeAmbientActors();
   igniteFourSeasons();
+  applyStoredGameSpawn();
   state.camera.eye = add(state.plane.pos, [-60, -80, 35]);
   state.camera.target = [...state.plane.pos];
   spawnBirdFlock();

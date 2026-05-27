@@ -21,6 +21,7 @@ const CAMERA_THUMBNAIL_DISTANCE = CAMERA_CONE_DISTANCE * 0.995;
 const TOUR_DWELL_MS = 1200;
 const TOUR_EYE_CONTROL_MIN_Z = 10;
 const MAP3D_POSE_STORAGE_KEY = "gtamaplib-vc.map3dPose";
+const GAME_SPAWN_STORAGE_KEY = "gtamaplib-vc.gameSpawn";
 const GAME_START_EYE = [-6250, 380, -5420];
 const GAME_START_TARGET = [-6250, 265, -5050];
 const MAX_TARGET_RADIUS = 32768;
@@ -313,6 +314,21 @@ function viewYpr() {
   const horizontal = Math.hypot(direction[0], direction[1]);
   const pitch = Math.atan2(direction[2], horizontal) * 180 / Math.PI;
   return [yaw, pitch, 0];
+}
+
+function glToWorld(v) {
+  return [v[0], -v[2], v[1]];
+}
+
+function writeGameSpawnFromCurrentView() {
+  const eye = glToWorld(cameraEye());
+  const target = glToWorld(state.target);
+  const direction = normalize(subtract(target, eye));
+  const horizontal = Math.hypot(direction[0], direction[1]) || 1;
+  sessionStorage.setItem(GAME_SPAWN_STORAGE_KEY, JSON.stringify({
+    pos: [eye[0], eye[1], Math.max(80, eye[2])],
+    yaw: Math.atan2(-direction[0] / horizontal, direction[1] / horizontal),
+  }));
 }
 
 function formatTuple(values) {
@@ -984,6 +1000,7 @@ function render() {
   for (const camera of state.cameras) drawCameraThumbnail(camera, matrix);
   const lineGroups = [];
   for (const landmark of state.landmarks) {
+    if (landmark.name === "WDNA FM") continue;
     const line = landmarkDropLine(landmark);
     if (line.length) {
       lineGroups.push([thickenLines(line, [0, 0.16]), [...colorForName(landmark.name), 0.34]]);
@@ -1121,7 +1138,13 @@ function installControls() {
     if (exitHandler) exitHandler();
   });
   if (gameButton) {
-    gameButton.addEventListener("click", () => {
+    gameButton.addEventListener("click", (event) => {
+      if (event.shiftKey) {
+        writeGameSpawnFromCurrentView();
+        suspendMap3d();
+        window.location.replace("/game");
+        return;
+      }
       animateToView(gameStartView(), () => {
         suspendMap3d();
         window.location.replace("/game");
