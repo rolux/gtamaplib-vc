@@ -20,6 +20,7 @@ const CAMERA_CONE_DISTANCE = 100;
 const CAMERA_THUMBNAIL_DISTANCE = CAMERA_CONE_DISTANCE * 0.995;
 const TOUR_DWELL_MS = 1200;
 const TOUR_EYE_CONTROL_MIN_Z = 10;
+const CLICK_MOVE_TOLERANCE = 5;
 const MAP3D_POSE_STORAGE_KEY = "gtamaplib-vc.map3dPose";
 const GAME_SPAWN_STORAGE_KEY = "gtamaplib-vc.gameSpawn";
 const GAME_START_EYE = [-6250, 380, -5420];
@@ -52,9 +53,13 @@ const state = {
   pitch: 0.92,
   vfov: 45,
   dragging: null,
+  dragMoved: false,
+  dragStartX: 0,
+  dragStartY: 0,
   lastX: 0,
   lastY: 0,
   dragGroundPoint: null,
+  clickCamera: null,
   keys: new Set(),
   tiles: [],
   cameras: [],
@@ -861,17 +866,8 @@ function cameraConeLines(camera) {
 }
 
 function cameraThumbnailVertices(camera) {
-  if (!camera.xyz || !camera.ypr || !camera.fov) return null;
-  const hf = Math.tan((camera.fov[0] || 50) * Math.PI / 360);
-  const vf = Math.tan((camera.fov[1] || 35) * Math.PI / 360);
-  const corners = [[-hf, vf], [hf, vf], [hf, -vf], [-hf, -vf]].map(([u, v]) => {
-    const d = directionFromYpr(camera.ypr, u, v);
-    return worldToGl(
-      camera.xyz[0] + d[0] * CAMERA_THUMBNAIL_DISTANCE,
-      camera.xyz[1] + d[1] * CAMERA_THUMBNAIL_DISTANCE,
-      camera.xyz[2] + d[2] * CAMERA_THUMBNAIL_DISTANCE,
-    );
-  });
+  const corners = cameraThumbnailCorners(camera);
+  if (!corners) return null;
   return new Float32Array([
     ...corners[0], 0, 1,
     ...corners[1], 1, 1,
@@ -882,19 +878,84 @@ function cameraThumbnailVertices(camera) {
   ]);
 }
 
-function cameraThumbnailInView(camera, matrix) {
-  if (!camera.xyz || !camera.ypr || !camera.fov) return false;
+function cameraThumbnailCorners(camera) {
+  if (!camera.xyz || !camera.ypr || !camera.fov) return null;
   const hf = Math.tan((camera.fov[0] || 50) * Math.PI / 360);
   const vf = Math.tan((camera.fov[1] || 35) * Math.PI / 360);
-  return [[0, 0], [-hf, vf], [hf, vf], [hf, -vf], [-hf, -vf]].some(([u, v]) => {
+  return [[-hf, vf], [hf, vf], [hf, -vf], [-hf, -vf]].map(([u, v]) => {
     const d = directionFromYpr(camera.ypr, u, v);
-    const p = transformPoint(matrix, worldToGl(
+    return worldToGl(
       camera.xyz[0] + d[0] * CAMERA_THUMBNAIL_DISTANCE,
       camera.xyz[1] + d[1] * CAMERA_THUMBNAIL_DISTANCE,
       camera.xyz[2] + d[2] * CAMERA_THUMBNAIL_DISTANCE,
-    ));
+    );
+  });
+}
+
+function cameraThumbnailInView(camera, matrix) {
+  const corners = cameraThumbnailCorners(camera);
+  if (!corners) return false;
+  const center = worldToGl(camera.xyz[0], camera.xyz[1], camera.xyz[2]);
+  return [center, ...corners].some((point) => {
+    const p = transformPoint(matrix, point);
     return p[2] >= -1 && p[2] <= 1 && p[0] >= -1.2 && p[0] <= 1.2 && p[1] >= -1.2 && p[1] <= 1.2;
   });
+}
+
+function pointInScreenTriangle(point, a, b, c) {
+  const area = (p1, p2, p3) => (
+    (p1.x - p3.x) * (p2.y - p3.y) -
+    (p2.x - p3.x) * (p1.y - p3.y)
+  );
+  const b1 = area(point, a, b) < 0;
+  const b2 = area(point, b, c) < 0;
+  const b3 = area(point, c, a) < 0;
+  return b1 === b2 && b2 === b3;
+}
+
+function projectedThumbnail(camera, matrix, rect) {
+  if (shouldBlurCameraThumbnail(camera)) return null;
+  if (!camera.thumbnail) return null;
+  const thumbnail = state.thumbnails.get(`/${camera.thumbnail}`);
+  if (!thumbnail?.loaded) return null;
+  const corners = cameraThumbnailCorners(camera);
+  if (!corners) return null;
+  const points = corners.map((corner) => {
+    const p = transformPoint(matrix, corner);
+    if (p[2] < -1 || p[2] > 1) return null;
+    return {
+      x: rect.left + (p[0] + 1) * rect.width * 0.5,
+      y: rect.top + (1 - p[1]) * rect.height * 0.5,
+      z: p[2],
+    };
+  });
+  if (points.some((point) => !point)) return null;
+  return {
+    camera,
+    points,
+    depth: points.reduce((sum, point) => sum + point.z, 0) / points.length,
+  };
+}
+
+function cameraThumbnailAtClient(clientX, clientY) {
+  const rect = scene.getBoundingClientRect();
+  if (!rect.width || !rect.height) return null;
+  const matrix = viewProjection();
+  const point = { x: clientX, y: clientY };
+  const hits = [];
+  for (const camera of state.cameras) {
+    const thumbnail = projectedThumbnail(camera, matrix, rect);
+    if (!thumbnail) continue;
+    const [a, b, c, d] = thumbnail.points;
+    if (
+      pointInScreenTriangle(point, a, b, c) ||
+      pointInScreenTriangle(point, a, c, d)
+    ) {
+      hits.push(thumbnail);
+    }
+  }
+  hits.sort((a, b) => a.depth - b.depth);
+  return hits[0]?.camera || null;
 }
 
 function drawCameraThumbnail(camera, matrix) {
@@ -1179,16 +1240,39 @@ function installControls() {
     scene.focus();
     if (state.tour.active) return;
     state.dragging = true;
+    state.dragMoved = false;
+    state.dragStartX = event.clientX;
+    state.dragStartY = event.clientY;
     state.lastX = event.clientX;
     state.lastY = event.clientY;
     state.dragGroundPoint = groundPointUnderClient(event.clientX, event.clientY);
+    state.clickCamera = cameraThumbnailAtClient(event.clientX, event.clientY);
   });
-  window.addEventListener("mouseup", () => {
+  window.addEventListener("mouseup", (event) => {
+    if (!state.tour.active && state.dragging && !state.dragMoved && state.clickCamera) {
+      const camera = cameraThumbnailAtClient(event.clientX, event.clientY);
+      if (camera === state.clickCamera) {
+        stopTour();
+        applyTourView(viewForCamera(camera));
+      }
+    }
     state.dragging = null;
+    state.dragMoved = false;
     state.dragGroundPoint = null;
+    state.clickCamera = null;
   });
   window.addEventListener("mousemove", (event) => {
     if (!state.dragging) return;
+    if (!state.dragMoved) {
+      const total = Math.hypot(event.clientX - state.dragStartX, event.clientY - state.dragStartY);
+      if (total <= CLICK_MOVE_TOLERANCE) return;
+      state.dragMoved = true;
+      state.clickCamera = null;
+      state.lastX = event.clientX;
+      state.lastY = event.clientY;
+      state.dragGroundPoint = groundPointUnderClient(event.clientX, event.clientY);
+      return;
+    }
     const dx = event.clientX - state.lastX;
     const dy = event.clientY - state.lastY;
     state.lastX = event.clientX;
