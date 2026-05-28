@@ -21,9 +21,10 @@ const CAMERA_THUMBNAIL_DISTANCE = CAMERA_CONE_DISTANCE * 0.995;
 const TOUR_DWELL_MS = 1200;
 const TOUR_EYE_CONTROL_MIN_Z = 10;
 const CLICK_MOVE_TOLERANCE = 5;
-const MIN_DISTANCE = 500;
-const MIN_PITCH = 0.1;
+const MIN_DISTANCE = 100;
+const MIN_PITCH = -1.05;
 const MAX_PITCH = 1.5;
+const MIN_NAVIGATION_EYE_Y = 10;
 const MAP3D_POSE_STORAGE_KEY = "gtamaplib-vc.map3dPose";
 const GAME_SPAWN_STORAGE_KEY = "gtamaplib-vc.gameSpawn";
 const GAME_START_EYE = [-6250, 380, -5420];
@@ -898,11 +899,18 @@ function cameraThumbnailCorners(camera) {
 function cameraThumbnailInView(camera, matrix) {
   const corners = cameraThumbnailCorners(camera);
   if (!corners) return false;
-  const center = worldToGl(camera.xyz[0], camera.xyz[1], camera.xyz[2]);
-  return [center, ...corners].some((point) => {
-    const p = transformPoint(matrix, point);
-    return p[2] >= -1 && p[2] <= 1 && p[0] >= -1.2 && p[0] <= 1.2 && p[1] >= -1.2 && p[1] <= 1.2;
-  });
+  const points = corners.map((corner) => transformPoint(matrix, corner));
+  const isFinitePoint = (point) => point.every((value) => Number.isFinite(value));
+  if (!points.every(isFinitePoint)) return false;
+  if (points.some((point) => (
+    point[2] >= -1 && point[2] <= 1 &&
+    point[0] >= -1.2 && point[0] <= 1.2 &&
+    point[1] >= -1.2 && point[1] <= 1.2
+  ))) {
+    return true;
+  }
+  if (!points.every((point) => point[2] >= -1 && point[2] <= 1)) return false;
+  return pointInScreenQuad({ x: 0, y: 0 }, points.map((point) => ({ x: point[0], y: point[1] })));
 }
 
 function pointInScreenTriangle(point, a, b, c) {
@@ -914,6 +922,14 @@ function pointInScreenTriangle(point, a, b, c) {
   const b2 = area(point, b, c) < 0;
   const b3 = area(point, c, a) < 0;
   return b1 === b2 && b2 === b3;
+}
+
+function pointInScreenQuad(point, points) {
+  const [a, b, c, d] = points;
+  return (
+    pointInScreenTriangle(point, a, b, c) ||
+    pointInScreenTriangle(point, a, c, d)
+  );
 }
 
 function projectedThumbnail(camera, matrix, rect) {
@@ -949,11 +965,7 @@ function cameraThumbnailAtClient(clientX, clientY) {
   for (const camera of state.cameras) {
     const thumbnail = projectedThumbnail(camera, matrix, rect);
     if (!thumbnail) continue;
-    const [a, b, c, d] = thumbnail.points;
-    if (
-      pointInScreenTriangle(point, a, b, c) ||
-      pointInScreenTriangle(point, a, c, d)
-    ) {
+    if (pointInScreenQuad(point, thumbnail.points)) {
       hits.push(thumbnail);
     }
   }
@@ -1143,6 +1155,34 @@ function clampTargetRadius() {
   state.target[2] *= scale;
 }
 
+function constrainedValue(current, next, min, max) {
+  if (current < min) return next < current ? current : Math.min(next, max);
+  if (current > max) return next > current ? current : Math.max(next, min);
+  return Math.max(min, Math.min(max, next));
+}
+
+function navigationEyeAllowed(previousY, nextY) {
+  if (previousY < MIN_NAVIGATION_EYE_Y) return nextY >= previousY;
+  return nextY >= MIN_NAVIGATION_EYE_Y;
+}
+
+function applyNavigationChange(change) {
+  const previous = {
+    target: [...state.target],
+    distance: state.distance,
+    yaw: state.yaw,
+    pitch: state.pitch,
+  };
+  const previousY = cameraEye()[1];
+  change();
+  if (navigationEyeAllowed(previousY, cameraEye()[1])) return true;
+  state.target = previous.target;
+  state.distance = previous.distance;
+  state.yaw = previous.yaw;
+  state.pitch = previous.pitch;
+  return false;
+}
+
 function resetView() {
   stopTour();
   state.target = [0, 0, 0];
@@ -1154,8 +1194,11 @@ function resetView() {
 }
 
 function zoomBy(factor) {
-  state.distance = Math.max(MIN_DISTANCE, Math.min(50000, state.distance * factor));
-  render();
+  if (applyNavigationChange(() => {
+    state.distance = constrainedValue(state.distance, state.distance * factor, MIN_DISTANCE, 50000);
+  })) {
+    render();
+  }
 }
 
 function groundPointUnderClient(clientX, clientY) {
@@ -1180,15 +1223,18 @@ function groundPointUnderClient(clientX, clientY) {
 
 function zoomAt(clientX, clientY, factor) {
   const before = groundPointUnderClient(clientX, clientY);
-  state.distance = Math.max(MIN_DISTANCE, Math.min(50000, state.distance * factor));
-  if (before) {
-    const after = groundPointUnderClient(clientX, clientY);
-    if (after) {
-      state.target = add(state.target, subtract(before, after));
-      clampTargetRadius();
+  if (applyNavigationChange(() => {
+    state.distance = constrainedValue(state.distance, state.distance * factor, MIN_DISTANCE, 50000);
+    if (before) {
+      const after = groundPointUnderClient(clientX, clientY);
+      if (after) {
+        state.target = add(state.target, subtract(before, after));
+        clampTargetRadius();
+      }
     }
+  })) {
+    render();
   }
-  render();
 }
 
 function updateControls() {
@@ -1200,17 +1246,19 @@ function updateControls() {
   }
   const move = state.distance * 0.01;
   let dirty = false;
-  if (state.keys.has("w") || state.keys.has("W")) { panBy(0, -move); dirty = true; }
-  if (state.keys.has("s") || state.keys.has("S")) { panBy(0, move); dirty = true; }
-  if (state.keys.has("a") || state.keys.has("A")) { panBy(-move, 0); dirty = true; }
-  if (state.keys.has("d") || state.keys.has("D")) { panBy(move, 0); dirty = true; }
-  if (state.keys.has("q") || state.keys.has("Q")) { state.target[1] -= move; dirty = true; }
-  if (state.keys.has("e") || state.keys.has("E")) { state.target[1] += move; dirty = true; }
-  if (state.keys.has("ArrowLeft")) { state.yaw += 0.025; dirty = true; }
-  if (state.keys.has("ArrowRight")) { state.yaw -= 0.025; dirty = true; }
-  if (state.keys.has("ArrowUp")) { state.pitch = Math.max(MIN_PITCH, state.pitch - 0.018); dirty = true; }
-  if (state.keys.has("ArrowDown")) { state.pitch = Math.min(MAX_PITCH, state.pitch + 0.018); dirty = true; }
-  if (dirty) render();
+  const changed = applyNavigationChange(() => {
+    if (state.keys.has("w") || state.keys.has("W")) { panBy(0, -move); dirty = true; }
+    if (state.keys.has("s") || state.keys.has("S")) { panBy(0, move); dirty = true; }
+    if (state.keys.has("a") || state.keys.has("A")) { panBy(-move, 0); dirty = true; }
+    if (state.keys.has("d") || state.keys.has("D")) { panBy(move, 0); dirty = true; }
+    if (state.keys.has("q") || state.keys.has("Q")) { state.target[1] -= move; dirty = true; }
+    if (state.keys.has("e") || state.keys.has("E")) { state.target[1] += move; dirty = true; }
+    if (state.keys.has("ArrowLeft")) { state.yaw += 0.025; dirty = true; }
+    if (state.keys.has("ArrowRight")) { state.yaw -= 0.025; dirty = true; }
+    if (state.keys.has("ArrowUp")) { state.pitch = constrainedValue(state.pitch, state.pitch - 0.018, MIN_PITCH, MAX_PITCH); dirty = true; }
+    if (state.keys.has("ArrowDown")) { state.pitch = constrainedValue(state.pitch, state.pitch + 0.018, MIN_PITCH, MAX_PITCH); dirty = true; }
+  });
+  if (dirty && changed) render();
   startControlsFrame();
 }
 
@@ -1281,18 +1329,22 @@ function installControls() {
     state.lastX = event.clientX;
     state.lastY = event.clientY;
     if (event.metaKey || event.ctrlKey) {
-      state.yaw -= dx * 0.006;
-      state.pitch = Math.max(MIN_PITCH, Math.min(MAX_PITCH, state.pitch + dy * 0.004));
-      state.dragGroundPoint = groundPointUnderClient(event.clientX, event.clientY);
+      applyNavigationChange(() => {
+        state.yaw -= dx * 0.006;
+        state.pitch = constrainedValue(state.pitch, state.pitch + dy * 0.004, MIN_PITCH, MAX_PITCH);
+        state.dragGroundPoint = groundPointUnderClient(event.clientX, event.clientY);
+      });
     } else {
-      const current = state.dragGroundPoint ? groundPointUnderClient(event.clientX, event.clientY) : null;
-      if (current) {
-        state.target = add(state.target, subtract(state.dragGroundPoint, current));
-        clampTargetRadius();
-      } else {
-        const scale = state.distance / Math.max(state.width, state.height);
-        panBy(-dx * scale * 1.6, -dy * scale * 1.6);
-      }
+      applyNavigationChange(() => {
+        const current = state.dragGroundPoint ? groundPointUnderClient(event.clientX, event.clientY) : null;
+        if (current) {
+          state.target = add(state.target, subtract(state.dragGroundPoint, current));
+          clampTargetRadius();
+        } else {
+          const scale = state.distance / Math.max(state.width, state.height);
+          panBy(-dx * scale * 1.6, -dy * scale * 1.6);
+        }
+      });
     }
     render();
   });
