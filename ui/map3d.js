@@ -3,8 +3,12 @@ const MAP_H = 32768;
 const ZERO_X = 16384;
 const ZERO_Y = 16384;
 const TILE_SIZE = 256;
-const TILE_Z = 3;
-const TILE_RANGE = [[0, 4], [19, 23]];
+const DEFAULT_TILE_Z = 3;
+const HIGH_RES_TILE_Z = 4;
+const TILE_RANGES = {
+  3: [[0, 4], [19, 23]],
+  4: [[0, 8], [38, 47]],
+};
 const TILE_ROOT = "/gtadb.org/maps/tiles/6/yanis,12";
 const VC_DATA = "/data/gtamapdata.json";
 const VC_RESULT = "/optimizer/result.json";
@@ -57,12 +61,14 @@ const state = {
   dragGroundPoint: null,
   keys: new Set(),
   tiles: [],
+  activeTileZ: null,
   cameras: [],
   landmarks: [],
   wireframes: [],
   colors: new Map(),
   thumbnails: new Map(),
   blurLeaks: true,
+  highResolutionTiles: false,
   useMonospaceFont: false,
   transitionRaf: null,
   controlsRaf: null,
@@ -382,8 +388,9 @@ function tileWorldBounds(z, x, y) {
 
 function loadTile(z, x, y) {
   const image = new Image();
-  const tile = { z, x, y, texture: null, loaded: false };
+  const tile = { z, x, y, texture: null, loaded: false, cancelled: false };
   image.onload = () => {
+    if (tile.cancelled) return;
     tile.texture = createTexture(image);
     tile.loaded = true;
     requestAnimationFrame(render);
@@ -392,13 +399,33 @@ function loadTile(z, x, y) {
   return tile;
 }
 
+function currentTileZ() {
+  return state.highResolutionTiles ? HIGH_RES_TILE_Z : DEFAULT_TILE_Z;
+}
+
+function discardTiles() {
+  for (const tile of state.tiles) {
+    tile.cancelled = true;
+    if (tile.texture) gl.deleteTexture(tile.texture);
+  }
+  state.tiles = [];
+}
+
 function loadTiles() {
-  const [[x0, y0], [x1, y1]] = TILE_RANGE;
+  const z = currentTileZ();
+  const [[x0, y0], [x1, y1]] = TILE_RANGES[z];
+  state.activeTileZ = z;
   for (let y = y0; y <= y1; y++) {
     for (let x = x0; x <= x1; x++) {
-      state.tiles.push(loadTile(TILE_Z, x, y));
+      state.tiles.push(loadTile(z, x, y));
     }
   }
+}
+
+function reloadTiles() {
+  discardTiles();
+  loadTiles();
+  requestAnimationFrame(render);
 }
 
 function drawTile(tile, matrix) {
@@ -1362,6 +1389,13 @@ export function activateMap3d(options = {}) {
 
 export function setMap3dSettings(options = {}) {
   if (Object.hasOwn(options, "blurLeaks")) state.blurLeaks = Boolean(options.blurLeaks);
+  if (Object.hasOwn(options, "highResolutionTiles")) {
+    const highResolutionTiles = Boolean(options.highResolutionTiles);
+    if (state.highResolutionTiles !== highResolutionTiles) {
+      state.highResolutionTiles = highResolutionTiles;
+      if (initialized && state.activeTileZ !== currentTileZ()) reloadTiles();
+    }
+  }
   if (Object.hasOwn(options, "useMonospaceFont")) state.useMonospaceFont = Boolean(options.useMonospaceFont);
   if (!root.hidden) render();
 }
