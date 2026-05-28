@@ -24,7 +24,6 @@ const state = {
     useMonospaceFont: false,
     showCameraIDs: false,
     onlyShowCamerasForSelectedLandmark: false,
-    highResolutionMap3dTiles: false,
     blurLeaks: true,
   },
   map: {
@@ -40,7 +39,6 @@ const STORAGE = {
   useMonospaceFont: "gtamaplibvc.useMonospaceFont",
   showCameraIDs: "gtamaplibvc.showCameraIDs",
   onlyShowCamerasForSelectedLandmark: "gtamaplibvc.onlyShowCamerasForSelectedLandmark",
-  highResolutionMap3dTiles: "gtamaplibvc.highResolutionMap3dTiles",
   blurLeaks: "gtamaplibvc.blurLeaks",
 };
 
@@ -303,7 +301,6 @@ function refreshSettingsDependentViews() {
   applyGlobalSettings();
   setMap3dSettings({
     blurLeaks: state.settings.blurLeaks,
-    highResolutionTiles: state.settings.highResolutionMap3dTiles,
     useMonospaceFont: state.settings.useMonospaceFont,
   });
   renderCameraList();
@@ -352,7 +349,6 @@ function openSettingsDialog() {
     settingCheckbox("Use monospace font", "useMonospaceFont"),
     settingCheckbox("Show camera IDs", "showCameraIDs"),
     settingCheckbox("Only show cameras for selected landmark", "onlyShowCamerasForSelectedLandmark"),
-    settingCheckbox("Use high resolution tiles in 3D", "highResolutionMap3dTiles"),
     settingCheckbox("Blur leaks", "blurLeaks"),
   );
   openDialog("Settings", content);
@@ -1658,7 +1654,6 @@ function applyHash() {
     activateMap3d({
       onExit: exitMap3d,
       blurLeaks: state.settings.blurLeaks,
-      highResolutionTiles: state.settings.highResolutionMap3dTiles,
       useMonospaceFont: state.settings.useMonospaceFont,
     });
   } else {
@@ -1703,7 +1698,6 @@ function setView(view) {
     activateMap3d({
       onExit: exitMap3d,
       blurLeaks: state.settings.blurLeaks,
-      highResolutionTiles: state.settings.highResolutionMap3dTiles,
       useMonospaceFont: state.settings.useMonospaceFont,
     });
     updateEditTools();
@@ -2302,7 +2296,6 @@ function restorePreferences() {
   state.settings.useMonospaceFont = storedBoolean(STORAGE.useMonospaceFont, false);
   state.settings.showCameraIDs = storedBoolean(STORAGE.showCameraIDs, false);
   state.settings.onlyShowCamerasForSelectedLandmark = storedBoolean(STORAGE.onlyShowCamerasForSelectedLandmark, false);
-  state.settings.highResolutionMap3dTiles = storedBoolean(STORAGE.highResolutionMap3dTiles, false);
   state.settings.blurLeaks = storedBoolean(STORAGE.blurLeaks, true);
   applyGlobalSettings();
 }
