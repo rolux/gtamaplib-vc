@@ -3060,18 +3060,18 @@ def result_path_for_stage(stage_index: int, camera_name: str) -> Path:
 
 
 def invalidate_chain_results(chain: list[str], stage_index: int) -> None:
-    removed: list[Path] = []
+    removed_future: list[Path] = []
     for index, camera_name in enumerate(chain[stage_index:], start=stage_index):
         path = result_path_for_stage(index, camera_name)
         if path.exists():
             path.unlink()
-            removed.append(path)
+            if index > stage_index:
+                removed_future.append(path)
     if ACTIVE_OPTIMIZER_RESULT_PATH.exists():
         ACTIVE_OPTIMIZER_RESULT_PATH.unlink()
-        removed.append(ACTIVE_OPTIMIZER_RESULT_PATH)
-    if removed:
-        print("Removing stale optimizer result(s):")
-        for path in removed:
+    if removed_future:
+        print("Removing later-stage optimizer result(s):")
+        for path in removed_future:
             print(f"  {path}")
 
 
