@@ -21,6 +21,9 @@ const CAMERA_THUMBNAIL_DISTANCE = CAMERA_CONE_DISTANCE * 0.995;
 const TOUR_DWELL_MS = 1200;
 const TOUR_EYE_CONTROL_MIN_Z = 10;
 const CLICK_MOVE_TOLERANCE = 5;
+const MIN_DISTANCE = 500;
+const MIN_PITCH = 0.1;
+const MAX_PITCH = 1.5;
 const MAP3D_POSE_STORAGE_KEY = "gtamaplib-vc.map3dPose";
 const GAME_SPAWN_STORAGE_KEY = "gtamaplib-vc.gameSpawn";
 const GAME_START_EYE = [-6250, 380, -5420];
@@ -1151,7 +1154,7 @@ function resetView() {
 }
 
 function zoomBy(factor) {
-  state.distance = Math.max(700, Math.min(50000, state.distance * factor));
+  state.distance = Math.max(MIN_DISTANCE, Math.min(50000, state.distance * factor));
   render();
 }
 
@@ -1177,7 +1180,7 @@ function groundPointUnderClient(clientX, clientY) {
 
 function zoomAt(clientX, clientY, factor) {
   const before = groundPointUnderClient(clientX, clientY);
-  state.distance = Math.max(700, Math.min(50000, state.distance * factor));
+  state.distance = Math.max(MIN_DISTANCE, Math.min(50000, state.distance * factor));
   if (before) {
     const after = groundPointUnderClient(clientX, clientY);
     if (after) {
@@ -1205,8 +1208,8 @@ function updateControls() {
   if (state.keys.has("e") || state.keys.has("E")) { state.target[1] += move; dirty = true; }
   if (state.keys.has("ArrowLeft")) { state.yaw += 0.025; dirty = true; }
   if (state.keys.has("ArrowRight")) { state.yaw -= 0.025; dirty = true; }
-  if (state.keys.has("ArrowUp")) { state.pitch = Math.max(0.12, state.pitch - 0.018); dirty = true; }
-  if (state.keys.has("ArrowDown")) { state.pitch = Math.min(1.45, state.pitch + 0.018); dirty = true; }
+  if (state.keys.has("ArrowUp")) { state.pitch = Math.max(MIN_PITCH, state.pitch - 0.018); dirty = true; }
+  if (state.keys.has("ArrowDown")) { state.pitch = Math.min(MAX_PITCH, state.pitch + 0.018); dirty = true; }
   if (dirty) render();
   startControlsFrame();
 }
@@ -1279,7 +1282,7 @@ function installControls() {
     state.lastY = event.clientY;
     if (event.metaKey || event.ctrlKey) {
       state.yaw -= dx * 0.006;
-      state.pitch = Math.max(0.12, Math.min(1.45, state.pitch + dy * 0.004));
+      state.pitch = Math.max(MIN_PITCH, Math.min(MAX_PITCH, state.pitch + dy * 0.004));
       state.dragGroundPoint = groundPointUnderClient(event.clientX, event.clientY);
     } else {
       const current = state.dragGroundPoint ? groundPointUnderClient(event.clientX, event.clientY) : null;
