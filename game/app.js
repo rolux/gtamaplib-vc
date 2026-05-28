@@ -3645,13 +3645,38 @@ function thickenLines(lines, offsets) {
   return result;
 }
 
+function thickenPillarLines(lines) {
+  const result = [];
+  const offsets = [
+    [0, 0],
+    [0.34, 0],
+    [-0.34, 0],
+    [0, 0.34],
+    [0, -0.34],
+    [0.68, 0],
+    [-0.68, 0],
+    [0, 0.68],
+    [0, -0.68],
+  ];
+  for (const [x, z] of offsets) {
+    for (let i = 0; i < lines.length; i += 6) {
+      result.push(
+        lines[i] + x, lines[i + 1], lines[i + 2] + z,
+        lines[i + 3] + x, lines[i + 4], lines[i + 5] + z,
+      );
+    }
+  }
+  return result;
+}
+
 function wireframeLines(wireframe) {
-  const groups = { single: [], thin: [], bold: [] };
-  for (const segment of wireframe.segments || []) {
+  const groups = { single: [], thin: [], bold: [], pillar: [] };
+  for (const [index, segment] of (wireframe.segments || []).entries()) {
     const points = Array.isArray(segment) ? segment : segment.points;
-    const style = Array.isArray(segment) ? "thin" : segment.style || "thin";
+    let style = Array.isArray(segment) ? "thin" : segment.style || "thin";
+    if (wireframe.name === "Sunshine Skyway Bridge" && index < 2) style = "pillar";
     if (!points || points.length !== 2) continue;
-    const target = style === "bold" ? groups.bold : style === "single" ? groups.single : groups.thin;
+    const target = style === "pillar" ? groups.pillar : style === "bold" ? groups.bold : style === "single" ? groups.single : groups.thin;
     target.push(...worldToGl(points[0][0], points[0][1], points[0][2]));
     target.push(...worldToGl(points[1][0], points[1][1], points[1][2]));
   }
@@ -3695,6 +3720,7 @@ function drawWireframes(m) {
     if (groups.single.length) drawColor(groups.single, [...color, 0.86], m, gl.LINES);
     if (groups.thin.length) drawColor(thickenLines(groups.thin, [0, 0.18, -0.18, 0.36]), [...color, 0.78], m, gl.LINES);
     if (groups.bold.length) drawColor(thickenLines(groups.bold, [0, 0.18, -0.18, 0.36, -0.36, 0.54]), [...color, 0.92], m, gl.LINES);
+    if (groups.pillar.length) drawColor(thickenPillarLines(groups.pillar), [...color, 0.94], m, gl.LINES);
   }
 }
 
@@ -4265,6 +4291,7 @@ async function loadData() {
     state.wireframes.push(fourSeasons);
   }
   if (sunshineSkyway?.schema === "gtamaplibvc-map3d-sunshine-skyway-v1") {
+    sunshineSkyway.name = "Sunshine Skyway Bridge";
     sunshineSkyway.color = colorForName("Sunshine Skyway Bridge");
     state.wireframes.push(sunshineSkyway);
   }
