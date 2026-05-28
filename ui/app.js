@@ -121,6 +121,10 @@ function isUserFacingCameraName(name) {
   return !name.endsWith(FAKE_CAMERA_SUFFIX);
 }
 
+function isUserFacingSnapshotLandmark(name) {
+  return !name.startsWith("Four Seasons Hotel Miami (");
+}
+
 function applyWorldSnapshot(snapshot) {
   if (!snapshot || snapshot.schema !== "gtamaplibvc-world-v1") return;
   const snapshotCameras = snapshot.cameras || {};
@@ -146,6 +150,7 @@ function applyWorldSnapshot(snapshot) {
   for (const [name, xyz] of Object.entries(snapshotLandmarks)) {
     if (existingLandmarks.has(name)) continue;
     if (snapshotLandmarkSources[name] === "gtamaplib") continue;
+    if (!isUserFacingSnapshotLandmark(name)) continue;
     state.data.landmarks.push({
       name,
       order: state.data.landmarks.length,
