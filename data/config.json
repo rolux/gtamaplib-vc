@@ -1,5 +1,5 @@
 {
     "schema": "gtamaplibvc-config-v1",
     "min_triangulation_delta_degrees": 10.0,
-    "min_fixed_elevation_intersection_angle_degrees": 1.0
+    "min_fixed_elevation_intersection_angle_degrees": 0.9
 }
