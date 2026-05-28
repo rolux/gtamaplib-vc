@@ -20,6 +20,7 @@ const CAMERA_CONE_DISTANCE = 100;
 const CAMERA_THUMBNAIL_DISTANCE = CAMERA_CONE_DISTANCE * 0.995;
 const TOUR_DWELL_MS = 1200;
 const TOUR_EYE_CONTROL_MIN_Z = 10;
+const FOUR_SEASONS_TOUR_EYE_CONTROL_MIN_Z = 100;
 const CLICK_MOVE_TOLERANCE = 5;
 const MIN_DISTANCE = 100;
 const MIN_PITCH = -1.05;
@@ -30,6 +31,26 @@ const GAME_SPAWN_STORAGE_KEY = "gtamaplib-vc.gameSpawn";
 const GAME_START_EYE = [-6250, 380, -5420];
 const GAME_START_TARGET = [-6250, 265, -5050];
 const MAX_TARGET_RADIUS = 32768;
+const FOUR_SEASONS_TOUR_CAMERA_NAMES = [
+  "Leonida Keys 01 (Airplane) (X)",
+  "Ocean near Keys (N)",
+  "Grassrivers 02 (Watson Bay)",
+  "Rooftop Party",
+  "Vice Beach (B)",
+  "Vice City Postcard",
+  "Skyline",
+  "Vice City Sign",
+  "Prison",
+  "Street (Bikers) (B)",
+  "Little Haiti",
+  "Auto Shop (SE)",
+  "Motorboats (B)",
+  "Interchange",
+  "Metro (SE) (A) (4K)",
+  "Highway (Peacock Bay) (B)",
+  "Tennis Stadium (4K)",
+  "Raul Bautista 03 (Motorboat)",
+];
 
 const root = document.querySelector("#map3d-root");
 const scene = document.querySelector("#map3d-scene");
@@ -77,6 +98,7 @@ const state = {
   controlsRaf: null,
   tour: {
     active: false,
+    mode: "screenshots",
     paused: false,
     index: 0,
     cameras: [],
@@ -282,6 +304,22 @@ function transformPoint(matrix, point) {
   ];
 }
 
+function projectPointForView(eye, target, vfov, point) {
+  const projection = perspective(vfov * Math.PI / 180, state.width / state.height, 1, 90000);
+  const view = lookAt(eye, target, [0, 1, 0]);
+  const matrix = mat4Multiply(projection, view);
+  const x = point[0];
+  const y = point[1];
+  const z = point[2];
+  const w = matrix[3] * x + matrix[7] * y + matrix[11] * z + matrix[15];
+  if (!Number.isFinite(w) || w <= 0) return null;
+  return {
+    x: (matrix[0] * x + matrix[4] * y + matrix[8] * z + matrix[12]) / w,
+    y: (matrix[1] * x + matrix[5] * y + matrix[9] * z + matrix[13]) / w,
+    z: (matrix[2] * x + matrix[6] * y + matrix[10] * z + matrix[14]) / w,
+  };
+}
+
 function worldToGl(x, y, z = 0) {
   return [x, z, -y];
 }
@@ -302,6 +340,25 @@ function applyEyeTarget(eye, target) {
   state.distance = distance;
   state.pitch = Math.asin(Math.max(-1, Math.min(1, offset[1] / distance)));
   state.yaw = Math.atan2(offset[0], offset[2]);
+}
+
+function yawPitchForView(eye, target) {
+  const offset = subtract(eye, target);
+  const distance = Math.max(1, Math.hypot(offset[0], offset[1], offset[2]));
+  return {
+    yaw: Math.atan2(offset[0], offset[2]),
+    pitch: Math.asin(Math.max(-1, Math.min(1, offset[1] / distance))),
+    distance,
+  };
+}
+
+function targetFromYawPitch(eye, yaw, pitch, distance) {
+  const cp = Math.cos(pitch);
+  return [
+    eye[0] - Math.sin(yaw) * cp * distance,
+    eye[1] - Math.sin(pitch) * distance,
+    eye[2] - Math.cos(yaw) * cp * distance,
+  ];
 }
 
 function currentView() {
@@ -580,6 +637,51 @@ function viewForCamera(camera) {
   };
 }
 
+function landmarkGlPoint(name) {
+  const landmark = state.landmarks.find((item) => item.name === name);
+  if (!landmark?.xyz) return null;
+  return worldToGl(landmark.xyz[0], landmark.xyz[1], landmark.xyz[2]);
+}
+
+function landmarkGroupGlPoint(prefix) {
+  const points = state.landmarks
+    .filter((item) => item.name.startsWith(prefix) && item.xyz)
+    .map((item) => worldToGl(item.xyz[0], item.xyz[1], item.xyz[2]));
+  if (!points.length) return null;
+  return points.reduce((sum, point) => add(sum, point), [0, 0, 0]).map((value) => value / points.length);
+}
+
+function lookTargetForScreenPoint(eye, target, vfov, point, screenPoint) {
+  const epsilon = 0.0008;
+  const view = yawPitchForView(eye, target);
+  let yaw = view.yaw;
+  let pitch = view.pitch;
+  const project = (nextYaw, nextPitch) => {
+    const nextTarget = targetFromYawPitch(eye, nextYaw, nextPitch, view.distance);
+    return projectPointForView(eye, nextTarget, vfov, point);
+  };
+  for (let index = 0; index < 6; index++) {
+    const current = project(yaw, pitch);
+    if (!current) break;
+    const errorX = current.x - screenPoint.x;
+    const errorY = current.y - screenPoint.y;
+    if (Math.hypot(errorX, errorY) < 0.001) break;
+    const yawProjection = project(yaw + epsilon, pitch);
+    const pitchProjection = project(yaw, pitch + epsilon);
+    if (!yawProjection || !pitchProjection) break;
+    const ax = (yawProjection.x - current.x) / epsilon;
+    const ay = (yawProjection.y - current.y) / epsilon;
+    const bx = (pitchProjection.x - current.x) / epsilon;
+    const by = (pitchProjection.y - current.y) / epsilon;
+    const determinant = ax * by - bx * ay;
+    if (Math.abs(determinant) < 0.000001) break;
+    yaw -= (by * errorX - bx * errorY) / determinant;
+    pitch -= (-ay * errorX + ax * errorY) / determinant;
+    pitch = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, pitch));
+  }
+  return targetFromYawPitch(eye, yaw, pitch, view.distance);
+}
+
 function idSortKey(camera) {
   const id = String(camera.id || "");
   const match = id.match(/^([A-Z])(\d+)(?:\/(\d+))?/i);
@@ -621,6 +723,24 @@ function makeTourSegment(from, to) {
     targetC1: add(from.target, scale(fromDirection, handle)),
     targetC2: subtract(to.target, scale(toDirection, handle)),
     duration: Math.max(2600, Math.min(7000, span * 0.32)),
+  };
+}
+
+function makeFourSeasonsTourSegment(from, to) {
+  const landmark = landmarkGroupGlPoint("Four Seasons Hotel Miami") || landmarkGlPoint("Four Seasons Hotel Miami (NW)");
+  const segment = makeTourSegment(from, to);
+  if (!landmark) return segment;
+  const fromScreen = projectPointForView(from.eye, from.target, from.vfov || 45, landmark);
+  const toScreen = projectPointForView(to.eye, to.target, to.vfov || 45, landmark);
+  if (!fromScreen || !toScreen) return segment;
+  segment.eyeC1[1] = Math.max(segment.eyeC1[1], FOUR_SEASONS_TOUR_EYE_CONTROL_MIN_Z);
+  segment.eyeC2[1] = Math.max(segment.eyeC2[1], FOUR_SEASONS_TOUR_EYE_CONTROL_MIN_Z);
+  return {
+    ...segment,
+    landmark,
+    fromScreen: { x: fromScreen.x, y: fromScreen.y },
+    toScreen: { x: toScreen.x, y: toScreen.y },
+    fourSeasons: true,
   };
 }
 
@@ -722,7 +842,9 @@ function applyStoredPose() {
 
 function startTourSegment(from, camera) {
   const to = viewForCamera(camera);
-  state.tour.segment = makeTourSegment(from, to);
+  state.tour.segment = state.tour.mode === "four-seasons"
+    ? makeFourSeasonsTourSegment(from, to)
+    : makeTourSegment(from, to);
   state.tour.elapsed = 0;
   state.tour.holdUntil = 0;
   state.tour.holdRemaining = 0;
@@ -736,9 +858,16 @@ function applyTourView(view) {
 }
 
 function ensureTourCameras() {
-  state.tour.cameras = state.cameras
-    .filter((camera) => camera.xyz && camera.ypr && camera.fov && !(state.blurLeaks && camera.id?.startsWith("L")))
-    .sort(compareCameraIds);
+  if (state.tour.mode === "four-seasons") {
+    const camerasByName = new Map(state.cameras.map((camera) => [camera.name, camera]));
+    state.tour.cameras = FOUR_SEASONS_TOUR_CAMERA_NAMES
+      .map((name) => camerasByName.get(name))
+      .filter((camera) => camera?.xyz && camera.ypr && camera.fov && !(state.blurLeaks && camera.id?.startsWith("L")));
+  } else {
+    state.tour.cameras = state.cameras
+      .filter((camera) => camera.xyz && camera.ypr && camera.fov && !(state.blurLeaks && camera.id?.startsWith("L")))
+      .sort(compareCameraIds);
+  }
   return state.tour.cameras.length > 0;
 }
 
@@ -750,7 +879,9 @@ function jumpTourTo(index, paused = state.tour.paused) {
   const view = viewForCamera(state.tour.cameras[state.tour.index]);
   state.tour.active = true;
   state.tour.paused = paused;
-  state.tour.segment = makeTourSegment(view, view);
+  state.tour.segment = state.tour.mode === "four-seasons"
+    ? makeFourSeasonsTourSegment(view, view)
+    : makeTourSegment(view, view);
   state.tour.elapsed = 0;
   state.tour.holdRemaining = paused ? TOUR_DWELL_MS : 0;
   state.tour.holdUntil = paused ? 0 : performance.now() + TOUR_DWELL_MS;
@@ -780,9 +911,16 @@ function animateTour(now) {
   const t = Math.min(1, state.tour.elapsed / segment.duration);
   const eased = smoothStep(t);
   const eye = cubicBezier3(segment.from.eye, segment.eyeC1, segment.eyeC2, segment.to.eye, eased);
-  const target = cubicBezier3(segment.from.target, segment.targetC1, segment.targetC2, segment.to.target, eased);
+  let target = cubicBezier3(segment.from.target, segment.targetC1, segment.targetC2, segment.to.target, eased);
+  const vfov = lerp(segment.from.vfov || 45, segment.to.vfov || 45, eased);
+  if (segment.fourSeasons && eased > 0 && eased < 1) {
+    target = lookTargetForScreenPoint(eye, target, vfov, segment.landmark, {
+      x: lerp(segment.fromScreen.x, segment.toScreen.x, eased),
+      y: lerp(segment.fromScreen.y, segment.toScreen.y, eased),
+    });
+  }
   applyEyeTarget(eye, target);
-  state.vfov = lerp(segment.from.vfov || 45, segment.to.vfov || 45, eased);
+  state.vfov = vfov;
   render();
   if (t >= 1) {
     state.tour.holdUntil = now + TOUR_DWELL_MS;
@@ -790,7 +928,11 @@ function animateTour(now) {
   state.tour.raf = requestAnimationFrame(animateTour);
 }
 
-function startTour() {
+function startTour(mode = "screenshots") {
+  if (state.tour.mode !== mode) {
+    stopTour();
+    state.tour.mode = mode;
+  }
   if (!ensureTourCameras()) return;
   state.tour.active = true;
   state.tour.paused = false;
@@ -820,13 +962,14 @@ function toggleTour() {
   if (state.tour.active && !state.tour.paused) {
     pauseTour();
   } else {
-    startTour();
+    startTour(state.tour.mode);
   }
 }
 
 function stopTour() {
   stopTourFrame();
   state.tour.active = false;
+  state.tour.mode = "screenshots";
   state.tour.paused = false;
   state.tour.index = 0;
   state.tour.segment = null;
@@ -1264,7 +1407,9 @@ function updateControls() {
 
 function installControls() {
   scene.tabIndex = 0;
-  tourStartButton.addEventListener("click", startTour);
+  tourStartButton.addEventListener("click", (event) => {
+    startTour(event.shiftKey ? "four-seasons" : "screenshots");
+  });
   tourBackButton.addEventListener("click", backTour);
   tourPauseButton.addEventListener("click", toggleTour);
   tourForwardButton.addEventListener("click", forwardTour);
