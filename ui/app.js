@@ -49,6 +49,7 @@ const KEYBOARD_ZOOM_AMOUNT = 0.025;
 const KEYBOARD_FRAME_MS = 1000 / 60;
 const DISABLE_MAP_SVG_OVERLAY = false;
 const FAKE_CAMERA_SUFFIX = " Fake Cam";
+const MAP_CAMERA_CONE_DISTANCE = 25;
 const FOCUS_ORDER = ["cameras", "map", "landmarks"];
 
 const els = {
@@ -115,6 +116,65 @@ function mapPointFromXyz(xyz) {
     x: map.zero[0] + xyz[0] * map.scale,
     y: map.zero[1] - xyz[1] * map.scale,
   };
+}
+
+function normalizeVector(vector) {
+  const length = Math.hypot(vector[0], vector[1], vector[2]) || 1;
+  return [vector[0] / length, vector[1] / length, vector[2] / length];
+}
+
+function crossVector(a, b) {
+  return [
+    a[1] * b[2] - a[2] * b[1],
+    a[2] * b[0] - a[0] * b[2],
+    a[0] * b[1] - a[1] * b[0],
+  ];
+}
+
+function cameraDirectionFromYpr(ypr, u = 0, v = 0) {
+  const yaw = (ypr[0] || 0) * Math.PI / 180;
+  const pitch = (ypr[1] || 0) * Math.PI / 180;
+  const roll = (ypr[2] || 0) * Math.PI / 180;
+  let right = [Math.cos(yaw), Math.sin(yaw), 0];
+  const forward = [-Math.sin(yaw) * Math.cos(pitch), Math.cos(yaw) * Math.cos(pitch), Math.sin(pitch)];
+  let up = normalizeVector(crossVector(right, forward));
+  if (roll) {
+    const cr = Math.cos(roll);
+    const sr = Math.sin(roll);
+    const nextRight = [
+      right[0] * cr - up[0] * sr,
+      right[1] * cr - up[1] * sr,
+      right[2] * cr - up[2] * sr,
+    ];
+    const nextUp = [
+      right[0] * sr + up[0] * cr,
+      right[1] * sr + up[1] * cr,
+      right[2] * sr + up[2] * cr,
+    ];
+    right = nextRight;
+    up = nextUp;
+  }
+  return normalizeVector([
+    forward[0] + right[0] * u + up[0] * v,
+    forward[1] + right[1] * u + up[1] * v,
+    forward[2] + right[2] * u + up[2] * v,
+  ]);
+}
+
+function dynamicMapCone(camera) {
+  if (!camera?.xyz || !camera.ypr || !camera.fov?.[0]) return camera?.mapCone || [];
+  const origin = mapPointFromXyz(camera.xyz);
+  if (!origin) return camera.mapCone || [];
+  const hf = Math.tan(camera.fov[0] * Math.PI / 360);
+  return [-hf, hf].map((u) => {
+    const direction = cameraDirectionFromYpr(camera.ypr, u, 0);
+    const end = mapPointFromXyz([
+      camera.xyz[0] + direction[0] * MAP_CAMERA_CONE_DISTANCE,
+      camera.xyz[1] + direction[1] * MAP_CAMERA_CONE_DISTANCE,
+      camera.xyz[2] + direction[2] * MAP_CAMERA_CONE_DISTANCE,
+    ]);
+    return end ? [origin, end] : null;
+  }).filter(Boolean);
 }
 
 function isUserFacingCameraName(name) {
@@ -1012,7 +1072,7 @@ function renderMap() {
     const cameraPoint = worldToMapScreen(entityWorldPoint(camera));
     if (!cameraPoint) continue;
     const group = svg("g", { class: "map-camera" });
-    for (const segment of camera.mapCone || []) {
+    for (const segment of dynamicMapCone(camera)) {
       const start = worldToMapScreen(mapPointToWorld(segment[0]));
       const end = worldToMapScreen(mapPointToWorld(segment[1]));
       if (!start || !end) continue;
@@ -1177,7 +1237,7 @@ function renderCameraPreview() {
   context.strokeStyle = camera.color || "#61c4ff";
   context.fillStyle = "white";
   context.lineWidth = 1.5;
-  for (const segment of camera.mapCone || []) {
+  for (const segment of dynamicMapCone(camera)) {
     const startWorld = mapPointToWorld(segment[0]);
     const endWorld = mapPointToWorld(segment[1]);
     const start = startWorld ? tileMap.worldToScreen(startWorld.x, startWorld.y, previewView) : null;
