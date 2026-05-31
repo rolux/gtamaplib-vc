@@ -3,15 +3,15 @@
     "landmarks": [
         "Flamingo South Beach (TNE)",
         "Loews Miami Beach",
-        "1500 Ocean Dr",
         "1000 Venetian Way (SW)"
     ],
     "rays": [
         ["Highway (NE)", "Akoya Condominium"],
-        ["Vice Beach (A)", "Flamingo South Beach (SDS)"],
         ["Highway (NE)", "Jade Ocean Condos"],
-        ["Vice Beach (B)", "1500 Ocean Dr (S) (NW)"],
-        ["Park", "1500 Ocean Dr (S) (SW)"]
+        ["Park", "1500 Ocean Dr (S) (SW)"],
+        ["Rooftop Party", "1111 Lincoln Rd (NW)"],
+        ["Vice Beach (A)", "Flamingo South Beach (SDS)"],
+        ["Vice Beach (B)", "1500 Ocean Dr (S) (NW)"]
     ],
     "objects": []
 }

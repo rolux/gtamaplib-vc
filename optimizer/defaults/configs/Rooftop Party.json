@@ -10,6 +10,7 @@
         "Portofino Tower (NW)"
     ],
     "rays": [
+        ["Vice Beach (A)", "Loews Miami Beach"],
         ["Vice Beach (B)", "Capri South Beach (SE)"],
         ["Vice Beach (B)", "Flamingo South Beach (NENE)"],
         ["Vice Beach (B)", "Royal Palm South Beach (S)"],

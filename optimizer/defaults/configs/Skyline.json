@@ -5,6 +5,9 @@
         "Four Seasons Hotel Miami (NW)"
     ],
     "rays": [
+        ["Venetian Islands", "1000 Venetian Way (2)"],
+        ["Venetian Islands", "1000 Venetian Way (3)"],
+        ["Venetian Islands", "1000 Venetian Way (4)"],
         ["Vice Beach (B)", "Asia Brickell Key"],
         ["Vice Beach (B)", "Flagler on the River"],
         ["Vice Beach (B)", "The Grand (E)"],
@@ -13,7 +16,6 @@
         ["Vice Beach (B)", "Opera Tower"],
         ["Vice Beach (B)", "Southeast Financial Center"],
         ["Vice Beach (B)", "Ten Museum Park (SE)"],
-        ["Venetian Islands", "1000 Venetian Way (4)"],
         ["Vice Beach (B)", "1000 Venetian Way (SE)"],
         ["Vice Beach (B)", "Wells Fargo Center (N)"]
     ],

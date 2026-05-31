@@ -1,0 +1,14 @@
+{
+    "schema": "gtamaplibvc-optimizer-config-v1",
+    "landmarks": [
+        "Four Seasons Hotel Miami (BW)",
+        "Four Seasons Hotel Miami (NW)",
+        "Four Seasons Hotel Miami (SW)"
+    ],
+    "rays": [
+        ["Metro (SE) (C)", "Infinity at Brickell (SW)"],
+        ["Metro (SE) (C)", "One Broadway (NW)"],
+        ["Metro (SE) (C)", "One Broadway (SW)"]
+    ],
+    "objects": []
+}

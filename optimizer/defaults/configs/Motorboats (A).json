@@ -1,0 +1,10 @@
+{
+    "schema": "gtamaplibvc-optimizer-config-v1",
+    "landmarks": [
+        "Four Seasons Hotel Miami (BE)",
+        "Four Seasons Hotel Miami (SE)",
+        "Park Grove Condominium (S)"
+    ],
+    "rays": [],
+    "objects": []
+}

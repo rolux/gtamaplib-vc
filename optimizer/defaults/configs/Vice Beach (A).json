@@ -11,12 +11,8 @@
         ["Alley (W)", "Flamingo South Beach (TNE)"],
         ["Alley (W)", "Flamingo South Beach (TSE)"],
         ["Sidewalk (Jason) (E)", "The Floridian"],
-        ["Park", "Hotel Breakwater"],
-        ["Park", "Jenny Hostel (NE)"],
-        ["Port", "Murano Grande"],
-        ["Park", "1500 Ocean Dr"],
-        ["Tennis Court (SE)", "Old City Hall"],
-        ["Tennis Court (SE)", "1000 Venetian Way (SW)"]
+        ["Sidewalk (Jason) (E)", "1000 Venetian Way (SW)"],
+        ["Park", "Hotel Breakwater"]
     ],
     "objects": []
 }

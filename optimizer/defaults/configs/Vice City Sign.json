@@ -1,0 +1,11 @@
+{
+    "schema": "gtamaplibvc-optimizer-config-v1",
+    "landmarks": [
+        "FAA Miami ATCT (MIA)"
+    ],
+    "rays": [
+        ["Metro (SE) (C)", "Infinity at Brickell (SW)"],
+        ["Metro (SE) (C)", "One Broadway (SW)"]
+    ],
+    "objects": []
+}

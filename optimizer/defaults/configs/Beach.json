@@ -2,7 +2,6 @@
     "schema": "gtamaplibvc-optimizer-config-v1",
     "landmarks": [
         "Akoya Condominium",
-        "Hotel Breakwater",
         "Jenny Hostel (NE)",
         "1500 Ocean Dr",
         "1500 Ocean Dr (S) (SE)",
@@ -10,13 +9,14 @@
         "Royal Palm South Beach (S)"
     ],
     "rays": [
-        ["Vice Beach (A)", "12th St Lifeguard Tower"],
+        ["Highway (NE)", "The Ritz-Carlton Bal Harbour"],
         ["Venetian Islands", "Bank of America Financial Center"],
+        ["Venetian Islands", "Bank of America Financial Center (SW)"],
         ["Venetian Islands", "Green Diamond"],
         ["Venetian Islands", "Jade Ocean Condos (SW)"],
-        ["Highway (NE)", "The Ritz-Carlton Bal Harbour"],
-        ["Vice Beach (B)", "The Tides South Beach"],
-        ["Venetian Islands", "Trésor Tower"]
+        ["Venetian Islands", "Trésor Tower"],
+        ["Vice Beach (A)", "12th St Lifeguard Tower"],
+        ["Vice Beach (B)", "The Tides South Beach"]
     ],
     "objects": []
 }
