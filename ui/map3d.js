@@ -11,6 +11,7 @@ const VC_RESULT = "/optimizer/result.json";
 const GTAMAPLIB_COLORS = "/ui/data/map3d-colors.json";
 const FOUR_SEASONS_WIREFRAME = "/ui/data/map3d-four-seasons.json";
 const SUNSHINE_SKYWAY_WIREFRAME = "/ui/data/map3d-sunshine-skyway.json";
+const HOMESTEAD_WATER_TOWER_WIREFRAME = "/ui/data/map3d-homestead-water-tower.json";
 const HANKS_WAFFLES_WIREFRAME = "/ui/data/map3d-hanks-waffles.json";
 const FAKE_CAMERA_SUFFIX = " Fake Cam";
 const AIWE_CAMERA_NAME = "AI World Editor Map (4K)";
@@ -1608,6 +1609,16 @@ async function init() {
       sunshineSkyway.name = "Sunshine Skyway Bridge";
       sunshineSkyway.color = colorForName("Sunshine Skyway Bridge");
       state.wireframes.push(sunshineSkyway);
+    }
+  } catch (_error) {
+    // Optional helper geometry.
+  }
+  try {
+    const homesteadWaterTower = await loadJson(HOMESTEAD_WATER_TOWER_WIREFRAME);
+    if (homesteadWaterTower.schema === "gtamaplibvc-map3d-homestead-water-tower-v1") {
+      homesteadWaterTower.name = "Homestead Water Tower";
+      homesteadWaterTower.color = colorForName("Homestead Water Tower");
+      state.wireframes.push(homesteadWaterTower);
     }
   } catch (_error) {
     // Optional helper geometry.

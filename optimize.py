@@ -55,6 +55,7 @@ from gtamaplib.gtamaplib import (
     intersect_ray_and_ray,
     normalize_name,
 )
+from utils.construct_landmarks import construct_landmarks, write_map3d_constructed_data
 
 
 PARAM_ORDER = ["x", "y", "z", "yaw_delta", "pitch", "roll", "hfov"]
@@ -2902,6 +2903,12 @@ def write_optimizer_result_snapshot(report: dict[str, Any], result_path: Path) -
     for landmark_name, xyz in final_landmarks.items():
         landmarks[landmark_name] = [float(value) for value in xyz]
         landmark_sources[landmark_name] = "optimizer"
+
+    constructed = construct_landmarks(cameras, landmarks)
+    for landmark_name, xyz in constructed["landmarks"].items():
+        landmarks[landmark_name] = [float(value) for value in xyz]
+        landmark_sources[landmark_name] = "constructed"
+    write_map3d_constructed_data(cameras, landmarks, ROOT / "ui" / "data")
 
     maps = {}
     for map_name, map_info in md.maps.items():

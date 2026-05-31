@@ -15,6 +15,11 @@ from PIL import Image
 
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from utils.construct_landmarks import write_map3d_constructed_data
+
 UPSTREAM = ROOT / "gtamaplib"
 DATA_DIR = ROOT / "data"
 UI_DIR = ROOT / "ui"
@@ -1038,12 +1043,31 @@ def write_map3d_data(md: Any) -> None:
             for name in sorted(names)
         },
     }
+    base_cameras = {
+        name: {
+            "id": camera["id"],
+            "player": [float(value) for value in camera["player"]] if camera.get("player") else None,
+            "xyz": [float(value) for value in camera["xyz"]] if camera.get("xyz") is not None else None,
+            "ypr": [float(value) for value in camera["ypr"]],
+            "fov": [float(value) if value is not None else None for value in camera["fov"]],
+            "size": [int(value) for value in camera["size"]],
+            "source": str(camera.get("source", "")),
+        }
+        for name, camera in md.cameras.items()
+    }
+    base_landmarks = {
+        name: [float(value) for value in xyz]
+        for name, xyz in md.landmarks.items()
+    }
+    constructed = write_map3d_constructed_data(base_cameras, base_landmarks, UI_DATA_DIR)
+
     payloads = [
         (MAP3D_COLORS_JSON_PATH, colors),
         (MAP3D_FOUR_SEASONS_JSON_PATH, map3d_four_seasons_wireframe()),
-        (MAP3D_SUNSHINE_SKYWAY_JSON_PATH, map3d_sunshine_skyway_wireframe()),
         (MAP3D_HANKS_WAFFLES_JSON_PATH, map3d_hanks_waffles_wireframe()),
     ]
+    if "map3d-sunshine-skyway.json" not in constructed["wireframes"]:
+        payloads.append((MAP3D_SUNSHINE_SKYWAY_JSON_PATH, map3d_sunshine_skyway_wireframe()))
     for path, payload in payloads:
         path.write_text(json.dumps(payload, indent=4, ensure_ascii=False) + "\n")
         print(f"Wrote {path}.")
