@@ -23,7 +23,6 @@ PHOTO_URLS = {
 MIN_CANDIDATE_HEIGHT = 100.0
 
 BUILDINGS = [
-    {"name": "WDNA FM", "width": 5.0, "exact": True},
     "Opera Tower",
     "Stephen P. Clark Government Center",
     "Southeast Financial Center",
@@ -70,7 +69,6 @@ BUILDINGS = [
     {"name": "99353 Overseas Hwy", "width": 5.0},
     "102180 Overseas Hwy",
     "22 Biscayne Bay",
-    "Homestead Water Tower",
     "Sebring Water Tower",
     "112 NE 41st St",
     "MIA North Terminal Tower",
