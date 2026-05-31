@@ -5,7 +5,11 @@
     ],
     "rays": [
         ["Metro (SE) (C)", "Infinity at Brickell (SW)"],
-        ["Metro (SE) (C)", "One Broadway (SW)"]
+        ["Metro (SE) (C)", "One Broadway (SW)"],
+        ["Vice City 01 (Vice City Sign)", "Vice City Sign (E3)"],
+        ["Vice City 01 (Vice City Sign)", "Vice City Sign (E12)"],
+        ["Vice City 01 (Vice City Sign)", "Vice City Sign (V1)"],
+        ["Vice City 01 (Vice City Sign)", "Vice City Sign (V2)"]
     ],
     "objects": []
 }
