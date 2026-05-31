@@ -24,6 +24,7 @@ const VC_RESULT = "../optimizer/result.json";
 const VC_MAP3D_COLORS = "../ui/data/map3d-colors.json";
 const VC_FOUR_SEASONS_WIREFRAME = "../ui/data/map3d-four-seasons.json";
 const VC_SUNSHINE_SKYWAY_WIREFRAME = "../ui/data/map3d-sunshine-skyway.json";
+const VC_HOMESTEAD_WATER_TOWER_WIREFRAME = "../ui/data/map3d-homestead-water-tower.json";
 const VC_HANKS_WAFFLES_WIREFRAME = "../ui/data/map3d-hanks-waffles.json";
 const LANDMARK_MODELS = "landmarks/landmarks.json";
 const FOUR_SEASONS_NAME = "Four Seasons Hotel Miami (NW)";
@@ -58,6 +59,8 @@ const VCIA_RUNWAY_LIGHT_START = [-2100, -256, 0];
 const VCIA_RUNWAY_LIGHT_END = [-3500, -256, 0];
 const VCIA_RUNWAY_LIGHT_COUNT = 12;
 const VCIA_RUNWAY_LIGHT_STEP = 0.25;
+const SPACE_LAUNCH_START = [500, 7000, 0];
+const SPACE_LAUNCH_IMPACT = [-4750, -2750, 0];
 const FIREWORK_LANDMARKS = ["Magic City Casino", "Loews Miami Beach"];
 const FIREWORK_COLORS = [
   [1, 0.92, 0.08, 0.95],
@@ -89,6 +92,7 @@ const ICON_TEXTURE = "../ui/gtamaplib-vc.png";
 const CLASSIC_ICON_TEXTURE = "../gtamaplib/readme/gtamaplib.png";
 const WATER_COLOR = [44 / 255, 103 / 255, 164 / 255, 1];
 const NIGHT_MAP_BRIGHTNESS = 0.15;
+const WIREFRAME_LANDMARK_MODEL_NAMES = new Set(["WDNA FM", "Homestead Water Tower"]);
 const MAP3D_POSE_STORAGE_KEY = "gtamaplib-vc.map3dPose";
 const GAME_SPAWN_STORAGE_KEY = "gtamaplib-vc.gameSpawn";
 // Previous radio preset: highpass 1100/0.7, lowpass 3200/1.4, distortion 95,
@@ -937,6 +941,21 @@ const state = {
     until: 0,
     cooldown: 0,
     origin: null,
+  },
+  spaceLaunch: {
+    active: false,
+    scheduledAt: 0,
+    startAt: 0,
+    pos: [...SPACE_LAUNCH_START],
+    yaw: 0,
+    pitch: 0,
+    roll: 0,
+    up: [0, 0, 1],
+    cooldown: 0,
+    exploded: false,
+    crashed: false,
+    crashPos: null,
+    launchPulses: [],
   },
   birds: [],
   boats: [],
@@ -1803,6 +1822,33 @@ function spawnParticles(pos, color, count, speed = 18) {
   }
 }
 
+function pulseSpaceLaunch(color, alpha = 0.3, duration = 0.38) {
+  state.spaceLaunch.launchPulses.push({
+    color,
+    alpha,
+    started: state.weatherTime,
+    until: state.weatherTime + duration,
+  });
+}
+
+function clearSpaceLaunchCrash() {
+  Object.assign(state.spaceLaunch, {
+    active: false,
+    scheduledAt: 0,
+    startAt: 0,
+    pos: [...SPACE_LAUNCH_START],
+    yaw: 0,
+    pitch: 0,
+    roll: 0,
+    up: [0, 0, 1],
+    cooldown: 0,
+    exploded: false,
+    crashed: false,
+    crashPos: null,
+    launchPulses: [],
+  });
+}
+
 function seedFog() {
   state.fog = [];
   for (let i = 0; i < 48; i++) {
@@ -2381,6 +2427,7 @@ function updateAmbientActors(dt) {
   updateFighterJet(dt);
   updateDebugFighters(dt);
   updateFireworks(dt);
+  updateSpaceLaunch(dt);
   updateRouteShip(dt, state.cruiseShip, [[3000, -3500, 2], [500, -5500, 2], [-500, -7500, 2]], 0.0048, 180, 260);
   updateRouteShip(dt, state.containerShip, [[-7000, 4500, 2], [-8500, 3500, 2], [-10500, 4500, 2]], 0.0038, 220, 320);
 
@@ -2526,6 +2573,172 @@ function updateFireworks(dt) {
 function startDebugFireworks() {
   if (!startFireworkShow(state.debugFireworks, "debug fireworks")) return "fireworks: no origin";
   return `fireworks: ${state.debugFireworks.origin.name}`;
+}
+
+function scheduleSpaceLaunch(delay = 15) {
+  if (state.spaceLaunch.active) return;
+  state.spaceLaunch.scheduledAt = state.weatherTime + delay;
+  setStatus("SERA launch window: pending");
+}
+
+function startSpaceLaunch() {
+  clearSpaceLaunchCrash();
+  Object.assign(state.spaceLaunch, {
+    active: true,
+    startAt: state.weatherTime,
+    pos: [...SPACE_LAUNCH_START],
+    cooldown: 0,
+  });
+  pulseSpaceLaunch([1, 1, 1], 0.24, 0.45);
+  setStatus("SERA launch sequence");
+  return "launch: SERA";
+}
+
+function spawnLaunchCloud(pos, color, count, radius, speed, gravity, life, size) {
+  for (let i = 0; i < count; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const horizontal = Math.random();
+    const vertical = Math.random() * Math.PI - Math.PI / 2;
+    const velocity = [
+      Math.cos(a) * Math.cos(vertical) * speed * (0.35 + Math.random() * 0.9),
+      Math.sin(a) * Math.cos(vertical) * speed * (0.35 + Math.random() * 0.9),
+      Math.sin(vertical) * speed * (0.35 + Math.random() * 0.9),
+    ];
+    state.particles.push({
+      pos: [
+        pos[0] + Math.cos(a) * radius * horizontal,
+        pos[1] + Math.sin(a) * radius * horizontal,
+        pos[2] + (Math.random() - 0.25) * radius * 0.18,
+      ],
+      vel: velocity,
+      color,
+      life: life * (0.7 + Math.random() * 0.6),
+      size: size * (0.55 + Math.random() * 0.9),
+      gravity,
+    });
+  }
+}
+
+function burstSpaceLaunch(pos, radius = 1250, count = 260) {
+  for (let i = 0; i < count; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const b = Math.random() * Math.PI - Math.PI / 2;
+    const speed = radius * (0.16 + Math.random() * 0.26);
+    state.particles.push({
+      pos: [...pos],
+      vel: [
+        Math.cos(a) * Math.cos(b) * speed,
+        Math.sin(a) * Math.cos(b) * speed,
+        Math.sin(b) * speed * 0.82,
+      ],
+      color: [1, 0.32 + Math.random() * 0.26, 0.02, 0.88],
+      life: 2.8 + Math.random() * 2.8,
+      size: 8 + Math.random() * 18,
+      gravity: -80,
+    });
+  }
+}
+
+function updateSpaceLaunch(dt) {
+  const launch = state.spaceLaunch;
+  launch.launchPulses = launch.launchPulses.filter((pulse) => state.weatherTime < pulse.until);
+  if (!launch.active && launch.scheduledAt && state.weatherTime >= launch.scheduledAt) {
+    startSpaceLaunch();
+    return;
+  }
+  if (!launch.active) return;
+
+  const elapsed = state.weatherTime - launch.startAt;
+  launch.cooldown -= dt;
+  const start = SPACE_LAUNCH_START;
+  const impact = SPACE_LAUNCH_IMPACT;
+
+  if (elapsed < 10) {
+    launch.pos = [...start];
+    launch.yaw = 0;
+    launch.pitch = 0;
+    launch.roll = 0;
+    launch.up = [0, 0, 1];
+    if (launch.cooldown <= 0) {
+      spawnLaunchCloud(start, [0.92, 0.94, 0.9, 0.52], 34, 250, 180, 6, 3.4, 20);
+      pulseSpaceLaunch([1, 1, 1], 0.14 + Math.random() * 0.12, 0.22);
+      launch.cooldown = 0.28 + Math.random() * 0.26;
+    }
+    return;
+  }
+
+  if (elapsed < 19) {
+    const t = smoothstep(0, 1, (elapsed - 10) / 9);
+    launch.pos = [start[0], start[1], lerp(0, 1000, t)];
+    launch.yaw = 0;
+    launch.pitch = 0;
+    launch.roll = 0;
+    launch.up = [0, 0, 1];
+    if (launch.cooldown <= 0) {
+      spawnLaunchCloud(add(launch.pos, [0, 0, -42]), [1, 0.78, 0.08, 0.82], 18, 26, 120, -18, 1.0, 8);
+      pulseSpaceLaunch([1, 0.76, 0.05], 0.12 + Math.random() * 0.08, 0.18);
+      launch.cooldown = 0.11;
+    }
+    return;
+  }
+
+  if (!launch.exploded) {
+    launch.exploded = true;
+    const burst = [start[0], start[1], 1000];
+    burstSpaceLaunch(burst, 1450, 320);
+    pulseSpaceLaunch([1, 0.36, 0.02], 0.48, 0.65);
+    rumbleGamepad(360, 0.3, 0.95);
+  }
+
+  if (elapsed < 34) {
+    const t = (elapsed - 19) / 15;
+    const arc = Math.sin(t * Math.PI);
+    const x = lerp(start[0], impact[0], t);
+    const y = lerp(start[1], impact[1], t);
+    const z = 1000 + arc * 2000;
+    launch.pos = [x, y, z];
+    const nextT = Math.min(1, t + 0.01);
+    const next = [
+      lerp(start[0], impact[0], nextT),
+      lerp(start[1], impact[1], nextT),
+      1000 + Math.sin(nextT * Math.PI) * 2000,
+    ];
+    const d = subtract(next, launch.pos);
+    launch.yaw = Math.atan2(-d[0], d[1]);
+    launch.pitch = clamp(Math.atan2(d[2], Math.hypot(d[0], d[1])), -1.1, 1.1);
+    launch.roll = Math.sin(t * Math.PI * 2) * 0.08;
+    launch.up = normalize(d);
+    if (launch.cooldown <= 0) {
+      spawnLaunchCloud(launch.pos, [1, 0.58, 0.05, 0.58], 5, 12, 58, -34, 1.3, 6);
+      launch.cooldown = 0.16;
+    }
+    return;
+  }
+
+  if (elapsed < 38) {
+    const t = smoothstep(0, 1, (elapsed - 34) / 4);
+    launch.pos = [impact[0], impact[1], lerp(1000, 0, t)];
+    launch.yaw = Math.atan2(-(impact[0] - start[0]), impact[1] - start[1]);
+    launch.pitch = -Math.PI / 2;
+    launch.roll = 0.1;
+    launch.up = [0, 0, -1];
+    if (launch.cooldown <= 0) {
+      spawnLaunchCloud(launch.pos, [1, 0.36, 0.04, 0.72], 12, 22, 150, -40, 1.1, 8);
+      launch.cooldown = 0.08;
+    }
+    return;
+  }
+
+  launch.active = false;
+  launch.crashed = true;
+  launch.crashPos = [...impact];
+  launch.scheduledAt = 0;
+  launch.pos = [...impact];
+  burstSpaceLaunch(impact, 1050, 360);
+  spawnLaunchCloud(impact, [1, 0.34, 0.04, 0.84], 160, 180, 260, -65, 3.4, 16);
+  pulseSpaceLaunch([1, 0.34, 0.02], 0.56, 0.72);
+  rumbleGamepad(500, 0.36, 1);
+  setStatus("SERA launch: nominal-ish");
 }
 
 function createFighterJetActor() {
@@ -3271,6 +3484,40 @@ function drawFighterJet(m) {
   for (const jet of state.debugFighters) drawFighterJetActor(m, jet);
 }
 
+function drawRocketActor(m, rocket) {
+  const up = normalize(rocket.up || [0, 0, 1]);
+  const right = normalize(cross([0, 1, 0], up));
+  const forward = normalize(cross(up, right));
+  const basis = { right, forward, up };
+  const body = [];
+  pushBox(body, [-5, -5, 0], [5, 5, 84]);
+  pushBox(body, [-3.2, -3.2, 84], [3.2, 3.2, 100]);
+  for (let i = 0; i < 3; i++) {
+    const angle = i / 3 * Math.PI * 2 + Math.PI / 6;
+    const x = Math.cos(angle) * 8;
+    const y = Math.sin(angle) * 8;
+    pushBox(body, [x - 2.2, y - 2.2, 0], [x + 2.2, y + 2.2, 62]);
+  }
+  drawColor(meshVertices(body, basis, rocket.pos), [0.96, 0.95, 0.89, 1], m);
+  const bands = [];
+  pushBox(bands, [-5.2, -5.2, 18], [5.2, 5.2, 23]);
+  pushBox(bands, [-5.2, -5.2, 52], [5.2, 5.2, 57]);
+  drawColor(meshVertices(bands, basis, rocket.pos), [0.82, 0.08, 0.04, 1], m);
+}
+
+function drawSpaceLaunch(m) {
+  const launch = state.spaceLaunch;
+  if (launch.active) {
+    drawRocketActor(m, { pos: launch.pos, up: launch.up });
+  }
+  if (launch.crashed && launch.crashPos) {
+    drawRocketActor(m, {
+      pos: [launch.crashPos[0], launch.crashPos[1], -58],
+      up: normalize([0.32, -0.18, 0.93]),
+    });
+  }
+}
+
 function drawAirliner(m) {
   const jet = state.airliner;
   const b = actorBasis(jet);
@@ -3967,6 +4214,7 @@ function drawOverlay(m) {
     ctx.fillStyle = `rgba(255,0,0,${state.stickFlash * 0.32})`;
     ctx.fillRect(0, 0, state.width, state.height);
   }
+  drawSpaceLaunchPulses();
   if (state.deadZoneResetAt) {
     const alpha = clamp(1 - (state.deadZoneResetAt - state.weatherTime), 0, 1);
     ctx.fillStyle = `rgba(0,0,0,${alpha})`;
@@ -4015,6 +4263,16 @@ function drawOverlay(m) {
   ctx.stroke();
   drawAttitudeCue();
   ctx.restore();
+}
+
+function drawSpaceLaunchPulses() {
+  if (!state.spaceLaunch.launchPulses.length) return;
+  for (const pulse of state.spaceLaunch.launchPulses) {
+    const remaining = clamp((pulse.until - state.weatherTime) / Math.max(0.001, pulse.until - pulse.started), 0, 1);
+    const alpha = pulse.alpha * remaining * remaining;
+    ctx.fillStyle = `rgba(${Math.round(pulse.color[0] * 255)},${Math.round(pulse.color[1] * 255)},${Math.round(pulse.color[2] * 255)},${alpha})`;
+    ctx.fillRect(0, 0, state.width, state.height);
+  }
 }
 
 function drawStarsOverlay(m) {
@@ -4199,6 +4457,7 @@ function render() {
   drawAirliner(m);
   drawKeysSeaplane(m);
   drawFighterJet(m);
+  drawSpaceLaunch(m);
   drawPlane(m);
   drawSprites(m);
   gl.disable(gl.BLEND);
@@ -4274,12 +4533,13 @@ async function loadData() {
   state.iconTexture = loadImageTexture(ICON_TEXTURE);
   state.classicIconTexture = loadImageTexture(CLASSIC_ICON_TEXTURE);
   state.mexicanRestaurantTexture = createMexicanRestaurantTexture();
-  const [base, result, colors, fourSeasons, sunshineSkyway, hanksWaffles, landmarkModels] = await Promise.all([
+  const [base, result, colors, fourSeasons, sunshineSkyway, homesteadWaterTower, hanksWaffles, landmarkModels] = await Promise.all([
     fetch(VC_DATA).then((r) => r.json()),
     fetch(VC_RESULT).then((r) => r.ok ? r.json() : null).catch(() => null),
     loadJson(VC_MAP3D_COLORS).catch(() => null),
     loadJson(VC_FOUR_SEASONS_WIREFRAME).catch(() => null),
     loadJson(VC_SUNSHINE_SKYWAY_WIREFRAME).catch(() => null),
+    loadJson(VC_HOMESTEAD_WATER_TOWER_WIREFRAME).catch(() => null),
     loadJson(VC_HANKS_WAFFLES_WIREFRAME).catch(() => null),
     loadJson(LANDMARK_MODELS).catch(() => null),
   ]);
@@ -4294,6 +4554,11 @@ async function loadData() {
     sunshineSkyway.name = "Sunshine Skyway Bridge";
     sunshineSkyway.color = colorForName("Sunshine Skyway Bridge");
     state.wireframes.push(sunshineSkyway);
+  }
+  if (homesteadWaterTower?.schema === "gtamaplibvc-map3d-homestead-water-tower-v1") {
+    homesteadWaterTower.name = "Homestead Water Tower";
+    homesteadWaterTower.color = colorForName("Homestead Water Tower");
+    state.wireframes.push(homesteadWaterTower);
   }
   if (hanksWaffles?.schema === "gtamaplibvc-map3d-hanks-waffles-v1") {
     hanksWaffles.color = colorForName("536 Richard Jackson Blvd");
@@ -4323,11 +4588,13 @@ async function loadData() {
       cooldown: Math.random() * 1.2,
     }));
   if (landmarkModels?.schema === "gtamaplib-vvc-landmarks-v1") {
-    state.landmarkModels = (landmarkModels.landmarks || []).map((model) => ({
-      ...model,
-      vertices: landmarkModelVertices(model),
-      texture: loadImageTexture(model.texture),
-    }));
+    state.landmarkModels = (landmarkModels.landmarks || [])
+      .filter((model) => !WIREFRAME_LANDMARK_MODEL_NAMES.has(model.name))
+      .map((model) => ({
+        ...model,
+        vertices: landmarkModelVertices(model),
+        texture: loadImageTexture(model.texture),
+      }));
   }
   makeTargets();
   initializeAmbientActors();
@@ -4438,6 +4705,7 @@ function debugCommand(method, value) {
   if (command === "downgrade") return setPlaneModel("classic");
   if (command === "fireworks") return startDebugFireworks();
   if (command === "jet") return spawnDebugFighterJet();
+  if (command === "launch") return startSpaceLaunch();
   if (command === "debug") {
     triggerDebugOverlay();
     return "debug: overlay";
@@ -4491,7 +4759,9 @@ async function playPhoneLine() {
   const phone = state.phone;
   if (!phone.playing || !phone.activeConversation) return;
   if (phone.lineIndex >= phone.activeConversation.count) {
+    const completedConversation = phone.activeConversation;
     stopPhone();
+    if (phoneConversationNumber(completedConversation) === 9) scheduleSpaceLaunch(15);
     return;
   }
 
@@ -4508,7 +4778,9 @@ function scheduleNextPhoneLine() {
   if (!phone.playing) return;
   phone.lineIndex += 1;
   if (phone.lineIndex >= phone.activeConversation.count) {
+    const completedConversation = phone.activeConversation;
     stopPhone();
+    if (phoneConversationNumber(completedConversation) === 9) scheduleSpaceLaunch(15);
     return;
   }
   const delay = 1000 + Math.random() * 2000;
@@ -4528,6 +4800,7 @@ async function togglePhone() {
   if (phone.context.state === "suspended") await phone.context.resume();
 
   phone.activeConversation = phone.conversations[phone.conversationIndex];
+  if (phoneConversationNumber(phone.activeConversation) === 9) clearSpaceLaunchCrash();
   phone.conversationIndex = (phone.conversationIndex + 1) % phone.conversations.length;
   phone.lineIndex = 0;
   phone.duckReleaseAt = 0;
