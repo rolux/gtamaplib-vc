@@ -22,6 +22,7 @@ const CAMERA_THUMBNAIL_DISTANCE = CAMERA_CONE_DISTANCE * 0.995;
 const TOUR_DWELL_MS = 1200;
 const TOUR_EYE_CONTROL_MIN_Z = 10;
 const FOUR_SEASONS_TOUR_EYE_CONTROL_MIN_Z = 100;
+const SCREENSHOT_HIDE_DEPTH = CAMERA_THUMBNAIL_DISTANCE;
 const CLICK_MOVE_TOLERANCE = 5;
 const MIN_DISTANCE = 100;
 const MIN_PITCH = -1.05;
@@ -40,7 +41,7 @@ const FOUR_SEASONS_TOUR_CAMERA_NAMES = [
   "Vice Beach (B)",
   "Vice City Postcard",
   "Skyline",
-  "Vice City Sign",
+  "Vice City 01 (Vice City Sign)",
   "Prison",
   "Street (Bikers) (B)",
   "Little Haiti",
@@ -95,6 +96,7 @@ const state = {
   thumbnails: new Map(),
   blurLeaks: true,
   useMonospaceFont: false,
+  activeScreenshotCamera: null,
   transitionRaf: null,
   controlsRaf: null,
   tour: {
@@ -758,6 +760,29 @@ function isDisplayCamera(camera) {
   return camera.xyz && !camera.name.endsWith(FAKE_CAMERA_SUFFIX) && camera.name !== AIWE_CAMERA_NAME;
 }
 
+function setActiveScreenshotCamera(camera) {
+  state.activeScreenshotCamera = camera || null;
+}
+
+function clearActiveScreenshotCamera() {
+  state.activeScreenshotCamera = null;
+}
+
+function isHiddenNearActiveScreenshot(camera) {
+  const active = state.activeScreenshotCamera;
+  if (!active || camera === active || !active.xyz || !active.ypr || !active.fov || !camera.xyz) return false;
+  const activeEye = worldToGl(active.xyz[0], active.xyz[1], active.xyz[2]);
+  const activeForward = cameraForwardGl(active);
+  const corners = cameraThumbnailCorners(camera);
+  if (!corners) return false;
+  const depths = corners.map((corner) => dot(subtract(corner, activeEye), activeForward));
+  if (Math.max(...depths) <= 0 || Math.min(...depths) >= SCREENSHOT_HIDE_DEPTH) return false;
+  const activeTarget = add(activeEye, scale(activeForward, SCREENSHOT_HIDE_DEPTH));
+  const projected = corners.map((corner) => projectPointForView(activeEye, activeTarget, active.fov[1] || 45, corner));
+  if (projected.some((point) => !point)) return false;
+  return projectedQuadIntersectsScreen(projected);
+}
+
 function stopTourFrame() {
   if (state.tour.raf) {
     cancelAnimationFrame(state.tour.raf);
@@ -797,6 +822,7 @@ function animateToView(to, onDone) {
   stopTransitionFrame();
   state.tour.active = false;
   state.tour.paused = false;
+  clearActiveScreenshotCamera();
   updateTourButton();
   const segment = makeTourSegment(currentView(), to);
   const startedAt = performance.now();
@@ -842,6 +868,7 @@ function applyStoredPose() {
 }
 
 function startTourSegment(from, camera) {
+  clearActiveScreenshotCamera();
   const to = viewForCamera(camera);
   state.tour.segment = state.tour.mode === "four-seasons"
     ? makeFourSeasonsTourSegment(from, to)
@@ -852,7 +879,8 @@ function startTourSegment(from, camera) {
   state.tour.startedAt = performance.now();
 }
 
-function applyTourView(view) {
+function applyTourView(view, camera = null) {
+  setActiveScreenshotCamera(camera);
   applyEyeTarget(view.eye, view.target);
   state.vfov = view.vfov || 45;
   render();
@@ -887,7 +915,7 @@ function jumpTourTo(index, paused = state.tour.paused) {
   state.tour.holdRemaining = paused ? TOUR_DWELL_MS : 0;
   state.tour.holdUntil = paused ? 0 : performance.now() + TOUR_DWELL_MS;
   state.tour.startedAt = performance.now();
-  applyTourView(view);
+  applyTourView(view, state.tour.cameras[state.tour.index]);
   updateTourButton();
   if (!paused) state.tour.raf = requestAnimationFrame(animateTour);
 }
@@ -905,6 +933,7 @@ function animateTour(now) {
     }
     const segment = state.tour.segment;
     state.tour.index = (state.tour.index + 1) % state.tour.cameras.length;
+    clearActiveScreenshotCamera();
     startTourSegment(segment.to, state.tour.cameras[state.tour.index]);
   }
   const segment = state.tour.segment;
@@ -919,6 +948,11 @@ function animateTour(now) {
       x: lerp(segment.fromScreen.x, segment.toScreen.x, eased),
       y: lerp(segment.fromScreen.y, segment.toScreen.y, eased),
     });
+  }
+  if (t >= 1) {
+    setActiveScreenshotCamera(state.tour.cameras[state.tour.index]);
+  } else {
+    clearActiveScreenshotCamera();
   }
   applyEyeTarget(eye, target);
   state.vfov = vfov;
@@ -969,6 +1003,7 @@ function toggleTour() {
 
 function stopTour() {
   stopTourFrame();
+  clearActiveScreenshotCamera();
   state.tour.active = false;
   state.tour.mode = "screenshots";
   state.tour.paused = false;
@@ -1076,7 +1111,41 @@ function pointInScreenQuad(point, points) {
   );
 }
 
+function pointInScreenBounds(point) {
+  return point.x >= -1 && point.x <= 1 && point.y >= -1 && point.y <= 1;
+}
+
+function segmentIntersectsScreenBoundary(a, b) {
+  for (const axis of ["x", "y"]) {
+    for (const boundary of [-1, 1]) {
+      const delta = b[axis] - a[axis];
+      if (Math.abs(delta) < 1e-9) continue;
+      const t = (boundary - a[axis]) / delta;
+      if (t < 0 || t > 1) continue;
+      const otherAxis = axis === "x" ? "y" : "x";
+      const otherValue = a[otherAxis] + (b[otherAxis] - a[otherAxis]) * t;
+      if (otherValue >= -1 && otherValue <= 1) return true;
+    }
+  }
+  return false;
+}
+
+function projectedQuadIntersectsScreen(points) {
+  if (points.some(pointInScreenBounds)) return true;
+  const screenCorners = [
+    { x: -1, y: -1 },
+    { x: 1, y: -1 },
+    { x: 1, y: 1 },
+    { x: -1, y: 1 },
+  ];
+  if (screenCorners.some((point) => pointInScreenQuad(point, points))) return true;
+  return points.some((point, index) => (
+    segmentIntersectsScreenBoundary(point, points[(index + 1) % points.length])
+  ));
+}
+
 function projectedThumbnail(camera, matrix, rect) {
+  if (isHiddenNearActiveScreenshot(camera)) return null;
   if (shouldBlurCameraThumbnail(camera)) return null;
   if (!camera.thumbnail) return null;
   const thumbnail = state.thumbnails.get(`/${camera.thumbnail}`);
@@ -1118,6 +1187,7 @@ function cameraThumbnailAtClient(clientX, clientY) {
 }
 
 function drawCameraThumbnail(camera, matrix) {
+  if (isHiddenNearActiveScreenshot(camera)) return;
   if (!cameraThumbnailInView(camera, matrix)) return;
   const thumbnail = thumbnailTexture(camera);
   if (!thumbnail?.loaded) return;
@@ -1310,7 +1380,7 @@ function navigationEyeAllowed(previousY, nextY) {
   return nextY >= MIN_NAVIGATION_EYE_Y;
 }
 
-function applyNavigationChange(change) {
+function applyNavigationChange(change, clearScreenshot = true) {
   const previous = {
     target: [...state.target],
     distance: state.distance,
@@ -1319,7 +1389,10 @@ function applyNavigationChange(change) {
   };
   const previousY = cameraEye()[1];
   change();
-  if (navigationEyeAllowed(previousY, cameraEye()[1])) return true;
+  if (navigationEyeAllowed(previousY, cameraEye()[1])) {
+    if (clearScreenshot) clearActiveScreenshotCamera();
+    return true;
+  }
   state.target = previous.target;
   state.distance = previous.distance;
   state.yaw = previous.yaw;
@@ -1329,6 +1402,7 @@ function applyNavigationChange(change) {
 
 function resetView() {
   stopTour();
+  clearActiveScreenshotCamera();
   state.target = [0, 0, 0];
   state.distance = 9800;
   state.yaw = -0.72;
@@ -1401,8 +1475,11 @@ function updateControls() {
     if (state.keys.has("ArrowRight")) { state.yaw -= 0.025; dirty = true; }
     if (state.keys.has("ArrowUp")) { state.pitch = constrainedValue(state.pitch, state.pitch - 0.018, MIN_PITCH, MAX_PITCH); dirty = true; }
     if (state.keys.has("ArrowDown")) { state.pitch = constrainedValue(state.pitch, state.pitch + 0.018, MIN_PITCH, MAX_PITCH); dirty = true; }
-  });
-  if (dirty && changed) render();
+  }, false);
+  if (dirty && changed) {
+    clearActiveScreenshotCamera();
+    render();
+  }
   startControlsFrame();
 }
 
@@ -1450,7 +1527,7 @@ function installControls() {
       const camera = cameraThumbnailAtClient(event.clientX, event.clientY);
       if (camera === state.clickCamera) {
         stopTour();
-        applyTourView(viewForCamera(camera));
+        applyTourView(viewForCamera(camera), camera);
       }
     }
     state.dragging = null;
@@ -1465,6 +1542,7 @@ function installControls() {
       if (total <= CLICK_MOVE_TOLERANCE) return;
       state.dragMoved = true;
       state.clickCamera = null;
+      clearActiveScreenshotCamera();
       state.lastX = event.clientX;
       state.lastY = event.clientY;
       state.dragGroundPoint = groundPointUnderClient(event.clientX, event.clientY);
