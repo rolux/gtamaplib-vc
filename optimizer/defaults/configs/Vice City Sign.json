@@ -4,6 +4,8 @@
         "FAA Miami ATCT (MIA)"
     ],
     "rays": [
+        ["Leonida Keys 01 (Airplane) (X)", "Caribbean Airlines Cargo (E)"],
+        ["Leonida Keys 01 (Airplane) (X)", "Caribbean Airlines Cargo (W)"],
         ["Metro (SE) (C)", "Infinity at Brickell (SW)"],
         ["Metro (SE) (C)", "One Broadway (SW)"],
         ["Vice City 01 (Vice City Sign)", "Vice City Sign (E3)"],
