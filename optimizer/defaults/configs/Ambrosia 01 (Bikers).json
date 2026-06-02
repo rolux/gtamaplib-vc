@@ -1,0 +1,14 @@
+{
+    "schema": "gtamaplibvc-optimizer-config-v1",
+    "landmarks": [
+
+    ],
+    "rays": [
+        ["Ambrosia 02 (Panorama)", "Billboard with Diversity Motif (E)"],
+        ["Ambrosia 02 (Panorama)", "Billboard with Diversity Motif (W)"],
+        ["Ambrosia 02 (Panorama)", "Billboard with Irregular Shape"],
+        ["Ambrosia 02 (Panorama)", "Billboard with Oval Motif #1"],
+        ["Ambrosia 02 (Panorama)", "Large Billboard (Ambrosia)"]
+    ],
+    "objects": []
+}

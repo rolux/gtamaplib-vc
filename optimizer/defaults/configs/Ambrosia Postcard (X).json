@@ -1,0 +1,23 @@
+{
+    "schema": "gtamaplibvc-optimizer-config-v1",
+    "landmarks": [
+        "1500 Sonora Ave (Tank)",
+        "US Sugar Mill (Factory)",
+        "US Sugar Mill (Factory) (R)",
+        "USSM Smokestack (4)",
+        "USSM Smokestack (5)",
+        "USSM Smokestack (6)",
+        "USSM Smokestack (7)",
+        "USSM Smokestack (8)",
+        "USSM Smokestack (9)"
+    ],
+    "rays": [
+        ["Ambrosia 02 (Panorama)", "1500 Sonora Ave (Tank)"],
+        ["Ambrosia 02 (Panorama)", "Dark Billboard (Ambrosia)"],
+        ["Ambrosia 02 (Panorama)", "Industrial Building (Ambrosia)"],
+        ["Ambrosia 02 (Panorama)", "USSM Smokestack (10)"],
+        ["Ambrosia 02 (Panorama)", "USSM Smokestack (11)"],
+        ["Ambrosia 04 (Fires)", "USSM Smokestack (3)"]
+    ],
+    "objects": []
+}
