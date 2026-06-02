@@ -22,7 +22,6 @@ const CAMERA_THUMBNAIL_DISTANCE = CAMERA_CONE_DISTANCE * 0.995;
 const TOUR_DWELL_MS = 1200;
 const TOUR_EYE_CONTROL_MIN_Z = 10;
 const FOUR_SEASONS_TOUR_EYE_CONTROL_MIN_Z = 100;
-const SCREENSHOT_HIDE_DEPTH = CAMERA_THUMBNAIL_DISTANCE;
 const CLICK_MOVE_TOLERANCE = 5;
 const MIN_DISTANCE = 100;
 const MIN_PITCH = -1.05;
@@ -33,6 +32,8 @@ const GAME_SPAWN_STORAGE_KEY = "gtamaplib-vc.gameSpawn";
 const GAME_START_EYE = [-6250, 380, -5420];
 const GAME_START_TARGET = [-6250, 265, -5050];
 const MAX_TARGET_RADIUS = 32768;
+const ACTIVE_SCREENSHOT_DIM_RADIUS = 100;
+const ACTIVE_SCREENSHOT_DIM_ALPHA = 0.25;
 const FOUR_SEASONS_TOUR_CAMERA_NAMES = [
   "Leonida Keys 01 (Airplane) (X)",
   "Ocean near Keys (N)",
@@ -45,7 +46,6 @@ const FOUR_SEASONS_TOUR_CAMERA_NAMES = [
   "Prison",
   "Street (Bikers) (B)",
   "Little Haiti",
-  "Auto Shop (SE)",
   "Motorboats (B)",
   "Interchange",
   "Metro (SE) (A) (4K)",
@@ -768,19 +768,14 @@ function clearActiveScreenshotCamera() {
   state.activeScreenshotCamera = null;
 }
 
-function isHiddenNearActiveScreenshot(camera) {
+function isDimmedNearActiveScreenshot(camera) {
   const active = state.activeScreenshotCamera;
-  if (!active || camera === active || !active.xyz || !active.ypr || !active.fov || !camera.xyz) return false;
-  const activeEye = worldToGl(active.xyz[0], active.xyz[1], active.xyz[2]);
-  const activeForward = cameraForwardGl(active);
-  const corners = cameraThumbnailCorners(camera);
-  if (!corners) return false;
-  const depths = corners.map((corner) => dot(subtract(corner, activeEye), activeForward));
-  if (Math.max(...depths) <= 0 || Math.min(...depths) >= SCREENSHOT_HIDE_DEPTH) return false;
-  const activeTarget = add(activeEye, scale(activeForward, SCREENSHOT_HIDE_DEPTH));
-  const projected = corners.map((corner) => projectPointForView(activeEye, activeTarget, active.fov[1] || 45, corner));
-  if (projected.some((point) => !point)) return false;
-  return projectedQuadIntersectsScreen(projected);
+  if (!active || camera === active || !active.xyz || !camera.xyz) return false;
+  return Math.hypot(
+    camera.xyz[0] - active.xyz[0],
+    camera.xyz[1] - active.xyz[1],
+    camera.xyz[2] - active.xyz[2],
+  ) <= ACTIVE_SCREENSHOT_DIM_RADIUS;
 }
 
 function stopTourFrame() {
@@ -1145,7 +1140,6 @@ function projectedQuadIntersectsScreen(points) {
 }
 
 function projectedThumbnail(camera, matrix, rect) {
-  if (isHiddenNearActiveScreenshot(camera)) return null;
   if (shouldBlurCameraThumbnail(camera)) return null;
   if (!camera.thumbnail) return null;
   const thumbnail = state.thumbnails.get(`/${camera.thumbnail}`);
@@ -1187,14 +1181,13 @@ function cameraThumbnailAtClient(clientX, clientY) {
 }
 
 function drawCameraThumbnail(camera, matrix) {
-  if (isHiddenNearActiveScreenshot(camera)) return;
   if (!cameraThumbnailInView(camera, matrix)) return;
   const thumbnail = thumbnailTexture(camera);
   if (!thumbnail?.loaded) return;
   const vertices = cameraThumbnailVertices(camera);
   if (!vertices) return;
   drawTexturedVertices(vertices, thumbnail.texture, matrix, {
-    alpha: 0.78,
+    alpha: isDimmedNearActiveScreenshot(camera) ? ACTIVE_SCREENSHOT_DIM_ALPHA : 0.78,
     blur: shouldBlurCameraThumbnail(camera),
     texelSize: [1 / thumbnail.width, 1 / thumbnail.height],
   });
