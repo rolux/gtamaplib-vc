@@ -579,6 +579,19 @@ body.is-dragging #viewport {
   stroke-opacity: 0.9;
 }
 
+.screenshot-ray {
+  fill: none;
+  stroke-width: 0.5px;
+  stroke-opacity: 0.65;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.screenshot-ray.selected {
+  stroke-width: 1px;
+  stroke-opacity: 0.9;
+}
+
 .marker {
   cursor: pointer;
   fill: transparent;

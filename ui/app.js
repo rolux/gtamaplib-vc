@@ -161,6 +161,132 @@ function cameraDirectionFromYpr(ypr, u = 0, v = 0) {
   ]);
 }
 
+function observedPixelDirection(camera, xy) {
+  if (!camera?.ypr || !camera.fov?.[0] || !camera.size) return null;
+  const [x, y] = xy;
+  const [width, height] = camera.size;
+  const hf = Math.tan(camera.fov[0] * Math.PI / 360);
+  const vf = Math.tan((camera.fov[1] || camera.fov[0] * height / width) * Math.PI / 360);
+  const ndcX = 2 * ((x + 0.5) / width) - 1;
+  const ndcY = 2 * ((y + 0.5) / height) - 1;
+  const localX = ndcX * hf;
+  const localZ = -ndcY * vf;
+  const [yaw, pitch, roll] = camera.ypr.map((value) => (value || 0) * Math.PI / 180);
+  const cy = Math.cos(yaw);
+  const sy = Math.sin(yaw);
+  const cp = Math.cos(pitch);
+  const sp = Math.sin(pitch);
+  const cr = Math.cos(roll);
+  const sr = Math.sin(roll);
+  const rollX = cr * localX + sr * localZ;
+  const rollY = 1;
+  const rollZ = -sr * localX + cr * localZ;
+  const pitchX = rollX;
+  const pitchY = cp * rollY - sp * rollZ;
+  const pitchZ = sp * rollY + cp * rollZ;
+  return normalizeVector([
+    cy * pitchX - sy * pitchY,
+    sy * pitchX + cy * pitchY,
+    pitchZ,
+  ]);
+}
+
+function cameraRotationApply(ypr, local) {
+  const [yaw, pitch, roll] = ypr.map((value) => (value || 0) * Math.PI / 180);
+  const cy = Math.cos(yaw);
+  const sy = Math.sin(yaw);
+  const cp = Math.cos(pitch);
+  const sp = Math.sin(pitch);
+  const cr = Math.cos(roll);
+  const sr = Math.sin(roll);
+  const rollX = cr * local[0] + sr * local[2];
+  const rollY = local[1];
+  const rollZ = -sr * local[0] + cr * local[2];
+  const pitchX = rollX;
+  const pitchY = cp * rollY - sp * rollZ;
+  const pitchZ = sp * rollY + cp * rollZ;
+  return [
+    cy * pitchX - sy * pitchY,
+    sy * pitchX + cy * pitchY,
+    pitchZ,
+  ];
+}
+
+function dotVector(a, b) {
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+
+function subtractVector(a, b) {
+  return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+}
+
+function addScaledVector(point, direction, distance) {
+  return [
+    point[0] + direction[0] * distance,
+    point[1] + direction[1] * distance,
+    point[2] + direction[2] * distance,
+  ];
+}
+
+function distance3d(a, b) {
+  return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+}
+
+function observedRayEndpointWorld(camera, observation, landmark) {
+  if (!camera?.xyz || !landmark?.xyz) return entityWorldPoint(landmark);
+  const direction = observedPixelDirection(camera, observation.xy);
+  if (!direction) return entityWorldPoint(landmark);
+  const distance = Math.hypot(
+    landmark.xyz[0] - camera.xyz[0],
+    landmark.xyz[1] - camera.xyz[1],
+    landmark.xyz[2] - camera.xyz[2],
+  );
+  return {
+    x: camera.xyz[0] + direction[0] * distance,
+    y: camera.xyz[1] + direction[1] * distance,
+  };
+}
+
+function intersectRayPair(rayA, rayB) {
+  const [originA, directionA] = rayA;
+  const [originB, directionB] = rayB;
+  const delta = subtractVector(originA, originB);
+  const dotAB = dotVector(directionA, directionB);
+  const dotDeltaA = dotVector(delta, directionA);
+  const dotDeltaB = dotVector(delta, directionB);
+  const denominator = 1 - dotAB * dotAB;
+  if (Math.abs(denominator) < 1e-9) return null;
+  const distanceA = (dotAB * dotDeltaB - dotDeltaA) / denominator;
+  const distanceB = (dotDeltaB - dotAB * dotDeltaA) / denominator;
+  return [
+    addScaledVector(originA, directionA, distanceA),
+    addScaledVector(originB, directionB, distanceB),
+  ];
+}
+
+function worldToCameraPixel(camera, point) {
+  if (!camera?.xyz || !camera.ypr || !camera.fov?.[0] || !camera.size) return null;
+  const [width, height] = camera.size;
+  const delta = subtractVector(point, camera.xyz);
+  const basisX = cameraRotationApply(camera.ypr, [1, 0, 0]);
+  const basisY = cameraRotationApply(camera.ypr, [0, 1, 0]);
+  const basisZ = cameraRotationApply(camera.ypr, [0, 0, 1]);
+  const camDir = [
+    dotVector(delta, basisX),
+    dotVector(delta, basisY),
+    dotVector(delta, basisZ),
+  ];
+  if (camDir[1] <= 0) return null;
+  const tanH = Math.tan(camera.fov[0] * Math.PI / 360);
+  const tanV = Math.tan((camera.fov[1] || camera.fov[0] * height / width) * Math.PI / 360);
+  const ndcX = camDir[0] / camDir[1] / tanH;
+  const ndcY = camDir[2] / camDir[1] / tanV;
+  const x = (ndcX + 1) * 0.5 * width - 0.5;
+  const y = (1 - (ndcY + 1) * 0.5) * height - 0.5;
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+  return [x, y];
+}
+
 function dynamicMapCone(camera) {
   if (!camera?.xyz || !camera.ypr || !camera.fov?.[0]) return camera?.mapCone || [];
   const origin = mapPointFromXyz(camera.xyz);
@@ -969,6 +1095,74 @@ function renderCameraCones(layer) {
   }
 }
 
+function normalizedLandmarkBaseName(name) {
+  let normalized = name;
+  for (let index = 0; index < 3; index++) {
+    normalized = normalized.replace(/ \([A-Z0-9?]+\)$/, "");
+    if (!normalized.endsWith(")")) break;
+  }
+  return normalized;
+}
+
+function shouldRenderScreenshotRay(landmarkName) {
+  return !["Player", "Minimap", "AIWE"].includes(normalizedLandmarkBaseName(landmarkName));
+}
+
+function appendProjectedRaySegment(layer, pointA, pointB, color, selected) {
+  const pixelA = worldToCameraPixel(state.camera, pointA);
+  const pixelB = worldToCameraPixel(state.camera, pointB);
+  if (!pixelA || !pixelB) return;
+  layer.append(svg("line", {
+    class: `screenshot-ray${selected ? " selected" : ""}`,
+    x1: pixelA[0],
+    y1: pixelA[1],
+    x2: pixelB[0],
+    y2: pixelB[1],
+    stroke: color,
+  }));
+}
+
+function renderScreenshotRays(layer) {
+  const currentCamera = state.camera;
+  if (!currentCamera?.xyz) return;
+  const currentLandmarks = new Set((byCamera.get(currentCamera.name) || []).map((observation) => observation.landmark));
+  for (const landmarkName of currentLandmarks) {
+    if (!shouldRenderScreenshotRay(landmarkName)) continue;
+    const currentObservation = (byCamera.get(currentCamera.name) || []).find((observation) => observation.landmark === landmarkName);
+    if (!currentObservation) continue;
+    const currentDirection = observedPixelDirection(currentCamera, currentObservation.xy);
+    if (!currentDirection) continue;
+    const currentRay = [currentCamera.xyz, currentDirection];
+    const selected = landmarkName === state.landmark;
+    for (const otherObservation of byLandmark.get(landmarkName) || []) {
+      if (otherObservation.camera === currentCamera.name) continue;
+      const otherCamera = cameraByName.get(otherObservation.camera);
+      if (!otherCamera?.xyz) continue;
+      const otherDirection = observedPixelDirection(otherCamera, otherObservation.xy);
+      if (!otherDirection) continue;
+      const intersection = intersectRayPair(currentRay, [otherCamera.xyz, otherDirection]);
+      if (!intersection) continue;
+      const otherClosestPoint = intersection[1];
+      const distance = distance3d(otherCamera.xyz, otherClosestPoint);
+      const length = distance / 10;
+      appendProjectedRaySegment(
+        layer,
+        addScaledVector(otherCamera.xyz, otherDirection, distance - length * 0.5),
+        addScaledVector(otherCamera.xyz, otherDirection, distance - length * 0.4),
+        otherCamera.color || "#999",
+        selected,
+      );
+      appendProjectedRaySegment(
+        layer,
+        addScaledVector(otherCamera.xyz, otherDirection, distance - length * 0.4),
+        addScaledVector(otherCamera.xyz, otherDirection, distance + length * 0.5),
+        landmarkColor(landmarkName),
+        selected,
+      );
+    }
+  }
+}
+
 function renderOverlay() {
   els.overlay.replaceChildren();
   els.guidesOverlay.replaceChildren();
@@ -976,11 +1170,13 @@ function renderOverlay() {
   if (!state.camera) return;
   const guideLayer = svg("g", { class: "guide-layer" });
   const coneLayer = svg("g", { class: "camera-cone-layer" });
+  const rayLayer = svg("g", { class: "screenshot-ray-layer" });
   const markerLayer = svg("g", { class: "marker-layer" });
   els.guidesOverlay.append(guideLayer);
-  els.overlay.append(coneLayer, markerLayer);
+  els.overlay.append(coneLayer, rayLayer, markerLayer);
   renderGuides(guideLayer);
   renderCameraCones(coneLayer);
+  renderScreenshotRays(rayLayer);
   const observations = byCamera.get(state.camera.name) || [];
   for (const observation of observations) {
     const circle = svg("circle");
@@ -1053,14 +1249,14 @@ function renderMap() {
     const camera = cameraByName.get(observation.camera);
     const landmark = landmarkByName.get(observation.landmark);
     const cameraPoint = worldToMapScreen(entityWorldPoint(camera));
-    const landmarkPoint = worldToMapScreen(entityWorldPoint(landmark));
-    if (!cameraPoint || !landmarkPoint) continue;
+    const endpointPoint = worldToMapScreen(observedRayEndpointWorld(camera, observation, landmark));
+    if (!cameraPoint || !endpointPoint) continue;
     rayLayer.append(svg("line", {
       class: observation.camera === state.camera?.name && observation.landmark === state.landmark ? "map-ray selected" : "map-ray",
       x1: cameraPoint.x,
       y1: cameraPoint.y,
-      x2: landmarkPoint.x,
-      y2: landmarkPoint.y,
+      x2: endpointPoint.x,
+      y2: endpointPoint.y,
       stroke: landmarkColor(observation.landmark),
     }));
   }
@@ -1224,9 +1420,9 @@ function renderCameraPreview() {
   context.lineWidth = 1;
   for (const observation of byCamera.get(camera.name) || []) {
     const landmark = landmarkByName.get(observation.landmark);
-    const landmarkPoint = entityWorldPoint(landmark);
-    if (!landmarkPoint) continue;
-    const target = tileMap.worldToScreen(landmarkPoint.x, landmarkPoint.y, previewView);
+    const endpoint = observedRayEndpointWorld(camera, observation, landmark);
+    if (!endpoint) continue;
+    const target = tileMap.worldToScreen(endpoint.x, endpoint.y, previewView);
     if (!target) continue;
     context.strokeStyle = landmarkColor(observation.landmark);
     context.beginPath();
