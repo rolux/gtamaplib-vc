@@ -70,6 +70,7 @@ DEFAULT_MIN_TRIANGULATION_BASELINE_DEG = 10.0
 DEFAULT_MIN_FIXED_ELEVATION_INTERSECTION_ANGLE_DEG = 1.0
 DEFAULT_REFERENCED_CAMERA_RIGIDITY = (0.05, None, 0.05)
 FIXED_ROLL_EPS = 1e-12
+CAMERA_MIN_POSITIVE_Z = 0.001
 IGNORED_RENDER_RAY_NAMES = {"Player", "Minimap", "AIWE"}
 DEFAULT_RENDER_MAP_NAME = "yanis"
 DEFAULT_DELTA_MAP_SCALE = 0.25
@@ -216,6 +217,16 @@ def camera_has_fixed_zero_roll(name: str) -> bool:
     if name not in md.cameras:
         return False
     return abs(float(get_camera(name).ypr[2])) < 1e-9
+
+
+def camera_z_lower_bound(name: str, initial_z: float | None = None) -> float | None:
+    if name in md.cameras:
+        camera = get_camera(name)
+        if camera.xyz is not None and float(camera.xyz[2]) > 0.0:
+            return CAMERA_MIN_POSITIVE_Z
+    if initial_z is not None and float(initial_z) > 0.0:
+        return CAMERA_MIN_POSITIVE_Z
+    return None
 
 
 def normalize_camera_ypr(name: str, ypr: tuple[float, float, float] | np.ndarray) -> tuple[float, float, float]:
@@ -843,9 +854,13 @@ def solve_camera(
     )
     lower = np.asarray([-np.inf, -np.inf, -np.inf, -np.inf, -np.inf, -np.inf, 0.001], dtype=float)
     upper = np.asarray([np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, 160.0], dtype=float)
+    z_lower = camera_z_lower_bound(camera_name, float(initial_xyz[2]))
+    if z_lower is not None:
+        lower[2] = z_lower
     if fixed_zero_roll:
         lower[5] = -FIXED_ROLL_EPS
         upper[5] = FIXED_ROLL_EPS
+    x0 = np.minimum(np.maximum(x0, lower), upper)
 
     def unpack(params: np.ndarray) -> tuple[np.ndarray, float, float, float, float]:
         solved_xyz = np.asarray(params[:3], dtype=float)
@@ -2046,9 +2061,13 @@ def solve_global_system(
     lower[6 : n_cameras * 7 : 7] = 0.001
     upper[6 : n_cameras * 7 : 7] = 160.0
     for index, name in enumerate(system["camera_names"]):
+        z_lower = camera_z_lower_bound(name, float(system["cameras"][name]["params"][2]))
+        if z_lower is not None:
+            lower[index * 7 + 2] = z_lower
         if camera_has_fixed_zero_roll(name):
             lower[index * 7 + 5] = -FIXED_ROLL_EPS
             upper[index * 7 + 5] = FIXED_ROLL_EPS
+    initial_params = np.minimum(np.maximum(initial_params, lower), upper)
     jac_sparsity = global_jac_sparsity(system)
     started_at = time.perf_counter()
     result = least_squares(
@@ -2847,6 +2866,40 @@ def load_import_extras() -> dict[str, Any]:
     return json.loads(IMPORT_EXTRAS_PATH.read_text())
 
 
+def recompute_fixed_elevation_landmarks(cameras: dict[str, Any]) -> dict[str, list[float]]:
+    fixed_elevations = fixed_elevation_lookup()
+    if not fixed_elevations:
+        return {}
+    points_by_name: dict[str, list[list[float]]] = {}
+    for camera_name, camera_values in cameras.items():
+        if camera_name not in md.cameras or camera_values["xyz"] is None:
+            continue
+        camera = get_camera(camera_name)
+        xyz = np.asarray(camera_values["xyz"], dtype=float)
+        ypr = tuple(float(value) for value in camera_values["ypr"])
+        fov = tuple(float(value) for value in camera_values["fov"])
+        size = tuple(int(value) for value in camera_values["size"])
+        for landmark_name, pixel in camera.landmark_pixels.items():
+            if landmark_name not in fixed_elevations:
+                continue
+            direction = camera_direction_from_pixel(
+                tuple(float(value) for value in pixel),
+                ypr,
+                fov,
+                size,
+            )
+            point = intersect_ray_z(xyz, direction, fixed_elevations[landmark_name])
+            if point is not None:
+                points_by_name.setdefault(landmark_name, []).append([float(value) for value in point])
+    return {
+        landmark_name: [
+            sum(point[index] for point in points) / len(points)
+            for index in range(3)
+        ]
+        for landmark_name, points in points_by_name.items()
+    }
+
+
 def write_optimizer_result_snapshot(report: dict[str, Any], result_path: Path) -> None:
     result_path = result_path.resolve()
     try:
@@ -2903,6 +2956,10 @@ def write_optimizer_result_snapshot(report: dict[str, Any], result_path: Path) -
     for landmark_name, xyz in final_landmarks.items():
         landmarks[landmark_name] = [float(value) for value in xyz]
         landmark_sources[landmark_name] = "optimizer"
+
+    for landmark_name, xyz in recompute_fixed_elevation_landmarks(cameras).items():
+        landmarks[landmark_name] = [float(value) for value in xyz]
+        landmark_sources[landmark_name] = "fixed_elevation"
 
     constructed = construct_landmarks(cameras, landmarks)
     for landmark_name, xyz in constructed["landmarks"].items():
