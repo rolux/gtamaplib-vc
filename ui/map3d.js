@@ -3,8 +3,12 @@ const MAP_H = 32768;
 const ZERO_X = 16384;
 const ZERO_Y = 16384;
 const TILE_SIZE = 256;
-const TILE_Z = 3;
-const TILE_RANGE = [[0, 4], [19, 23]];
+const TILE_RANGES = {
+  0: [[0, 0], [2, 2]],
+  1: [[0, 1], [4, 5]],
+  2: [[0, 2], [9, 11]],
+  3: [[0, 4], [19, 23]],
+};
 const TILE_ROOT = "/gtadb.org/maps/tiles/6/yanis,12";
 const VC_DATA = "/data/gtamapdata.json";
 const VC_RESULT = "/optimizer/result.json";
@@ -462,10 +466,12 @@ function loadTile(z, x, y) {
 }
 
 function loadTiles() {
-  const [[x0, y0], [x1, y1]] = TILE_RANGE;
-  for (let y = y0; y <= y1; y++) {
-    for (let x = x0; x <= x1; x++) {
-      state.tiles.push(loadTile(TILE_Z, x, y));
+  for (const z of Object.keys(TILE_RANGES).map(Number).sort((a, b) => a - b)) {
+    const [[x0, y0], [x1, y1]] = TILE_RANGES[z];
+    for (let y = y0; y <= y1; y++) {
+      for (let x = x0; x <= x1; x++) {
+        state.tiles.push(loadTile(z, x, y));
+      }
     }
   }
 }
@@ -1298,9 +1304,7 @@ function render() {
   const matrix = viewProjection();
   gl.disable(gl.DEPTH_TEST);
   drawWaterPlane(matrix);
-  gl.enable(gl.DEPTH_TEST);
   for (const tile of state.tiles) drawTile(tile, matrix);
-  gl.disable(gl.DEPTH_TEST);
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
   for (const camera of state.cameras) drawCameraThumbnail(camera, matrix);
