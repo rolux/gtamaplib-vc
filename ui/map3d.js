@@ -1615,6 +1615,7 @@ function render() {
     if (lines.length) lineGroups.push([lines, [...colorForName(camera.name), 0.72]]);
   }
   for (const wireframe of state.wireframes) {
+    if (wireframe.faces?.length) continue;
     const groups = wireframeLines(wireframe);
     const color = wireframe.color || [1.0, 0.92, 0.34];
     if (groups.single.length) lineGroups.push([groups.single, [...color, 0.86]]);
@@ -1624,6 +1625,17 @@ function render() {
     if (groups.pillar.length) lineGroups.push([thickenPillarLines(groups.pillar), [...color, 0.94]]);
   }
   for (const [lines, color] of lineGroups) drawLines(lines, color, matrix);
+  for (const wireframe of state.wireframes.filter((item) => item.faces?.length)) {
+    const groups = wireframeLines(wireframe);
+    const color = wireframe.color || [1.0, 1.0, 1.0];
+    gl.enable(gl.DEPTH_TEST);
+    if (groups.single.length) drawLines(groups.single, [...color, 1], matrix);
+    if (groups.thin.length) drawLines(thickenLines(groups.thin, [0, 0.18, -0.18, 0.36]), [...color, 1], matrix);
+    if (groups.bold.length) drawLines(thickenLines(groups.bold, [0, 0.18, -0.18, 0.36, -0.36, 0.54]), [...color, 1], matrix);
+    if (groups.verticalBold.length) drawLines(thickenVerticalWireframeLines(groups.verticalBold), [...color, 1], matrix);
+    if (groups.pillar.length) drawLines(thickenPillarLines(groups.pillar), [...color, 1], matrix);
+    gl.disable(gl.DEPTH_TEST);
+  }
   gl.disable(gl.BLEND);
   gl.enable(gl.DEPTH_TEST);
   drawOverlay(matrix);
