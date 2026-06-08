@@ -1,0 +1,14 @@
+{
+    "schema": "gtamaplibvc-optimizer-config-v1",
+    "landmarks": [
+        "Blue Billboard (Key Lento)",
+        "Pin B01L",
+        "Pin B02L",
+        "Pin B02R",
+        "Pin C01R"
+    ],
+    "rays": [
+        ["Leonida Keys Postcard (X)", "House with Pier (E)"]
+    ],
+    "objects": []
+}

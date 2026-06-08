@@ -1,0 +1,15 @@
+{
+    "schema": "gtamaplibvc-optimizer-config-v1",
+    "landmarks": [
+        "Portofino Tower (NW)"
+    ],
+    "rays": [
+        ["Sidewalk (Jason) (E)", "Portofino Tower (NE)"],
+        ["Vice Beach (B)", "Cardozo South Beach (O1)"],
+        ["Vice Beach (B)", "Cardozo South Beach (O2)"],
+        ["Vice Beach (B)", "Hotel Victor (NE)"],
+        ["Vice Beach (B)", "McAlpin Ocean Plaza (N)"],
+        ["Vice Beach (B)", "McAlpin Ocean Plaza (S)"]
+    ],
+    "objects": []
+}

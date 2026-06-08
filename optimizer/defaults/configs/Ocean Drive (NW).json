@@ -1,0 +1,12 @@
+{
+    "schema": "gtamaplibvc-optimizer-config-v1",
+    "landmarks": [
+
+    ],
+    "rays": [
+        ["Park", "Hotel Breakwater (K)"],
+        ["Park", "Shore Park Hotel (N)"],
+        ["Vice Beach (B)", "The Tides South Beach"]
+    ],
+    "objects": []
+}
