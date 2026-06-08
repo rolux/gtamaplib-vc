@@ -600,6 +600,24 @@ function thickenPillarLines(points) {
   return thick;
 }
 
+function thickenVerticalWireframeLines(points) {
+  if (!points.length) return points;
+  const thick = [];
+  const offsets = [
+    [0, 0],
+    [0.38, 0],
+    [-0.38, 0],
+    [0, 0.38],
+    [0, -0.38],
+  ];
+  for (const [x, z] of offsets) {
+    for (let index = 0; index < points.length; index += 3) {
+      thick.push(points[index] + x, points[index + 1], points[index + 2] + z);
+    }
+  }
+  return thick;
+}
+
 function directionFromYpr(ypr, u, v) {
   const yaw = (ypr[0] || 0) * Math.PI / 180;
   const pitch = (ypr[1] || 0) * Math.PI / 180;
@@ -1212,13 +1230,21 @@ function landmarkDropLine(landmark) {
 }
 
 function wireframeLines(wireframe) {
-  const groups = { single: [], thin: [], bold: [], pillar: [] };
+  const groups = { single: [], thin: [], bold: [], verticalBold: [], pillar: [] };
   for (const [index, segment] of (wireframe.segments || []).entries()) {
     const points = Array.isArray(segment) ? segment : segment.points;
     let style = Array.isArray(segment) ? "thin" : segment.style || "thin";
     if (wireframe.name === "Sunshine Skyway Bridge" && index < 2) style = "pillar";
     if (!points || points.length !== 2) continue;
-    const target = style === "pillar" ? groups.pillar : style === "bold" ? groups.bold : style === "single" ? groups.single : groups.thin;
+    const target = style === "pillar"
+      ? groups.pillar
+      : style === "verticalBold"
+        ? groups.verticalBold
+        : style === "bold"
+          ? groups.bold
+          : style === "single"
+            ? groups.single
+            : groups.thin;
     target.push(...worldToGl(points[0][0], points[0][1], points[0][2]));
     target.push(...worldToGl(points[1][0], points[1][1], points[1][2]));
   }
@@ -1392,6 +1418,76 @@ function createSefcTemporaryWireframe(landmarks, { orientationDeg = 0, offset = 
   };
 }
 
+function createOperaTowerWireframe(landmarks) {
+  const center = landmarks.find((landmark) => landmark.name === "Opera Tower")?.xyz;
+  if (!center) return null;
+  const topZ = center[2];
+  const topCapBaseZ = Math.max(0, topZ - 6);
+  const shoulderBaseZ = Math.max(0, topZ - 12);
+  const fullRadiusX = 30;
+  const fullRadiusY = 15;
+  const topRadiusX = fullRadiusX / 4;
+  const topRadiusY = fullRadiusY / 4;
+  const segments = [];
+  const point = (angleDeg, radiusX, radiusY, z) => {
+    const angle = angleDeg * Math.PI / 180;
+    return [
+      center[0] + Math.sin(angle) * radiusX,
+      center[1] + Math.cos(angle) * radiusY,
+      z,
+    ];
+  };
+  const line = (a, b, style = "single") => segments.push({ points: [a, b], style });
+  const ring = (z, radiusX, radiusY, angles, style = "single") => {
+    const points = angles.map((angle) => point(angle, radiusX, radiusY, z));
+    for (let index = 0; index < points.length; index++) {
+      line(points[index], points[(index + 1) % points.length], style);
+    }
+  };
+  const partialRing = (z, radiusX, radiusY, angles, shouldDraw, style = "single") => {
+    const points = angles.map((angle) => point(angle, radiusX, radiusY, z));
+    for (let index = 0; index < points.length; index++) {
+      const startAngle = angles[index];
+      const endAngle = angles[(index + 1) % points.length];
+      if (shouldDraw(startAngle, endAngle)) {
+        line(points[index], points[(index + 1) % points.length], style);
+      }
+    }
+  };
+  const verticals = (z0, z1, radiusX, radiusY, angles, style = "single") => {
+    for (const angle of angles) line(point(angle, radiusX, radiusY, z0), point(angle, radiusX, radiusY, z1), style);
+  };
+  const radialConnectors = (z, fromRadiusX, fromRadiusY, toRadiusX, toRadiusY, angles, style = "single") => {
+    for (const angle of angles) line(point(angle, fromRadiusX, fromRadiusY, z), point(angle, toRadiusX, toRadiusY, z), style);
+  };
+  const regularAngles = Array.from({ length: 36 }, (_, index) => 5 + index * 10);
+  const shaftAngles = [30, 90, 150, 210, 270, 330].flatMap((angle) => [angle - 5, angle + 5]);
+  const skipFloorSegments = new Set(shaftAngles.filter((angle) => angle % 60 === 25).map((angle) => `${angle}:${angle + 10}`));
+
+  ring(0, fullRadiusX, fullRadiusY, regularAngles, "bold");
+  for (let z = 4; z < shoulderBaseZ; z += 4) {
+    partialRing(
+      z,
+      fullRadiusX,
+      fullRadiusY,
+      regularAngles,
+      (startAngle, endAngle) => !skipFloorSegments.has(`${startAngle}:${endAngle}`),
+      "single"
+    );
+  }
+  ring(shoulderBaseZ, fullRadiusX, fullRadiusY, regularAngles, "bold");
+  verticals(0, shoulderBaseZ, fullRadiusX, fullRadiusY, regularAngles);
+  verticals(0, shoulderBaseZ, fullRadiusX, fullRadiusY, shaftAngles, "verticalBold");
+  ring(topCapBaseZ, fullRadiusX, fullRadiusY, regularAngles, "bold");
+  verticals(shoulderBaseZ, topCapBaseZ, fullRadiusX, fullRadiusY, regularAngles);
+  ring(topCapBaseZ, topRadiusX, topRadiusY, regularAngles, "bold");
+  radialConnectors(topCapBaseZ, fullRadiusX, fullRadiusY, topRadiusX, topRadiusY, regularAngles);
+  ring(topZ, topRadiusX, topRadiusY, regularAngles, "bold");
+  verticals(topCapBaseZ, topZ, topRadiusX, topRadiusY, regularAngles);
+
+  return { name: "Opera Tower", color: colorForName("Opera Tower"), segments };
+}
+
 function drawOverlay(matrix) {
   ctx.clearRect(0, 0, state.width, state.height);
   ctx.save();
@@ -1464,6 +1560,7 @@ function render() {
     if (groups.single.length) lineGroups.push([groups.single, [...color, 0.86]]);
     if (groups.thin.length) lineGroups.push([thickenLines(groups.thin, [0, 0.18, -0.18, 0.36]), [...color, 0.78]]);
     if (groups.bold.length) lineGroups.push([thickenLines(groups.bold, [0, 0.18, -0.18, 0.36, -0.36, 0.54]), [...color, 0.92]]);
+    if (groups.verticalBold.length) lineGroups.push([thickenVerticalWireframeLines(groups.verticalBold), [...color, 0.94]]);
     if (groups.pillar.length) lineGroups.push([thickenPillarLines(groups.pillar), [...color, 0.94]]);
   }
   for (const [lines, color] of lineGroups) drawLines(lines, color, matrix);
@@ -1480,6 +1577,7 @@ function render() {
     if (groups.single.length) drawLines(groups.single, [...color, 1], matrix);
     if (groups.thin.length) drawLines(thickenLines(groups.thin, [0, 0.18, -0.18, 0.36]), [...color, 1], matrix);
     if (groups.bold.length) drawLines(thickenLines(groups.bold, [0, 0.18, -0.18, 0.36, -0.36, 0.54]), [...color, 1], matrix);
+    if (groups.verticalBold.length) drawLines(thickenVerticalWireframeLines(groups.verticalBold), [...color, 1], matrix);
     if (groups.pillar.length) drawLines(thickenPillarLines(groups.pillar), [...color, 1], matrix);
     gl.disable(gl.DEPTH_TEST);
   }
@@ -1825,6 +1923,8 @@ async function init() {
   if (wdnaFm) state.wireframes.push(wdnaFm);
   const sefc = createSefcTemporaryWireframe(state.landmarks, { orientationDeg: 10, offset: [-25, -25] });
   if (sefc) state.wireframes.push(sefc);
+  const operaTower = createOperaTowerWireframe(state.landmarks);
+  if (operaTower) state.wireframes.push(operaTower);
   try {
     const fourSeasons = await loadJson(FOUR_SEASONS_WIREFRAME);
     if (fourSeasons.schema === "gtamaplibvc-map3d-four-seasons-v1") {
