@@ -1426,7 +1426,7 @@ function createOperaTowerWireframe(landmarks) {
   const shoulderBaseZ = Math.max(0, topZ - 12);
   const fullRadiusX = 30;
   const fullRadiusY = 15;
-  const topRadiusX = fullRadiusX / 4;
+  const topRadiusX = fullRadiusX / 2;
   const topRadiusY = fullRadiusY / 4;
   const segments = [];
   const point = (angleDeg, radiusX, radiusY, z) => {
@@ -1488,6 +1488,57 @@ function createOperaTowerWireframe(landmarks) {
   return { name: "Opera Tower", color: colorForName("Opera Tower"), segments };
 }
 
+function createPortofinoTowerWireframe(landmarks) {
+  const points = new Map(landmarks.map((landmark) => [landmark.name, landmark.xyz]));
+  const nw = points.get("Portofino Tower (NW)");
+  const south = points.get("Portofino Tower (S)");
+  if (!nw || !south) return null;
+  const dx = south[0] - nw[0];
+  const dy = south[1] - nw[1];
+  const midpointNs = [(nw[0] + south[0]) / 2, (nw[1] + south[1]) / 2];
+  const triangleHeight = Math.sqrt(3) / 2;
+  const candidates = [
+    [midpointNs[0] - dy * triangleHeight, midpointNs[1] + dx * triangleHeight, nw[2]],
+    [midpointNs[0] + dy * triangleHeight, midpointNs[1] - dx * triangleHeight, nw[2]],
+  ];
+  const ne = candidates.find((point) => point[0] > nw[0] && point[1] > south[1])
+    || candidates.sort((a, b) => (b[0] - nw[0]) + (b[1] - south[1]) - ((a[0] - nw[0]) + (a[1] - south[1])))[0];
+  const midpoint = [
+    (nw[0] + ne[0] + south[0]) / 3,
+    (nw[1] + ne[1] + south[1]) / 3,
+  ];
+  const sideLength = 10;
+  const halfDiagonal = sideLength / Math.sqrt(2);
+  const pyramidTopZ = nw[2];
+  const shaftTopZ = Math.max(0, pyramidTopZ - 7);
+  const segments = [];
+  const line = (a, b, style = "single") => segments.push({ points: [a, b], style });
+  const addBlock = (center) => {
+    const cornerAngle = Math.atan2(midpoint[0] - center[0], midpoint[1] - center[1]);
+    const corners = [0, 1, 2, 3].map((index) => {
+      const angle = cornerAngle + index * Math.PI / 2;
+      return [
+        center[0] + Math.sin(angle) * halfDiagonal,
+        center[1] + Math.cos(angle) * halfDiagonal,
+      ];
+    });
+    const base = corners.map((corner) => [corner[0], corner[1], 0]);
+    const top = corners.map((corner) => [corner[0], corner[1], shaftTopZ]);
+    const apex = [center[0], center[1], pyramidTopZ];
+    for (let index = 0; index < 4; index++) {
+      const next = (index + 1) % 4;
+      line(base[index], base[next]);
+      line(top[index], top[next]);
+      line(base[index], top[index]);
+      line(top[index], apex);
+    }
+  };
+  addBlock(nw);
+  addBlock(ne);
+  addBlock(south);
+  return { name: "Portofino Tower", color: colorForName("Portofino Tower (NW)"), segments };
+}
+
 function drawOverlay(matrix) {
   ctx.clearRect(0, 0, state.width, state.height);
   ctx.save();
@@ -1538,6 +1589,16 @@ function render() {
   gl.disable(gl.DEPTH_TEST);
   drawWaterPlane(matrix);
   for (const tile of state.tiles) drawTile(tile, matrix);
+  for (const wireframe of state.wireframes.filter((item) => item.faces?.length)) {
+    const triangles = wireframeFaceTriangles(wireframe);
+    const color = wireframe.color || [1.0, 1.0, 1.0];
+    gl.enable(gl.DEPTH_TEST);
+    gl.enable(gl.POLYGON_OFFSET_FILL);
+    gl.polygonOffset(1, 1);
+    drawSolidTriangles(triangles, [...(wireframe.faceColor || color), 1], matrix);
+    gl.disable(gl.POLYGON_OFFSET_FILL);
+    gl.disable(gl.DEPTH_TEST);
+  }
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
   for (const camera of state.cameras) drawCameraThumbnail(camera, matrix);
@@ -1554,7 +1615,6 @@ function render() {
     if (lines.length) lineGroups.push([lines, [...colorForName(camera.name), 0.72]]);
   }
   for (const wireframe of state.wireframes) {
-    if (wireframe.faces?.length) continue;
     const groups = wireframeLines(wireframe);
     const color = wireframe.color || [1.0, 0.92, 0.34];
     if (groups.single.length) lineGroups.push([groups.single, [...color, 0.86]]);
@@ -1564,23 +1624,6 @@ function render() {
     if (groups.pillar.length) lineGroups.push([thickenPillarLines(groups.pillar), [...color, 0.94]]);
   }
   for (const [lines, color] of lineGroups) drawLines(lines, color, matrix);
-  for (const wireframe of state.wireframes.filter((item) => item.faces?.length)) {
-    const triangles = wireframeFaceTriangles(wireframe);
-    const groups = wireframeLines(wireframe);
-    const color = wireframe.color || [1.0, 1.0, 1.0];
-    gl.enable(gl.DEPTH_TEST);
-    gl.clear(gl.DEPTH_BUFFER_BIT);
-    gl.enable(gl.POLYGON_OFFSET_FILL);
-    gl.polygonOffset(1, 1);
-    drawSolidTriangles(triangles, [...(wireframe.faceColor || color), 1], matrix);
-    gl.disable(gl.POLYGON_OFFSET_FILL);
-    if (groups.single.length) drawLines(groups.single, [...color, 1], matrix);
-    if (groups.thin.length) drawLines(thickenLines(groups.thin, [0, 0.18, -0.18, 0.36]), [...color, 1], matrix);
-    if (groups.bold.length) drawLines(thickenLines(groups.bold, [0, 0.18, -0.18, 0.36, -0.36, 0.54]), [...color, 1], matrix);
-    if (groups.verticalBold.length) drawLines(thickenVerticalWireframeLines(groups.verticalBold), [...color, 1], matrix);
-    if (groups.pillar.length) drawLines(thickenPillarLines(groups.pillar), [...color, 1], matrix);
-    gl.disable(gl.DEPTH_TEST);
-  }
   gl.disable(gl.BLEND);
   gl.enable(gl.DEPTH_TEST);
   drawOverlay(matrix);
@@ -1925,6 +1968,8 @@ async function init() {
   if (sefc) state.wireframes.push(sefc);
   const operaTower = createOperaTowerWireframe(state.landmarks);
   if (operaTower) state.wireframes.push(operaTower);
+  const portofinoTower = createPortofinoTowerWireframe(state.landmarks);
+  if (portofinoTower) state.wireframes.push(portofinoTower);
   try {
     const fourSeasons = await loadJson(FOUR_SEASONS_WIREFRAME);
     if (fourSeasons.schema === "gtamaplibvc-map3d-four-seasons-v1") {
