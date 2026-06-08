@@ -1225,6 +1225,47 @@ function wireframeLines(wireframe) {
   return groups;
 }
 
+function wireframeFaceTriangles(wireframe) {
+  const triangles = [];
+  for (const face of wireframe.faces || []) {
+    if (!face || face.length !== 4) continue;
+    triangles.push(
+      ...worldToGl(face[0][0], face[0][1], face[0][2]),
+      ...worldToGl(face[1][0], face[1][1], face[1][2]),
+      ...worldToGl(face[2][0], face[2][1], face[2][2]),
+      ...worldToGl(face[0][0], face[0][1], face[0][2]),
+      ...worldToGl(face[2][0], face[2][1], face[2][2]),
+      ...worldToGl(face[3][0], face[3][1], face[3][2])
+    );
+  }
+  return triangles;
+}
+
+const SEFC_HEIGHT_MAP = `
+56
+58 55
+61 58 56
+62 61 58 56
+62 62 61 58 56
+62 62 62 61 58 56
+62 62 62 62 61 58 56
+62 62 62 62 62 61 58 56
+62 62 63 63 62 62 61 58 56
+62 62 63 63 62 62 62 60 60
+62 62 63 63 62 62 62 60 58
+62 62 63 63 62 62 60 58 56
+62 62 62 62 62 60 58 56 54
+62 62 62 62 60 58 56 54 52
+62 62 62 60 58 56 54 52 50
+62 62 60 58 56 54 52 50 48
+`;
+
+function parseSefcHeightMap(source) {
+  return source.trim().split(/\n+/).map((line) => (
+    line.trim().split(/\s+/).map((value) => Number(value))
+  ));
+}
+
 function createWdnaFmWireframe(landmarks) {
   const points = new Map(landmarks.map((landmark) => [landmark.name, landmark.xyz]));
   const top = points.get("WDNA FM");
@@ -1253,6 +1294,102 @@ function createWdnaFmWireframe(landmarks) {
     line(rings[4][i], top);
   }
   return { name: "WDNA FM", color: colorForName("WDNA FM"), segments };
+}
+
+function createSefcTemporaryWireframe(landmarks, { orientationDeg = 0, offset = [0, 0] } = {}) {
+  const landmark = landmarks.find((item) => item.name === "Southeast Financial Center")?.xyz;
+  if (!landmark) return null;
+  const center = [landmark[0] + offset[0], landmark[1] + offset[1], landmark[2]];
+  const heights = parseSefcHeightMap(SEFC_HEIGHT_MAP);
+  const cellSize = 4;
+  const floorHeight = 4;
+  const rowCount = heights.length;
+  const columnCount = Math.max(...heights.map((row) => row.length));
+  const angle = orientationDeg * Math.PI / 180;
+  const east = [Math.cos(angle), -Math.sin(angle)];
+  const north = [Math.sin(angle), Math.cos(angle)];
+  const worldPoint = (x, y, z) => [
+    center[0] + east[0] * x + north[0] * y,
+    center[1] + east[1] * x + north[1] * y,
+    z,
+  ];
+  const heightAt = (row, column) => heights[row]?.[column] || 0;
+  const key = (point) => point.map((value) => value.toFixed(3)).join(",");
+  const edges = new Map();
+  const faces = [];
+  const addEdge = (a, b) => {
+    const ak = key(a);
+    const bk = key(b);
+    edges.set(ak < bk ? `${ak}|${bk}` : `${bk}|${ak}`, [a, b]);
+  };
+  const addFace = (a, b, c, d) => {
+    faces.push([a, b, c, d]);
+    addEdge(a, b);
+    addEdge(b, c);
+    addEdge(c, d);
+    addEdge(d, a);
+  };
+
+  for (let row = 0; row < rowCount; row++) {
+    for (let column = 0; column < heights[row].length; column++) {
+      const floors = heights[row][column];
+      const x0 = (column - columnCount / 2) * cellSize;
+      const x1 = x0 + cellSize;
+      const y1 = (rowCount / 2 - row) * cellSize;
+      const y0 = y1 - cellSize;
+      for (let floor = 0; floor < floors; floor++) {
+        const z0 = floor * floorHeight;
+        const z1 = z0 + floorHeight;
+        if (floor === floors - 1) {
+          addFace(
+            worldPoint(x0, y0, z1),
+            worldPoint(x1, y0, z1),
+            worldPoint(x1, y1, z1),
+            worldPoint(x0, y1, z1)
+          );
+        }
+        if (heightAt(row - 1, column) <= floor) {
+          addFace(
+            worldPoint(x0, y1, z0),
+            worldPoint(x1, y1, z0),
+            worldPoint(x1, y1, z1),
+            worldPoint(x0, y1, z1)
+          );
+        }
+        if (heightAt(row + 1, column) <= floor) {
+          addFace(
+            worldPoint(x1, y0, z0),
+            worldPoint(x0, y0, z0),
+            worldPoint(x0, y0, z1),
+            worldPoint(x1, y0, z1)
+          );
+        }
+        if (heightAt(row, column - 1) <= floor) {
+          addFace(
+            worldPoint(x0, y0, z0),
+            worldPoint(x0, y1, z0),
+            worldPoint(x0, y1, z1),
+            worldPoint(x0, y0, z1)
+          );
+        }
+        if (heightAt(row, column + 1) <= floor) {
+          addFace(
+            worldPoint(x1, y1, z0),
+            worldPoint(x1, y0, z0),
+            worldPoint(x1, y0, z1),
+            worldPoint(x1, y1, z1)
+          );
+        }
+      }
+    }
+  }
+  return {
+    name: "SEFC",
+    color: [1, 1, 1],
+    faceColor: colorForName("Southeast Financial Center"),
+    faces,
+    segments: [...edges.values()].map((points) => ({ points, style: "single" })),
+  };
 }
 
 function drawOverlay(matrix) {
@@ -1321,6 +1458,7 @@ function render() {
     if (lines.length) lineGroups.push([lines, [...colorForName(camera.name), 0.72]]);
   }
   for (const wireframe of state.wireframes) {
+    if (wireframe.faces?.length) continue;
     const groups = wireframeLines(wireframe);
     const color = wireframe.color || [1.0, 0.92, 0.34];
     if (groups.single.length) lineGroups.push([groups.single, [...color, 0.86]]);
@@ -1329,6 +1467,22 @@ function render() {
     if (groups.pillar.length) lineGroups.push([thickenPillarLines(groups.pillar), [...color, 0.94]]);
   }
   for (const [lines, color] of lineGroups) drawLines(lines, color, matrix);
+  for (const wireframe of state.wireframes.filter((item) => item.faces?.length)) {
+    const triangles = wireframeFaceTriangles(wireframe);
+    const groups = wireframeLines(wireframe);
+    const color = wireframe.color || [1.0, 1.0, 1.0];
+    gl.enable(gl.DEPTH_TEST);
+    gl.clear(gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.POLYGON_OFFSET_FILL);
+    gl.polygonOffset(1, 1);
+    drawSolidTriangles(triangles, [...(wireframe.faceColor || color), 1], matrix);
+    gl.disable(gl.POLYGON_OFFSET_FILL);
+    if (groups.single.length) drawLines(groups.single, [...color, 1], matrix);
+    if (groups.thin.length) drawLines(thickenLines(groups.thin, [0, 0.18, -0.18, 0.36]), [...color, 1], matrix);
+    if (groups.bold.length) drawLines(thickenLines(groups.bold, [0, 0.18, -0.18, 0.36, -0.36, 0.54]), [...color, 1], matrix);
+    if (groups.pillar.length) drawLines(thickenPillarLines(groups.pillar), [...color, 1], matrix);
+    gl.disable(gl.DEPTH_TEST);
+  }
   gl.disable(gl.BLEND);
   gl.enable(gl.DEPTH_TEST);
   drawOverlay(matrix);
@@ -1669,6 +1823,8 @@ async function init() {
   }
   const wdnaFm = createWdnaFmWireframe(state.landmarks);
   if (wdnaFm) state.wireframes.push(wdnaFm);
+  const sefc = createSefcTemporaryWireframe(state.landmarks, { orientationDeg: 10, offset: [-25, -25] });
+  if (sefc) state.wireframes.push(sefc);
   try {
     const fourSeasons = await loadJson(FOUR_SEASONS_WIREFRAME);
     if (fourSeasons.schema === "gtamaplibvc-map3d-four-seasons-v1") {
