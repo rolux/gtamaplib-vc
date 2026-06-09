@@ -631,6 +631,10 @@ body.is-dragging-observation .marker.editing {
   stroke-opacity: 0.9;
 }
 
+.map-ray.unresolved {
+  stroke-dasharray: 8 8;
+}
+
 .map-camera-cone-line {
   fill: none;
   stroke-width: 1px;

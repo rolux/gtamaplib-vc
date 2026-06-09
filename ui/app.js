@@ -50,6 +50,7 @@ const KEYBOARD_FRAME_MS = 1000 / 60;
 const DISABLE_MAP_SVG_OVERLAY = false;
 const FAKE_CAMERA_SUFFIX = " Fake Cam";
 const MAP_CAMERA_CONE_DISTANCE = 25;
+const UNRESOLVED_MAP_RAY_DISTANCE = 32000;
 const FOCUS_ORDER = ["cameras", "map", "landmarks"];
 
 const els = {
@@ -232,18 +233,22 @@ function distance3d(a, b) {
   return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 }
 
-function observedRayEndpointWorld(camera, observation, landmark) {
-  if (!camera?.xyz || !landmark?.xyz) return entityWorldPoint(landmark);
+function observedRayEndpointWorld(camera, observation, landmark, unresolvedDistance = null) {
+  if (!camera?.xyz) return entityWorldPoint(landmark);
   const direction = observedPixelDirection(camera, observation.xy);
   if (!direction) return entityWorldPoint(landmark);
-  const distance = Math.hypot(
-    landmark.xyz[0] - camera.xyz[0],
-    landmark.xyz[1] - camera.xyz[1],
-    landmark.xyz[2] - camera.xyz[2],
-  );
+  const distance = landmark?.xyz
+    ? Math.hypot(
+      landmark.xyz[0] - camera.xyz[0],
+      landmark.xyz[1] - camera.xyz[1],
+      landmark.xyz[2] - camera.xyz[2],
+    )
+    : unresolvedDistance;
+  if (!distance) return entityWorldPoint(landmark);
   return {
     x: camera.xyz[0] + direction[0] * distance,
     y: camera.xyz[1] + direction[1] * distance,
+    unresolved: !landmark?.xyz,
   };
 }
 
@@ -1233,7 +1238,7 @@ function renderMap() {
   const rayObservations = [];
   if (state.camera) {
     for (const observation of byCamera.get(state.camera.name) || []) {
-      if (landmarkByName.has(observation.landmark)) rayObservations.push(observation);
+      rayObservations.push(observation);
     }
   }
   if (state.landmark && landmarkByName.has(state.landmark)) {
@@ -1249,10 +1254,12 @@ function renderMap() {
     const camera = cameraByName.get(observation.camera);
     const landmark = landmarkByName.get(observation.landmark);
     const cameraPoint = worldToMapScreen(entityWorldPoint(camera));
-    const endpointPoint = worldToMapScreen(observedRayEndpointWorld(camera, observation, landmark));
+    const endpoint = observedRayEndpointWorld(camera, observation, landmark, UNRESOLVED_MAP_RAY_DISTANCE);
+    const endpointPoint = worldToMapScreen(endpoint);
     if (!cameraPoint || !endpointPoint) continue;
+    const selected = observation.camera === state.camera?.name && observation.landmark === state.landmark;
     rayLayer.append(svg("line", {
-      class: observation.camera === state.camera?.name && observation.landmark === state.landmark ? "map-ray selected" : "map-ray",
+      class: `map-ray${selected ? " selected" : ""}${endpoint?.unresolved ? " unresolved" : ""}`,
       x1: cameraPoint.x,
       y1: cameraPoint.y,
       x2: endpointPoint.x,
