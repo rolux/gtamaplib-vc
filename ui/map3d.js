@@ -1542,9 +1542,9 @@ function createPortofinoTowerWireframe(landmarks) {
 function createStephenPClarkGovernmentCenterWireframe(landmarks) {
   const eastPoint = landmarks.find((landmark) => landmark.name === "Stephen P. Clark Government Center (E)")?.xyz;
   if (!eastPoint) return null;
-  const width = 70;
-  const height = 35;
-  const sideLength = 5;
+  const width = 64;
+  const height = 32;
+  const sideLength = 4;
   const cut = (height - sideLength) / 2;
   const halfWidth = width / 2;
   const halfHeight = height / 2;
