@@ -1539,6 +1539,61 @@ function createPortofinoTowerWireframe(landmarks) {
   return { name: "Portofino Tower", color: colorForName("Portofino Tower (NW)"), segments };
 }
 
+function createStephenPClarkGovernmentCenterWireframe(landmarks) {
+  const eastPoint = landmarks.find((landmark) => landmark.name === "Stephen P. Clark Government Center (E)")?.xyz;
+  if (!eastPoint) return null;
+  const width = 70;
+  const height = 35;
+  const sideLength = 5;
+  const cut = (height - sideLength) / 2;
+  const halfWidth = width / 2;
+  const halfHeight = height / 2;
+  const orientationDeg = 355;
+  const angle = ((360 - orientationDeg) % 360) * Math.PI / 180;
+  const east = [Math.cos(angle), -Math.sin(angle)];
+  const north = [Math.sin(angle), Math.cos(angle)];
+  const center = [
+    eastPoint[0] - east[0] * halfWidth,
+    eastPoint[1] - east[1] * halfWidth,
+  ];
+  const footprint = [
+    [halfWidth - cut, halfHeight],
+    [halfWidth, sideLength / 2],
+    [halfWidth, -sideLength / 2],
+    [halfWidth - cut, -halfHeight],
+    [-halfWidth + cut, -halfHeight],
+    [-halfWidth, -sideLength / 2],
+    [-halfWidth, sideLength / 2],
+    [-halfWidth + cut, halfHeight],
+  ];
+  const point = ([x, y], z) => [
+    center[0] + east[0] * x + north[0] * y,
+    center[1] + east[1] * x + north[1] * y,
+    z,
+  ];
+  const top = footprint.map((local) => point(local, eastPoint[2]));
+  const bottom = footprint.map((local) => point(local, 0));
+  const segments = [];
+  const line = (a, b, style = "single") => segments.push({ points: [a, b], style });
+  for (let index = 0; index < footprint.length; index++) {
+    const next = (index + 1) % footprint.length;
+    line(bottom[index], bottom[next]);
+    line(top[index], top[next]);
+    line(bottom[index], top[index]);
+  }
+  for (let floor = 1; floor <= 36; floor++) {
+    const z = floor * 4;
+    for (const [a, b] of [[1, 2], [3, 4], [5, 6], [7, 0]]) {
+      line(point(footprint[a], z), point(footprint[b], z));
+    }
+  }
+  return {
+    name: "Stephen P. Clark Government Center",
+    color: colorForName("Stephen P. Clark Government Center (E)"),
+    segments,
+  };
+}
+
 function drawOverlay(matrix) {
   ctx.clearRect(0, 0, state.width, state.height);
   ctx.save();
@@ -1982,6 +2037,8 @@ async function init() {
   if (operaTower) state.wireframes.push(operaTower);
   const portofinoTower = createPortofinoTowerWireframe(state.landmarks);
   if (portofinoTower) state.wireframes.push(portofinoTower);
+  const stephenPClarkGovernmentCenter = createStephenPClarkGovernmentCenterWireframe(state.landmarks);
+  if (stephenPClarkGovernmentCenter) state.wireframes.push(stephenPClarkGovernmentCenter);
   try {
     const fourSeasons = await loadJson(FOUR_SEASONS_WIREFRAME);
     if (fourSeasons.schema === "gtamaplibvc-map3d-four-seasons-v1") {
