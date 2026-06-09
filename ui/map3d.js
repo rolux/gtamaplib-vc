@@ -1639,6 +1639,49 @@ function createStephenPClarkGovernmentCenterWireframe(landmarks) {
   };
 }
 
+function createFaaMiamiAtctWireframe(landmarks) {
+  const center = landmarks.find((landmark) => landmark.name === "FAA Miami ATCT (MIA)")?.xyz;
+  if (!center) return null;
+  const topZ = center[2];
+  const angles = Array.from({ length: 24 }, (_, index) => index * 15);
+  const levels = [
+    { z: 5, radius: 6 },
+    { z: topZ * 0.75, radius: 6 },
+    { z: topZ * 0.8125, radius: 9 },
+    { z: topZ * 0.875, radius: 9 },
+    { z: topZ * 0.875, radius: 6 },
+    { z: topZ * 0.9375, radius: 6 },
+    { z: topZ * 0.9375, radius: 3 },
+    { z: topZ * 0.96875, radius: 3 },
+    { z: topZ * 0.96875, radius: 1.5 },
+    { z: topZ, radius: 1.5 },
+  ];
+  const segments = [];
+  const point = (angleDeg, radius, z) => {
+    const angle = angleDeg * Math.PI / 180;
+    return [
+      center[0] + Math.sin(angle) * radius,
+      center[1] + Math.cos(angle) * radius,
+      z,
+    ];
+  };
+  const line = (a, b, style = "single") => segments.push({ points: [a, b], style });
+  for (const level of levels) {
+    const points = angles.map((angle) => point(angle, level.radius, level.z));
+    for (let index = 0; index < points.length; index++) {
+      line(points[index], points[(index + 1) % points.length]);
+    }
+  }
+  for (let levelIndex = 0; levelIndex < levels.length - 1; levelIndex++) {
+    const lower = levels[levelIndex];
+    const upper = levels[levelIndex + 1];
+    for (const angle of angles) {
+      line(point(angle, lower.radius, lower.z), point(angle, upper.radius, upper.z));
+    }
+  }
+  return { name: "FAA Miami ATCT (MIA)", color: colorForName("FAA Miami ATCT (MIA)"), segments };
+}
+
 function drawOverlay(matrix) {
   ctx.clearRect(0, 0, state.width, state.height);
   ctx.save();
@@ -2084,6 +2127,8 @@ async function init() {
   if (portofinoTower) state.wireframes.push(portofinoTower);
   const stephenPClarkGovernmentCenter = createStephenPClarkGovernmentCenterWireframe(state.landmarks);
   if (stephenPClarkGovernmentCenter) state.wireframes.push(stephenPClarkGovernmentCenter);
+  const faaMiamiAtct = createFaaMiamiAtctWireframe(state.landmarks);
+  if (faaMiamiAtct) state.wireframes.push(faaMiamiAtct);
   try {
     const fourSeasons = await loadJson(FOUR_SEASONS_WIREFRAME);
     if (fourSeasons.schema === "gtamaplibvc-map3d-four-seasons-v1") {
