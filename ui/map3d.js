@@ -886,6 +886,51 @@ function applyStoredPose() {
   }
 }
 
+function applyInitialView(view) {
+  if (!view) return false;
+  if (view.type === "camera") {
+    const camera = state.cameras.find((item) => item.name === view.cameraName);
+    if (!camera?.xyz || !camera.ypr || !camera.fov) return false;
+    applyTourView(viewForCamera(camera), camera);
+    return true;
+  }
+  if (view.type === "map") {
+    const vfov = view.vfov || 45;
+    const height = Math.max(1, view.height || state.height);
+    const metersPerPixel = MAP_W / (1024 * Math.pow(2, view.zoom || 0));
+    const visibleMeters = metersPerPixel * height;
+    const distance = Math.max(MIN_DISTANCE, visibleMeters / (2 * Math.tan((vfov * Math.PI / 180) / 2)));
+    const target = worldToGl(view.centerX || 0, view.centerY || 0, 0);
+    const pitch = MAX_PITCH;
+    const yaw = 0;
+    const cp = Math.cos(pitch);
+    const eye = [
+      target[0] + Math.sin(yaw) * cp * distance,
+      target[1] + Math.sin(pitch) * distance,
+      target[2] + Math.cos(yaw) * cp * distance,
+    ];
+    clearActiveScreenshotCamera();
+    applyEyeTarget(eye, target);
+    state.vfov = vfov;
+    render();
+    return true;
+  }
+  return false;
+}
+
+function currentMapSnapshot() {
+  const rect = scene.getBoundingClientRect();
+  const center = groundPointUnderClient(rect.left + rect.width / 2, rect.top + rect.height / 2) || state.target;
+  const world = glToWorld(center);
+  const metersPerPixel = 2 * state.distance * Math.tan((state.vfov * Math.PI / 180) / 2) / Math.max(1, state.height);
+  return {
+    type: "map",
+    centerX: world[0],
+    centerY: world[1],
+    zoom: Math.max(0, Math.min(6, Math.log2(MAP_W / (1024 * metersPerPixel)))),
+  };
+}
+
 function startTourSegment(from, camera) {
   clearActiveScreenshotCamera();
   const to = viewForCamera(camera);
@@ -2091,7 +2136,11 @@ export function activateMap3d(options = {}) {
   startControlsFrame();
   return init().then(() => {
     resize();
-    applyStoredPose();
+    if (Object.hasOwn(options, "initialView")) {
+      if (!applyInitialView(options.initialView)) resetView();
+    } else {
+      applyStoredPose();
+    }
     render();
     scene.focus();
   }).catch((error) => {
@@ -2109,4 +2158,15 @@ export function setMap3dSettings(options = {}) {
 export function deactivateMap3d() {
   suspendMap3d();
   root.hidden = true;
+}
+
+export function getMap3dTransitionState() {
+  if (root.hidden) return null;
+  if (state.activeScreenshotCamera?.name) {
+    return {
+      type: "camera",
+      cameraName: state.activeScreenshotCamera.name,
+    };
+  }
+  return currentMapSnapshot();
 }

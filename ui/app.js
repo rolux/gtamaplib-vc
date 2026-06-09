@@ -1,5 +1,5 @@
 import { GtaTileMap } from "/ui/map.js";
-import { activateMap3d, deactivateMap3d, setMap3dSettings } from "/ui/map3d.js";
+import { activateMap3d, deactivateMap3d, getMap3dTransitionState, setMap3dSettings } from "/ui/map3d.js";
 
 const state = {
   data: null,
@@ -804,6 +804,23 @@ function mapView() {
     width: size.width,
     height: size.height,
   };
+}
+
+function map3dInitialViewForCurrent2dView(view = state.view) {
+  if (view === "camera" && state.camera?.xyz) {
+    return {
+      type: "camera",
+      cameraName: state.camera.name,
+    };
+  }
+  if (view === "map") {
+    return {
+      type: "map",
+      ...mapView(),
+      vfov: 45,
+    };
+  }
+  return null;
 }
 
 function mapPointToWorld(point) {
@@ -1923,6 +1940,7 @@ function applyHash() {
       onExit: exitMap3d,
       blurLeaks: state.settings.blurLeaks,
       useMonospaceFont: state.settings.useMonospaceFont,
+      ...(previousView === "map3d" ? {} : { initialView: map3dInitialViewForCurrent2dView(previousView) }),
     });
   } else {
     deactivateMap3d();
@@ -1958,6 +1976,9 @@ function setView(view) {
   if (view !== "camera" && view !== "map" && view !== "map3d") return;
   if (state.view === view) return;
   cancelObservationEditMode();
+  const map3dTransition = state.view === "map3d" && view !== "map3d" ? getMap3dTransitionState() : null;
+  if (map3dTransition?.type === "camera") view = "camera";
+  if (map3dTransition?.type === "map") view = "map";
   if (view === "map3d") {
     state.previous2dView = state.view === "map3d" ? state.previous2dView : state.view;
     state.view = view;
@@ -1967,16 +1988,27 @@ function setView(view) {
       onExit: exitMap3d,
       blurLeaks: state.settings.blurLeaks,
       useMonospaceFont: state.settings.useMonospaceFont,
+      initialView: map3dInitialViewForCurrent2dView(state.previous2dView),
     });
     updateEditTools();
     return;
   }
   deactivateMap3d();
   state.previous2dView = view;
-  const cameraName = state.camera?.name || null;
-  const landmarkName = state.landmark || null;
+  let cameraName = state.camera?.name || null;
+  let landmarkName = state.landmark || null;
+  if (map3dTransition?.type === "camera") {
+    cameraName = map3dTransition.cameraName;
+    landmarkName = null;
+  } else if (map3dTransition?.type === "map") {
+    cameraName = null;
+    landmarkName = null;
+    state.map.centerX = map3dTransition.centerX;
+    state.map.centerY = map3dTransition.centerY;
+    state.map.zoom = map3dTransition.zoom;
+  }
   const focusCameraLandmark = view === "camera" && cameraName && landmarkName && cameraObservesLandmark(cameraName, landmarkName);
-  const focusMapSelection = view === "map" && (cameraName || landmarkName);
+  const focusMapSelection = view === "map" && !map3dTransition && (cameraName || landmarkName);
   if (focusCameraLandmark) {
     state.pendingCameraFit = "between-panels";
     state.pendingFocusLandmark = true;
@@ -1984,8 +2016,8 @@ function setView(view) {
   state.view = view;
   els.viewSelect.value = view;
   writeHash(cameraName, landmarkName);
-  if (view === "camera" && state.camera) {
-    applyCameraSelection(state.camera.name, true);
+  if (view === "camera" && cameraName) {
+    applyCameraSelection(cameraName, true);
     if (focusCameraLandmark) applyLandmarkSelection(state.landmark, true);
   } else if (view === "map") {
     renderMap();
