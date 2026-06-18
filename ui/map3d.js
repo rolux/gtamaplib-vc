@@ -49,6 +49,7 @@ const FOUR_SEASONS_TOUR_CAMERA_NAMES = [
   "Vice City 01 (Vice City Sign)",
   "Prison",
   "Street (Bikers) (B)",
+  "Port Vice City (A)",
   "Little Haiti",
   "Motorboats (B)",
   "Interchange",
