@@ -1371,7 +1371,6 @@ function createWdnaFmWireframe(landmarks) {
 function createSefcTemporaryWireframe(landmarks, { orientationDeg = 0, offset = [0, 0] } = {}) {
   const landmark = landmarks.find((item) => item.name === "Southeast Financial Center")?.xyz;
   if (!landmark) return null;
-  const center = [landmark[0] + offset[0], landmark[1] + offset[1], landmark[2]];
   const heights = parseSefcHeightMap(SEFC_HEIGHT_MAP);
   const cellSize = 4;
   const floorHeight = 4;
@@ -1380,6 +1379,26 @@ function createSefcTemporaryWireframe(landmarks, { orientationDeg = 0, offset = 
   const angle = orientationDeg * Math.PI / 180;
   const east = [Math.cos(angle), -Math.sin(angle)];
   const north = [Math.sin(angle), Math.cos(angle)];
+  const maxHeight = Math.max(...heights.flat());
+  const highestCells = heights.flatMap((row, rowIndex) => (
+    row.map((height, columnIndex) => ({ height, rowIndex, columnIndex }))
+      .filter(({ height }) => height === maxHeight)
+  ));
+  const anchorX = (
+    Math.min(...highestCells.map(({ columnIndex }) => columnIndex)) +
+    Math.max(...highestCells.map(({ columnIndex }) => columnIndex)) +
+    1 - columnCount
+  ) * cellSize / 2;
+  const anchorY = (
+    rowCount - 1 -
+    Math.min(...highestCells.map(({ rowIndex }) => rowIndex)) -
+    Math.max(...highestCells.map(({ rowIndex }) => rowIndex))
+  ) * cellSize / 2;
+  const anchor = [landmark[0] + offset[0], landmark[1] + offset[1]];
+  const center = [
+    anchor[0] - east[0] * anchorX - north[0] * anchorY,
+    anchor[1] - east[1] * anchorX - north[1] * anchorY,
+  ];
   const worldPoint = (x, y, z) => [
     center[0] + east[0] * x + north[0] * y,
     center[1] + east[1] * x + north[1] * y,
@@ -2120,7 +2139,7 @@ async function init() {
   }
   const wdnaFm = createWdnaFmWireframe(state.landmarks);
   if (wdnaFm) state.wireframes.push(wdnaFm);
-  const sefc = createSefcTemporaryWireframe(state.landmarks, { orientationDeg: 10, offset: [-25, -25] });
+  const sefc = createSefcTemporaryWireframe(state.landmarks, { orientationDeg: 10 });
   if (sefc) state.wireframes.push(sefc);
   const operaTower = createOperaTowerWireframe(state.landmarks);
   if (operaTower) state.wireframes.push(operaTower);
