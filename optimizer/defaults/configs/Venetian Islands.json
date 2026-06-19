@@ -2,8 +2,7 @@
     "schema": "gtamaplibvc-optimizer-config-v1",
     "landmarks": [
         "Flamingo South Beach (TNE)",
-        "Loews Miami Beach",
-        "1000 Venetian Way (SW)"
+        "Loews Miami Beach"
     ],
     "rays": [
         ["Highway (NE)", "Akoya Condominium"],

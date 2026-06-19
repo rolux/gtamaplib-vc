@@ -1,0 +1,18 @@
+{
+    "schema": "gtamaplibvc-optimizer-config-v1",
+    "landmarks": [
+        "Four Seasons Hotel Miami (BE)",
+        "Four Seasons Hotel Miami (NW)",
+        "Four Seasons Hotel Miami (SE)",
+        "Miami-Dade County Courthouse",
+        "Southeast Financial Center",
+        "Turkey Point Nuclear Power Station (N)",
+        "Turkey Point Nuclear Power Station (S)",
+        "Vizcayne North Condominium (NE)",
+        "Vizcayne North Condominium (SE)"
+    ],
+    "rays": [
+
+    ],
+    "objects": []
+}
