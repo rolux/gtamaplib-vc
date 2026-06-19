@@ -370,6 +370,13 @@
                 "Small Grassrivers Bridge (W)",
                 "Small Keys Bridge (NB)",
                 "Small Keys Bridge (SB)",
+                "Star Island Bridge (2E)",
+                "Star Island Bridge (3E)",
+                "Star Island Bridge (3W)",
+                "Star Island Bridge (4E)",
+                "Star Island Bridge (4W)",
+                "Star Island Bridge (5E)",
+                "Star Island Bridge (5W)",
                 "East Coast (A)",
                 "East Coast (B)",
                 "East Coast (C)",
@@ -430,6 +437,14 @@
             "landmarks": [
                 "Red Boxville (BNE)",
                 "Red Boxville (BNW)"
+            ]
+        },
+        {
+            "z": 10.0,
+            "landmarks": [
+                "East-West Highway (A)",
+                "East-West Highway (B)",
+                "East-West Highway (C)"
             ]
         },
         {
