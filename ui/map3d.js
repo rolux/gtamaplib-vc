@@ -9,7 +9,7 @@ const TILE_RANGES = {
   2: [[0, 2], [9, 11]],
   3: [[0, 4], [19, 23]],
 };
-const TILE_ROOT = "/gtadb.org/maps/tiles/6/yanis,12";
+const TILE_ROOT = "/gtadb.org/maps/tiles/6/yanis,13";
 const VC_DATA = "/data/gtamapdata.json";
 const VC_RESULT = "/optimizer/result.json";
 const GTAMAPLIB_COLORS = "/ui/data/map3d-colors.json";

@@ -7,6 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from bootstrap import ensure_gtadb_tiles
 from utils.optimizer_defaults import ensure_optimizer_defaults
 
 
@@ -31,6 +32,7 @@ def main() -> None:
     print("Note: updating gtamaplib may change imported cameras, landmarks, observations, and optimizer inputs.")
     update_repo(GTAMAPLIB, "gtamaplib")
     update_repo(GTADB, "gtadb.org")
+    ensure_gtadb_tiles()
     ensure_optimizer_defaults()
     run([sys.executable, "utils/import_data.py"])
     run([sys.executable, "utils/generate_priors.py"])

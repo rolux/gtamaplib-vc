@@ -14,7 +14,7 @@ const TILE_RANGES = {
   6: [[0, 34], [155, 190]],
 };
 const TILE_RANGE = TILE_RANGES[TILE_Z];
-const TILE_ROOT = "../gtadb.org/maps/tiles/6/yanis,12";
+const TILE_ROOT = "../gtadb.org/maps/tiles/6/yanis,13";
 const DETAIL_TILE_Z = 5;
 const DETAIL_TILE_RADIUS = 7;
 const DETAIL_TILE_KEEP_RADIUS = 10;

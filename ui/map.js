@@ -18,7 +18,7 @@ const TILE_RANGES = {
 
 export class GtaTileMap {
   constructor(options = {}) {
-    this.tileRoot = options.tileRoot || "/gtadb.org/maps/tiles/6/yanis,12";
+    this.tileRoot = options.tileRoot || "/gtadb.org/maps/tiles/6/yanis,13";
     this.cache = new Map();
     this.pending = new Map();
     this.onLoad = null;
