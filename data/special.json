@@ -442,6 +442,13 @@
         {
             "z": 10.0,
             "landmarks": [
+                "North-South Highway (A)",
+                "North-South Highway (B)"
+            ]
+        },
+        {
+            "z": 20.0,
+            "landmarks": [
                 "East-West Highway (A)",
                 "East-West Highway (B)",
                 "East-West Highway (C)",
