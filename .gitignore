@@ -8,7 +8,7 @@ gtadb.org
 untracked/
 
 data/gtamapdata.json
-data/export.json
+data/export/
 data/import_extras.json
 # Legacy optimizer overlay path; migrated to optimizer/result.json.
 data/gtamaplib-vc.json
