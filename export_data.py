@@ -16,7 +16,7 @@ GTAMAPDATA_PATH = DATA_DIR / "gtamapdata.json"
 IMPORT_EXTRAS_PATH = DATA_DIR / "import_extras.json"
 OBSERVATION_EDITS_PATH = DATA_DIR / "observation_edits.json"
 OPTIMIZER_RESULT_PATH = ROOT / "optimizer" / "result.json"
-DEFAULT_OUTPUT_PATH = DATA_DIR / "export.json"
+DEFAULT_OUTPUT_PATH = DATA_DIR / "export" / "data.json"
 FAKE_CAMERA_SUFFIX = " Fake Cam"
 
 
@@ -261,7 +261,7 @@ def main() -> None:
         nargs="?",
         type=Path,
         default=DEFAULT_OUTPUT_PATH,
-        help="Output JSON file. Defaults to data/export.json.",
+        help="Output JSON file. Defaults to data/export/data.json.",
     )
     args = parser.parse_args()
     data = exported_world()
