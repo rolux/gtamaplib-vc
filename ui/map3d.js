@@ -26,6 +26,7 @@ const CAMERA_THUMBNAIL_DISTANCE = CAMERA_CONE_DISTANCE * 0.995;
 const TOUR_DWELL_MS = 1200;
 const TOUR_EYE_CONTROL_MIN_Z = 10;
 const FOUR_SEASONS_TOUR_EYE_CONTROL_MIN_Z = 100;
+const CUSTOM_TOUR_EYE_CONTROL_MIN_Z = 25;
 const CLICK_MOVE_TOLERANCE = 5;
 const MIN_DISTANCE = 100;
 const MIN_PITCH = -1.05;
@@ -51,12 +52,27 @@ const FOUR_SEASONS_TOUR_CAMERA_NAMES = [
   "Street (Bikers) (B)",
   "Port Vice City (A)",
   "Little Haiti",
+  "Shitzu Squalo 01 (Bay)",
   "Motorboats (B)",
   "Interchange",
   "Metro (SE) (A) (4K)",
   "Highway (Peacock Bay) (B)",
+  "'95 Grotti Cheetah 04 (Garage)",
   "Tennis Stadium (4K)",
+  "Ultimate Edition 02 (Green Sports Car)",
   "Raul Bautista 03 (Motorboat)",
+];
+const CUSTOM_TOUR_CAMERA_NAMES = [
+  "Green Sports Car",
+  "Ultimate Edition 02 (Green Sports Car)",
+  "'95 Grotti Cheetah 04 (Garage)",
+  "Vintage Vice City Pack 02 (Port)",
+  "Jason's Safehouse Vehicles (X)",
+  "Crest Kayak",
+  "Stock 305 Clothing Store 01 (Van)",
+  "Vintage Vice City Outfits and Hairstyles 04 (Rooftop)",
+  "Shitzu Squalo 01 (Bay)",
+  "Port Vice City (A)",
 ];
 
 const root = document.querySelector("#map3d-root");
@@ -772,6 +788,19 @@ function makeFourSeasonsTourSegment(from, to) {
   };
 }
 
+function makeCustomTourSegment(from, to) {
+  const segment = makeTourSegment(from, to);
+  segment.eyeC1[1] = Math.max(segment.eyeC1[1], CUSTOM_TOUR_EYE_CONTROL_MIN_Z);
+  segment.eyeC2[1] = Math.max(segment.eyeC2[1], CUSTOM_TOUR_EYE_CONTROL_MIN_Z);
+  return segment;
+}
+
+function makeTourSegmentForMode(from, to) {
+  if (state.tour.mode === "four-seasons") return makeFourSeasonsTourSegment(from, to);
+  if (state.tour.mode === "custom") return makeCustomTourSegment(from, to);
+  return makeTourSegment(from, to);
+}
+
 function updateTourButton() {
   tourStartButton.hidden = state.tour.active;
   tourBackButton.hidden = !state.tour.active;
@@ -935,9 +964,7 @@ function currentMapSnapshot() {
 function startTourSegment(from, camera) {
   clearActiveScreenshotCamera();
   const to = viewForCamera(camera);
-  state.tour.segment = state.tour.mode === "four-seasons"
-    ? makeFourSeasonsTourSegment(from, to)
-    : makeTourSegment(from, to);
+  state.tour.segment = makeTourSegmentForMode(from, to);
   state.tour.elapsed = 0;
   state.tour.holdUntil = 0;
   state.tour.holdRemaining = 0;
@@ -952,9 +979,10 @@ function applyTourView(view, camera = null) {
 }
 
 function ensureTourCameras() {
-  if (state.tour.mode === "four-seasons") {
+  if (state.tour.mode === "four-seasons" || state.tour.mode === "custom") {
     const camerasByName = new Map(state.cameras.map((camera) => [camera.name, camera]));
-    state.tour.cameras = FOUR_SEASONS_TOUR_CAMERA_NAMES
+    const cameraNames = state.tour.mode === "custom" ? CUSTOM_TOUR_CAMERA_NAMES : FOUR_SEASONS_TOUR_CAMERA_NAMES;
+    state.tour.cameras = cameraNames
       .map((name) => camerasByName.get(name))
       .filter((camera) => camera?.xyz && camera.ypr && camera.fov && !(state.blurLeaks && camera.id?.startsWith("L")));
   } else {
@@ -973,9 +1001,7 @@ function jumpTourTo(index, paused = state.tour.paused) {
   const view = viewForCamera(state.tour.cameras[state.tour.index]);
   state.tour.active = true;
   state.tour.paused = paused;
-  state.tour.segment = state.tour.mode === "four-seasons"
-    ? makeFourSeasonsTourSegment(view, view)
-    : makeTourSegment(view, view);
+  state.tour.segment = makeTourSegmentForMode(view, view);
   state.tour.elapsed = 0;
   state.tour.holdRemaining = paused ? TOUR_DWELL_MS : 0;
   state.tour.holdUntil = paused ? 0 : performance.now() + TOUR_DWELL_MS;
@@ -1953,7 +1979,7 @@ function updateControls() {
 function installControls() {
   scene.tabIndex = 0;
   tourStartButton.addEventListener("click", (event) => {
-    startTour(event.shiftKey ? "four-seasons" : "screenshots");
+    startTour(event.altKey ? "custom" : event.shiftKey ? "four-seasons" : "screenshots");
   });
   tourBackButton.addEventListener("click", backTour);
   tourPauseButton.addEventListener("click", toggleTour);
