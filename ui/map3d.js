@@ -59,8 +59,8 @@ const FOUR_SEASONS_TOUR_CAMERA_NAMES = [
   "Highway (Peacock Bay) (B)",
   "'95 Grotti Cheetah 04 (Garage)",
   "Tennis Stadium (4K)",
-  "Ultimate Edition 02 (Green Sports Car)",
   "Raul Bautista 03 (Motorboat)",
+  "Ultimate Edition 02 (Green Sports Car)",
 ];
 const CUSTOM_TOUR_CAMERA_NAMES = [
   "Green Sports Car",
