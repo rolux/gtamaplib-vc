@@ -117,6 +117,9 @@ def four_seasons_landmarks(extra_landmarks: dict[str, list[float]]) -> dict[str,
     for name, xyz in extra_landmarks.items():
         if name.startswith("Four Seasons Hotel Miami"):
             rows[name] = xyz
+    for name, xyz in md.landmarks.items():
+        if name.startswith("Four Seasons Hotel Miami"):
+            rows.setdefault(name, point(xyz))
     return {name: [float(value) for value in xyz] for name, xyz in rows.items()}
 
 

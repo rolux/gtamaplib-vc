@@ -3240,6 +3240,7 @@ def stage_index_for_id(chain: list[str], stage_id: str) -> int:
 
 def load_optimizer_priors(stage_index: int, chain: list[str]) -> dict[str, Any]:
     data = json.loads(PRIORS_PATH.read_text())
+    _initial_batch_id, initial_rows = data["batches"][0]
     batch_id, rows = data["batches"][0]
     for previous_index in range(stage_index):
         previous_camera = chain[previous_index]
@@ -3250,6 +3251,13 @@ def load_optimizer_priors(stage_index: int, chain: list[str]) -> dict[str, Any]:
             )
         result = json.loads(result_path.read_text())
         batch_id, rows = result["global"]["next_prior_batch"]
+    if batch_id != "initial":
+        existing_keys = {(row[0], row[1]) for row in rows}
+        rows = rows + [
+            row
+            for row in initial_rows
+            if (row[0], row[1]) not in existing_keys
+        ]
     return prior_rows_to_dict(rows, batch_id)
 
 

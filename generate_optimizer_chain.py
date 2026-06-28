@@ -60,6 +60,14 @@ def get_fixed_landmark_names(special: dict[str, Any]) -> set[str]:
     return set(special.get("landmarks_fixed", []))
 
 
+def get_upstream_four_seasons_landmark_names(md: Any) -> set[str]:
+    return {
+        name
+        for name in md.landmarks
+        if name.startswith("Four Seasons Hotel Miami (")
+    }
+
+
 def get_triangulatable_prior_landmark_names(
     rigid_rays_by_landmark: dict[str, list[tuple[str, Any]]],
     min_triangulation_delta_degrees: float,
@@ -137,12 +145,14 @@ def count_candidate_constraints(
 
 
 def initial_prior_landmarks(
+    md: Any,
     special: dict[str, Any],
     rigid_rays_by_landmark: dict[str, list[tuple[str, Any]]],
     min_delta: float,
 ) -> set[str]:
     return (
         get_fixed_landmark_names(special)
+        | get_upstream_four_seasons_landmark_names(md)
         | get_triangulatable_prior_landmark_names(rigid_rays_by_landmark, min_delta)
         | load_generated_landmark_names()
     )
@@ -358,7 +368,7 @@ def main() -> None:
     )
     rigid_names = rigid_camera_names(special)
     rays_by_landmark = get_rigid_rays_by_landmark(rigid_names, get_camera)
-    prior_landmarks = initial_prior_landmarks(special, rays_by_landmark, min_delta)
+    prior_landmarks = initial_prior_landmarks(md, special, rays_by_landmark, min_delta)
     fixed_elevations = fixed_elevation_lookup(special)
 
     if args.single:
