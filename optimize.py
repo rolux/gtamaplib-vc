@@ -3131,8 +3131,9 @@ def invalidate_chain_results(chain: list[str], stage_index: int) -> None:
             path.unlink()
             if index > stage_index:
                 removed_future.append(path)
-    if ACTIVE_OPTIMIZER_RESULT_PATH.exists():
-        ACTIVE_OPTIMIZER_RESULT_PATH.unlink()
+    # Keep the active world snapshot available while a new stage is running.
+    # The UI can continue to display the last accepted result instead of
+    # falling back to raw imported gtamaplib data.
     if removed_future:
         print("Removing later-stage optimizer result(s):")
         for path in removed_future:
