@@ -14,7 +14,7 @@ import api
 
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
-DEFAULT_OUTPUT_PATH = DATA_DIR / "export" / "observations.json"
+DEFAULT_OUTPUT_PATH = DATA_DIR / "export" / "observations.txt"
 
 
 def camera_id_map(md: Any) -> dict[str, str]:
@@ -36,8 +36,8 @@ def camera_sort_key(camera_name: str, camera_ids: dict[str, str]) -> tuple[Any, 
     match = re.fullmatch(r"([A-Z]+)(\d+)/(\d+)", camera_id)
     if not match:
         return (999, camera_id, camera_name)
-    group_order = {"T": 0, "L": 1, "S": 2}.get(match.group(1), 9)
-    return (group_order, int(match.group(2)), int(match.group(3)), camera_name)
+    group_order = {"L": 0, "T": 1, "S": 2}.get(match.group(1), 9)
+    return (int(match.group(2)), group_order, int(match.group(3)), camera_name)
 
 
 def camera_label(camera_name: str, camera_ids: dict[str, str]) -> str:
@@ -53,13 +53,24 @@ def fmt_number(value: float) -> str:
     return str(float(value)).rstrip("0").rstrip(".")
 
 
+def fmt_string(value: str) -> str:
+    return json.dumps(value, ensure_ascii=False)
+
+
+def format_observation_row(row: dict[str, Any]) -> str:
+    x, y = row["xy"]
+    text = f'        (({fmt_number(x)}, {fmt_number(y)}), {fmt_string(row["landmark"])}),'
+    if row.get("removed"):
+        return f"# {text}  # REMOVED"
+    return text
+
+
 def format_gtamapdata_block(rows_by_camera: dict[str, list[dict[str, Any]]]) -> str:
     lines: list[str] = []
     for camera_name, rows in rows_by_camera.items():
-        lines.append(f'    "{camera_name}": [')
+        lines.append(f"    {fmt_string(camera_name)}: [")
         for row in rows:
-            x, y = row["xy"]
-            lines.append(f'        (({fmt_number(x)}, {fmt_number(y)}), "{row["landmark"]}"),')
+            lines.append(format_observation_row(row))
         lines.append("    ],")
     return "\n".join(lines) + ("\n" if lines else "")
 
@@ -98,40 +109,35 @@ def build_export() -> dict[str, Any]:
 
     added_with_renames = added + rename_additions
 
-    def grouped(rows: list[tuple[str, str, list[float]]]) -> dict[str, list[dict[str, Any]]]:
-        camera_names = sorted({camera_name for camera_name, _, _ in rows}, key=lambda name: camera_sort_key(name, camera_ids))
-        result: dict[str, list[dict[str, Any]]] = {}
-        for camera_name in camera_names:
-            camera_rows = [
-                {"landmark": landmark_name, "xy": xy}
-                for row_camera_name, landmark_name, xy in rows
-                if row_camera_name == camera_name
-            ]
-            camera_rows.sort(key=lambda row: (row["xy"][0], row["xy"][1], row["landmark"]))
-            result[camera_label(camera_name, camera_ids)] = camera_rows
-        return result
+    export_rows: list[tuple[str, str, list[float], bool]] = [
+        (camera_name, landmark_name, xy, False)
+        for camera_name, landmark_name, xy in added_with_renames
+    ]
+    export_rows.extend(
+        (camera_name, landmark_name, new_xy, False)
+        for camera_name, landmark_name, _old_xy, new_xy in changed
+    )
+    export_rows.extend(
+        (camera_name, landmark_name, xy, True)
+        for camera_name, landmark_name, xy in removed
+    )
 
-    def grouped_changed(rows: list[tuple[str, str, list[float], list[float]]]) -> dict[str, list[dict[str, Any]]]:
+    def grouped(rows: list[tuple[str, str, list[float], bool]]) -> dict[str, list[dict[str, Any]]]:
         camera_names = sorted({camera_name for camera_name, _, _, _ in rows}, key=lambda name: camera_sort_key(name, camera_ids))
         result: dict[str, list[dict[str, Any]]] = {}
         for camera_name in camera_names:
             camera_rows = [
-                {"landmark": landmark_name, "from": old_xy, "to": new_xy}
-                for row_camera_name, landmark_name, old_xy, new_xy in rows
+                {"landmark": landmark_name, "xy": xy, "removed": removed}
+                for row_camera_name, landmark_name, xy, removed in rows
                 if row_camera_name == camera_name
             ]
-            camera_rows.sort(key=lambda row: (row["to"][0], row["to"][1], row["landmark"]))
+            camera_rows.sort(key=lambda row: (row["xy"][0], row["xy"][1], row["landmark"], row["removed"]))
             result[camera_label(camera_name, camera_ids)] = camera_rows
         return result
 
-    additions = grouped(added_with_renames)
-    removals = grouped(removed)
+    gtamapdata = format_gtamapdata_block(grouped(export_rows))
 
     return {
-        "schema": "gtamaplib-vc-observation-export-v1",
-        "sources": {
-            "observation_edits": str(api.OBSERVATION_EDITS_JSON_PATH.relative_to(ROOT)),
-        },
         "counts": {
             "raw_edits": len(raw_edits),
             "added": len(added),
@@ -139,13 +145,7 @@ def build_export() -> dict[str, Any]:
             "changed": len(changed),
             "removed": len(removed),
         },
-        "additions": additions,
-        "removals": removals,
-        "changes": grouped_changed(changed),
-        "gtamapdata": {
-            "additions": format_gtamapdata_block(additions),
-            "removals": format_gtamapdata_block(removals),
-        },
+        "gtamapdata": gtamapdata,
     }
 
 
@@ -160,7 +160,7 @@ def main() -> None:
         nargs="?",
         type=Path,
         default=DEFAULT_OUTPUT_PATH,
-        help="Output JSON file. Defaults to data/export/observations.json.",
+        help="Output text file. Defaults to data/export/observations.txt.",
     )
     parser.add_argument(
         "--remove",
@@ -171,13 +171,10 @@ def main() -> None:
 
     data = build_export()
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(data, indent=4, ensure_ascii=False) + "\n")
+    args.output.write_text(data["gtamapdata"])
 
-    if data["gtamapdata"]["additions"]:
-        print(data["gtamapdata"]["additions"], end="")
-    if data["gtamapdata"]["removals"]:
-        print("\nRemoved observations:")
-        print(data["gtamapdata"]["removals"], end="")
+    if data["gtamapdata"]:
+        print(data["gtamapdata"], end="")
     print(
         "Wrote {path} with {added} additions ({added_with_renames} including renames), "
         "{changed} changes, {removed} removals.".format(path=args.output, **data["counts"])

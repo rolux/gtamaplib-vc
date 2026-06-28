@@ -107,7 +107,7 @@ The importer writes `data/gtamapdata.json` from **gtamaplib**, creates editable 
 
 ## Observation Editing
 
-The UI allows you to add, move, rename, and remove observations. These edits are stored locally in `data/observation_edits.json` and applied by the frontend on top of the current **gtamaplib** data. For now, these annotations are strictly private, but you can export them with `export_observations.py`.
+The UI allows you to add, move, rename, and remove observations. These edits are stored locally in `data/observation_edits.json` and applied by the frontend on top of the current **gtamaplib** data. For now, these annotations are strictly private, but you can export them as a paste-ready **gtamaplib** text block with `export_observations.py`.
 
 `server.py` starts both the browser UI on port `8026` and the local editing API on port `8027`. You do not normally need to run the API separately.
 
