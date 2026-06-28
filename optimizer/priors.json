@@ -2875,6 +2875,26 @@
                 ],
                 [
                     "landmark",
+                    "Four Seasons Hotel Miami (32NE)",
+                    [
+                        -800.0,
+                        -1273.0,
+                        156.902
+                    ],
+                    0.0
+                ],
+                [
+                    "landmark",
+                    "Four Seasons Hotel Miami (32NW)",
+                    [
+                        -848.707,
+                        -1254.789,
+                        156.902
+                    ],
+                    0.0
+                ],
+                [
+                    "landmark",
                     "Four Seasons Hotel Miami (40E)",
                     [
                         -809.456,
@@ -3040,6 +3060,16 @@
                         -817.997,
                         -1316.422,
                         258.306
+                    ],
+                    0.0
+                ],
+                [
+                    "landmark",
+                    "Four Seasons Hotel Miami (HB28SE)",
+                    [
+                        -816.865,
+                        -1313.394,
+                        140.784
                     ],
                     0.0
                 ],
