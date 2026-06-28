@@ -1,0 +1,28 @@
+{
+    "schema": "gtamaplibvc-optimizer-config-v1",
+    "landmarks": [
+        "Carbonell Brickell",
+        "Citigroup Center (NE)",
+        "Citigroup Center (NW)",
+        "Four Seasons Hotel Miami (BE)",
+        "Four Seasons Hotel Miami (NE)",
+        "Four Seasons Hotel Miami (NW)",
+        "Kaseya Center (SE)",
+        "Loft Downtown II",
+        "Miami Tower",
+        "One Miami Condominium East (SE)",
+        "One Miami Condominium East (NE)",
+        "One Miami Condominium West (SE)",
+        "One Miami Condominium West (NE)",
+        "Skyviews Miami Observation Wheel",
+        "Southeast Financial Center",
+        "Stephen P. Clark Government Center (E)",
+        "Vizcayne North Condominium (NE)",
+        "Vizcayne North Condominium (SE)",
+        "Wells Fargo Center (N)"
+    ],
+    "rays": [
+
+    ],
+    "objects": []
+}

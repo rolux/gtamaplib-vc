@@ -1,0 +1,17 @@
+{
+    "schema": "gtamaplibvc-optimizer-config-v1",
+    "landmarks": [
+        "Kaseya Center (SE)"
+    ],
+    "rays": [
+        ["Shitzu Squalo 01 (Bay)", "Highway Sign (404) (BL)"],
+        ["Shitzu Squalo 01 (Bay)", "Highway Sign (404) (BR)"],
+        ["Shitzu Squalo 01 (Bay)", "Highway Sign (404) (TL)"],
+        ["Shitzu Squalo 01 (Bay)", "Highway Sign (404) (TR)"],
+        ["Shitzu Squalo 01 (Bay)", "KC01"],
+        ["Shitzu Squalo 01 (Bay)", "KC02"],
+        ["Shitzu Squalo 01 (Bay)", "KC07"],
+        ["Shitzu Squalo 01 (Bay)", "KC08"]
+    ],
+    "objects": []
+}

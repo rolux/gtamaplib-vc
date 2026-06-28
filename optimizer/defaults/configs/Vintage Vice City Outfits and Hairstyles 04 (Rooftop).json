@@ -1,0 +1,11 @@
+{
+    "schema": "gtamaplibvc-optimizer-config-v1",
+    "landmarks": [
+        "Miami Tower",
+        "Miami-Dade County Courthouse"
+    ],
+    "rays": [
+        ["Skyline", "Vizcayne South Condominium (NW)"]
+    ],
+    "objects": []
+}

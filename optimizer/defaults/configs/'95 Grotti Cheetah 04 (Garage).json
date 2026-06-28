@@ -1,0 +1,15 @@
+{
+    "schema": "gtamaplibvc-optimizer-config-v1",
+    "landmarks": [
+        "Four Seasons Hotel Miami (32NE)",
+        "Four Seasons Hotel Miami (32NW)",
+        "Four Seasons Hotel Miami (HB28SE)",
+        "Four Seasons Hotel Miami (32NE)",
+        "Four Seasons Hotel Miami (32NW)",
+        "Four Seasons Hotel Miami (HB28SE)"
+    ],
+    "rays": [
+        ["Motorboats (B)", "1450 Brickell Ave"]
+    ],
+    "objects": []
+}

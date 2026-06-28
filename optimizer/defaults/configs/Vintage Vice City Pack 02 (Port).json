@@ -1,0 +1,10 @@
+{
+    "schema": "gtamaplibvc-optimizer-config-v1",
+    "landmarks": [
+        "Container Crane (1)",
+        "Container Crane (2)",
+        "Container Crane (9)"
+    ],
+    "rays": [],
+    "objects": []
+}

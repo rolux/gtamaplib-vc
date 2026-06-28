@@ -1,15 +1,29 @@
 {
     "schema": "gtamaplibvc-optimizer-config-v1",
     "landmarks": [
-        "Skyviews Miami Observation Wheel"
+        "Container Crane (1)",
+        "Container Crane (2)",
+        "Container Crane (3)",
+        "Highway Sign (404) (BL)",
+        "Highway Sign (404) (BR)",
+        "Highway Sign (404) (TL)",
+        "Highway Sign (404) (TR)",
+        "KC01",
+        "KC02",
+        "KC07",
+        "KC08"
     ],
     "rays": [
-        ["Motorboats (B)", "Container Crane (1)"],
-        ["Motorboats (B)", "Container Crane (2)"],
-        ["Motorboats (B)", "Container Crane (3)"],
+        ["Convertible", "KC03"],
+        ["Convertible", "KC04"],
+        ["Convertible", "KC06"],
+        ["Convertible", "KC09"],
+        ["Convertible", "KC10"],
+        ["Convertible", "KC11"],
+        ["Skyline", "Cruise Ship (FT)"],
         ["Skyline", "Kaseya Center (NW)"],
-        ["Skyline", "Kaseya Center (SE)"],
-        ["Skyline", "Knight Concert Hall (NE)"]
+        ["Vice City Postcard", "Cruise Ship (RT)"],
+        ["Vice City Postcard", "Kaseya Center (S)"]
     ],
     "objects": []
 }
