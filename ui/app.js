@@ -1361,8 +1361,11 @@ function scheduleMapRender() {
 function centerMapSelection(zoom = null) {
   if (state.view !== "map" || !state.data.map) return;
   let point = null;
-  if (state.landmark) point = entityWorldPoint(landmarkByName.get(state.landmark));
-  if (!point && state.camera) point = entityWorldPoint(state.camera);
+  if (state.landmark) {
+    point = entityWorldPoint(landmarkByName.get(state.landmark));
+  } else if (state.camera) {
+    point = entityWorldPoint(state.camera);
+  }
   if (!point) return;
   if (zoom !== null) state.map.zoom = zoom;
   state.map.centerX = point.x;
