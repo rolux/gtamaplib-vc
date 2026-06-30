@@ -452,10 +452,56 @@
             ]
         },
         {
+            "z": 8.0,
+            "landmarks": [
+                "Ambrosia Main St (A)",
+                "Ambrosia Main St (B)",
+                "Ambrosia Main St (C)",
+                "Ambrosia Main St (D)",
+                "Ambrosia Main St (E)",
+                "Ambrosia Main St (V)",
+                "Ambrosia Main St (W)",
+                "Ambrosia Main St (X)",
+                "Ambrosia Main St (Y)",
+                "Ambrosia Main St (Z)",
+                "Canal C (Ambrosia) (1)",
+                "Canal C (Ambrosia) (2)",
+                "Route 35 (Y)",
+                "Route 35 (Z)",
+                "Train Tracks (Ambrosia) (A)",
+                "Train Tracks (Ambrosia) (B)",
+                "US Sugar Mill (Office) (B)"
+            ]
+        },
+        {
             "z": 10.0,
             "landmarks": [
                 "North-South Highway (A)",
                 "North-South Highway (B)"
+            ]
+        },
+        {
+            "z": 12.0,
+            "landmarks": [
+                "Canal A (Ambrosia) (1)",
+                "Canal A (Ambrosia) (2)",
+                "Canal B (Ambrosia) (1)",
+                "Canal B (Ambrosia) (2)",
+                "Car A (Ambrosia) (1)",
+                "Car A (Ambrosia) (2)",
+                "Path A (Ambrosia) (1)",
+                "Path A (Ambrosia) (2)",
+                "Path B (Ambrosia) (1)",
+                "Path B (Ambrosia) (2)",
+                "Path C (Ambrosia) (1)",
+                "Path C (Ambrosia) (2)",
+                "Radio Tower (Ambrosia) (B)",
+                "Road A (Ambrosia) (1)",
+                "Road A (Ambrosia) (2)",
+                "Road B (Ambrosia) (1)",
+                "Road B (Ambrosia) (2)",
+                "Road C (Ambrosia) (1)",
+                "Road C (Ambrosia) (2)"
             ]
         },
         {
@@ -499,5 +545,9 @@
                 "Port of Tampa Container Crane (3)"
             ]
         }
-    ]
+    ],
+    "landmarks_bases": {
+        "Billboard with Irregular Shape": "Billboard with Irregular Shape (B)",
+        "Billboard with Oval Motif #1": "Billboard with Oval Motif #1 (B)"
+    }
 }
