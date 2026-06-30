@@ -56,6 +56,7 @@ from gtamaplib.gtamaplib import (
     normalize_name,
 )
 from utils.construct_landmarks import construct_landmarks, write_map3d_constructed_data
+from utils.import_data import landmarks_bases_lookup as special_landmarks_bases_lookup
 
 
 PARAM_ORDER = ["x", "y", "z", "yaw_delta", "pitch", "roll", "hfov"]
@@ -164,6 +165,12 @@ def fixed_elevation_lookup() -> dict[str, float]:
         for name in group.get("landmarks", []):
             lookup[name] = z
     return lookup
+
+
+def landmarks_bases_lookup() -> dict[str, str]:
+    if not SPECIAL_PATH.exists():
+        return {}
+    return special_landmarks_bases_lookup(json.loads(SPECIAL_PATH.read_text()))
 
 
 def object_elevation_lookup(solve: dict[str, Any]) -> dict[str, float]:
@@ -1181,6 +1188,36 @@ def triangulate_from_local_solution(
                 "explicit": False,
             }
         )
+    current_cameras = {
+        name: {
+            "xyz": prior["xyz"],
+            "ypr": prior["ypr"],
+            "fov": prior["fov"],
+            "size": prior["size"],
+        }
+        for name, prior in priors["cameras"].items()
+    }
+    current_cameras[solve["camera_name"]] = {
+        "xyz": target_xyz,
+        "ypr": target_ypr,
+        "fov": target_fov,
+        "size": target_size,
+    }
+    current_landmarks = {
+        name: prior["xyz"]
+        for name, prior in priors["landmarks"].items()
+    }
+    new_landmark_names = {row["name"] for row in rows}
+    for row in rows:
+        current_landmarks[row["name"]] = row["xyz"]
+    for row in triangulate_landmark_bases(
+        current_cameras,
+        current_landmarks,
+        new_landmark_names,
+    ):
+        if row["name"] in current_landmarks or is_known_prior_landmark(row["name"]):
+            continue
+        rows.append(row)
     return rows
 
 
@@ -1337,10 +1374,11 @@ def build_global_system(
     for row in triangulations:
         add_observation(
             {
-                "type": "triangulated_target",
+                "type": row["type"] if row["type"] == "base_intersection" else "triangulated_target",
                 "camera": row["target_camera"],
                 "landmark": row["name"],
                 "pixel": tuple(row["target_pixel"]),
+                "top_name": row.get("top_name"),
                 "source_camera": row.get("source_camera"),
                 "explicit": bool(row.get("explicit")),
                 "configured": bool(row.get("explicit")),
@@ -2029,6 +2067,8 @@ def next_prior_batch(
             ]
         )
     for index, name in enumerate(system["landmark_names"]):
+        if system["landmarks"][name].get("triangulation", {}).get("type") == "base_intersection":
+            continue
         prior = system["landmarks"][name]["prior"]
         rows.append(
             [
@@ -2515,6 +2555,8 @@ def print_new_priors(report: dict[str, Any]) -> None:
         triangulations_by_name.setdefault(row["name"], []).append(row)
     printed_names: set[str] = set()
     for row in report["triangulations"]:
+        if row["type"] == "base_intersection":
+            continue
         if landmark_sources.get(row["name"]) != "triangulated":
             continue
         if row["name"] in printed_names:
@@ -2898,6 +2940,66 @@ def recompute_fixed_elevation_landmarks(cameras: dict[str, Any]) -> dict[str, li
         ]
         for landmark_name, points in points_by_name.items()
     }
+
+
+def triangulate_landmark_bases(
+    cameras: dict[str, Any],
+    landmarks: dict[str, Any],
+    top_names: set[str],
+) -> list[dict[str, Any]]:
+    bases = landmarks_bases_lookup()
+    if not bases:
+        return []
+    rows: list[dict[str, Any]] = []
+    for top_name, base_name in sorted(bases.items()):
+        if top_name not in top_names:
+            continue
+        if top_name not in landmarks:
+            continue
+        top_xyz = np.asarray(landmarks[top_name], dtype=float)
+        for camera_name, camera_values in cameras.items():
+            if camera_name not in md.cameras or camera_values["xyz"] is None:
+                continue
+            camera = get_camera(camera_name)
+            if base_name not in camera.landmark_pixels:
+                continue
+            xyz = np.asarray(camera_values["xyz"], dtype=float)
+            ypr = tuple(float(value) for value in camera_values["ypr"])
+            fov = tuple(float(value) for value in camera_values["fov"])
+            size = tuple(int(value) for value in camera_values["size"])
+            direction = camera_direction_from_pixel(
+                tuple(float(value) for value in camera.landmark_pixels[base_name]),
+                ypr,
+                fov,
+                size,
+            )
+            try:
+                _midpoint, point_base, _point_camera, _distance, _angle = intersect_ray_and_ray(
+                    (top_xyz, (0, 0, -1)),
+                    (xyz, direction),
+                )
+            except Exception:
+                continue
+            if not np.all(np.isfinite(point_base)) or float(point_base[2]) > float(top_xyz[2]):
+                continue
+            rows.append(
+                {
+                    "type": "base_intersection",
+                    "name": base_name,
+                    "top_name": top_name,
+                    "target_camera": camera_name,
+                    "xyz": [float(value) for value in point_base],
+                    "target_pixel": [
+                        float(value)
+                        for value in camera.landmark_pixels[base_name]
+                    ],
+                    "base_distance_m": float(_distance),
+                    "base_angle_arcmin": float(_angle) * 60.0,
+                    "xyz_rigidity_m": None,
+                    "explicit": False,
+                }
+            )
+    return rows
 
 
 def write_optimizer_result_snapshot(report: dict[str, Any], result_path: Path) -> None:

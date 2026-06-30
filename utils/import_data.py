@@ -391,6 +391,7 @@ def write_special_if_missing(md: Any) -> None:
         "camera_rigidity": camera_rigidity(md),
         "landmarks_fixed": LANDMARKS_FIXED,
         "landmarks_fixed_elevation": fixed_elevation(md),
+        "landmarks_bases": {},
     }
     SPECIAL_JSON_PATH.write_text(json.dumps(special, indent=4, ensure_ascii=False) + "\n")
     print(f"Wrote editable {SPECIAL_JSON_PATH}")
@@ -424,6 +425,13 @@ def rigid_camera_names(special: dict[str, Any]) -> set[str]:
         if int(group["level"]) in {1, 2, 3}:
             names.update(group.get("cameras", []))
     return names
+
+
+def landmarks_bases_lookup(special: dict[str, Any]) -> dict[str, str]:
+    return {
+        str(top_name): str(base_name)
+        for top_name, base_name in special.get("landmarks_bases", {}).items()
+    }
 
 
 def mean_pair_delta_m(rays: list[tuple[Any, Any]], intersect_ray_and_ray: Any) -> float:
@@ -845,6 +853,14 @@ def write_import_extras(md: Any, get_camera: Any, intersect_rays: Any, intersect
             "FourSeasons().hb58ne",
         ],
     }
+    generated_landmarks = triangulate_missing_landmarks(
+        md,
+        get_camera,
+        intersect_rays,
+        intersect_ray_and_ray,
+        special,
+        config,
+    )
     import_extras = {
         "schema": "gtamaplibvc-import-extras-v1",
         "formats": {
@@ -863,14 +879,7 @@ def write_import_extras(md: Any, get_camera: Any, intersect_rays: Any, intersect
             }
         },
         "added_landmarks": added_landmarks,
-        "generated_landmarks": triangulate_missing_landmarks(
-            md,
-            get_camera,
-            intersect_rays,
-            intersect_ray_and_ray,
-            special,
-            config,
-        ),
+        "generated_landmarks": generated_landmarks,
     }
     IMPORT_EXTRAS_JSON_PATH.write_text(dumps_import_extras(import_extras))
     print(
