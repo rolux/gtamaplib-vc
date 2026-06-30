@@ -210,6 +210,7 @@ def explore_loss(
     spacing: float,
     budget: int,
     max_nfev: int,
+    radius: float | None,
 ) -> list[dict[str, Any]]:
     point_targets, ray_targets, object_targets = build_observation_targets(solve, priors)
     initial_params = load_current_stage_params(stage_index, solve)
@@ -228,6 +229,8 @@ def explore_loss(
             return
         x = center_x + cell[0] * spacing
         y = center_y + cell[1] * spacing
+        if radius is not None and math.hypot(x - center_x, y - center_y) > radius:
+            return
         sample = loss_for_xy(
             x,
             y,
@@ -355,6 +358,7 @@ def render_camera_loss(
     budget: int,
     max_steps: int,
     map_name: str,
+    radius: float | None,
 ) -> Path:
     solve = opt.solve_from_chain_stage(chain[stage_index])
     priors = opt.load_optimizer_priors(stage_index, chain)
@@ -363,8 +367,9 @@ def render_camera_loss(
     opt.validate_stage_order(solve, priors, blocked_cameras)
 
     print(f"Rendering loss landscape for {solve['camera_name']}")
-    print(f"spacing {spacing:g}m, budget {budget}, max steps {max_steps}")
-    samples = explore_loss(solve, priors, stage_index, spacing, budget, max_steps)
+    radius_text = "unbounded" if radius is None else f"{radius:g}m"
+    print(f"spacing {spacing:g}m, radius {radius_text}, budget {budget}, max steps {max_steps}")
+    samples = explore_loss(solve, priors, stage_index, spacing, budget, max_steps, radius)
     image_path = render_loss_image(solve["camera_name"], samples, spacing, map_name)
     best = samples[0]
     print()
@@ -386,6 +391,7 @@ def main() -> None:
     parser.add_argument("--spacing", type=float, default=10.0, help="Grid spacing in meters.")
     parser.add_argument("--budget", "-n", type=int, default=1000, help="Maximum number of grid cells to solve.")
     parser.add_argument("--max-steps", type=int, default=DEFAULT_MAX_NFEV, help="Maximum function evaluations per grid cell.")
+    parser.add_argument("--radius", type=float, help="Maximum XY radius in meters around the current camera position.")
     parser.add_argument("--map", default=opt.DEFAULT_RENDER_MAP_NAME, help="Map name to render.")
     args = parser.parse_args()
 
@@ -393,10 +399,10 @@ def main() -> None:
     chain = opt.load_chain()
     if args.all:
         for stage_index in range(len(chain)):
-            render_camera_loss(chain, stage_index, args.spacing, args.budget, args.max_steps, args.map)
+            render_camera_loss(chain, stage_index, args.spacing, args.budget, args.max_steps, args.map, args.radius)
     else:
         stage_index = opt.stage_index_for_id(chain, args.camera)
-        render_camera_loss(chain, stage_index, args.spacing, args.budget, args.max_steps, args.map)
+        render_camera_loss(chain, stage_index, args.spacing, args.budget, args.max_steps, args.map, args.radius)
 
 
 if __name__ == "__main__":
