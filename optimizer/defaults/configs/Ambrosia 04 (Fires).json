@@ -5,8 +5,8 @@
     ],
     "rays": [
         ["Ambrosia 02 (Panorama)", "1500 Sonora Ave (Tank)"],
-        ["Ambrosia 02 (Panorama)", "Sebring Water Tower"],
-        ["Ambrosia 02 (Panorama)", "Sebring Water Tower (B)"],
+        ["Ambrosia 02 (Panorama)", "Daytona Beach Water Tower"],
+        ["Ambrosia 02 (Panorama)", "Daytona Beach Water Tower (B)"],
         ["Ambrosia 02 (Panorama)", "US Sugar Mill (Factory)"],
         ["Ambrosia 02 (Panorama)", "US Sugar Mill (Factory) (R)"],
         ["Ambrosia 02 (Panorama)", "USSM Smokestack (4)"],
@@ -15,7 +15,11 @@
         ["Ambrosia 02 (Panorama)", "USSM Smokestack (7)"],
         ["Ambrosia 02 (Panorama)", "USSM Smokestack (8)"],
         ["Ambrosia 02 (Panorama)", "USSM Smokestack (9)"],
-        ["Chase (2) (A)", "Sunshine Skyway Bridge (S)"]
+        ["Ambrosia 02 (Panorama)", "Wheelabrator South Broward (W)"],
+        ["Chase (2) (A)", "Sunshine Skyway Bridge (S)"],
+        ["Chase (2) (B)", "Sunshine Skyway Bridge (S)"]
     ],
-    "objects": []
+    "objects": [
+        ["Car A (Ambrosia) (1)", "Car A (Ambrosia) (2)", "horizontal", 5.78, 12.0]
+    ]
 }

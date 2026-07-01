@@ -1,11 +1,12 @@
 {
     "schema": "gtamaplibvc-optimizer-config-v1",
     "landmarks": [
-        "FAA Miami ATCT (MIA)"
+        "FAA Miami ATCT (MIA)",
+        "MIA North Terminal Tower"
     ],
     "rays": [
-        ["Leonida Keys 01 (Airplane) (X)", "MIA North Terminal Tower"],
         ["Loading Zone near Prison (SW)", "Water Tower near Prison"],
+        ["Port Vice City (A)", "Round Water Tower"],
         ["WDNA FM Fake Cam", "WDNA FM (B)"]
     ],
     "objects": [

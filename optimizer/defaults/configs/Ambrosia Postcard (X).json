@@ -12,12 +12,37 @@
         "USSM Smokestack (9)"
     ],
     "rays": [
+        ["Ambrosia 02 (Panorama)", "1500 Sonora Ave (Silo)"],
         ["Ambrosia 02 (Panorama)", "1500 Sonora Ave (Tank)"],
         ["Ambrosia 02 (Panorama)", "Dark Billboard (Ambrosia)"],
+        ["Ambrosia 02 (Panorama)", "Dark Billboard (Ambrosia) (TE)"],
+        ["Ambrosia 02 (Panorama)", "Dark Billboard (Ambrosia) (TW)"],
         ["Ambrosia 02 (Panorama)", "Industrial Building (Ambrosia)"],
         ["Ambrosia 02 (Panorama)", "USSM Smokestack (10)"],
         ["Ambrosia 02 (Panorama)", "USSM Smokestack (11)"],
+        ["Ambrosia 02 (Panorama)", "White Silos (E) (NE)"],
+        ["Ambrosia 02 (Panorama)", "White Silos (W) (NW)"],
+        ["Ambrosia 02 (Panorama)", "STA05"],
+        ["Ambrosia 02 (Panorama)", "STA08"],
+        ["Ambrosia 02 (Panorama)", "STA09"],
+        ["Ambrosia 02 (Panorama)", "STA10"],
+        ["Ambrosia 02 (Panorama)", "STA11"],
+        ["Ambrosia 02 (Panorama)", "STA12"],
+        ["Ambrosia 02 (Panorama)", "STA14"],
+        ["Ambrosia 02 (Panorama)", "STA15"],
+        ["Ambrosia 02 (Panorama)", "STA16"],
+        ["Ambrosia 02 (Panorama)", "STA17"],
+        ["Ambrosia 02 (Panorama)", "STA20"],
+        ["Ambrosia 02 (Panorama)", "STA21"],
+        ["Ambrosia 02 (Panorama)", "STA22"],
+        ["Ambrosia 02 (Panorama)", "STA23"],
+        ["Ambrosia 02 (Panorama)", "STA24"],
+        ["Ambrosia 02 (Panorama)", "STR03"],
+        ["Ambrosia 02 (Panorama)", "STR04"],
+        ["Ambrosia 02 (Panorama)", "STR05"],
         ["Ambrosia 04 (Fires)", "USSM Smokestack (3)"]
     ],
-    "objects": []
+    "objects": [
+        ["Black Bison (1)", "Black Bison (2)", "horizontal", 5.48, 6.0]
+    ]
 }
