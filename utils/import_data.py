@@ -1044,7 +1044,7 @@ def write_map3d_data(md: Any) -> None:
         result = json.loads(result_path.read_text())
         names.update(result.get("cameras", {}))
         names.update(result.get("landmarks", {}))
-    names.update({"Four Seasons Hotel Miami", "Sunshine Skyway Bridge", "536 Richard Jackson Blvd"})
+    names.update({"Four Seasons Hotel Miami", "Sunshine Skyway Bridge", "536 Richard Jackson Blvd", "Jason"})
     colors = {
         "schema": "gtamaplibvc-map3d-colors-v1",
         "colors": {

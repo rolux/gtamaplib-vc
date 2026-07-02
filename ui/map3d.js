@@ -1728,6 +1728,40 @@ function createFaaMiamiAtctWireframe(landmarks) {
   return { name: "FAA Miami ATCT (MIA)", color: colorForName("FAA Miami ATCT (MIA)"), segments };
 }
 
+function createJasonWireframe(cameras) {
+  const center = cameras.find((camera) => camera.name === "House with Boat (X)")?.player;
+  if (!center) return null;
+  const segments = [];
+  const radialSegments = 36;
+  const bodyRadius = 0.2;
+  const feetZ = center[2] - 1.0;
+  const shoulderZ = center[2] + 0.6;
+  const topZ = center[2] + 0.8;
+  const line = (a, b, style = "single") => segments.push({ points: [a, b], style });
+  const point = (angle, radius, z) => [
+    center[0] + Math.sin(angle) * radius,
+    center[1] + Math.cos(angle) * radius,
+    z,
+  ];
+  const ring = (radius, z) => Array.from({ length: radialSegments }, (_, index) => (
+    point(index * Math.PI * 2 / radialSegments, radius, z)
+  ));
+  const rings = [
+    ring(bodyRadius, feetZ),
+    ring(bodyRadius, shoulderZ),
+    ...Array.from({ length: 9 }, (_, index) => {
+      const capAngle = (index + 1) * 10 * Math.PI / 180;
+      return ring(bodyRadius * Math.cos(capAngle), shoulderZ + (topZ - shoulderZ) * Math.sin(capAngle));
+    }),
+  ];
+  for (let ringIndex = 0; ringIndex < rings.length - 1; ringIndex++) {
+    for (let index = 0; index < radialSegments; index++) {
+      line(rings[ringIndex][index], rings[ringIndex + 1][index]);
+    }
+  }
+  return { name: "Jason", color: colorForName("Jason"), segments };
+}
+
 function drawOverlay(matrix) {
   ctx.clearRect(0, 0, state.width, state.height);
   ctx.save();
@@ -2175,6 +2209,8 @@ async function init() {
   if (stephenPClarkGovernmentCenter) state.wireframes.push(stephenPClarkGovernmentCenter);
   const faaMiamiAtct = createFaaMiamiAtctWireframe(state.landmarks);
   if (faaMiamiAtct) state.wireframes.push(faaMiamiAtct);
+  const jason = createJasonWireframe(state.cameras);
+  if (jason) state.wireframes.push(jason);
   try {
     const fourSeasons = await loadJson(FOUR_SEASONS_WIREFRAME);
     if (fourSeasons.schema === "gtamaplibvc-map3d-four-seasons-v1") {
