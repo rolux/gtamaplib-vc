@@ -542,12 +542,12 @@ body.is-dragging #viewport {
 
 .player-cross {
   stroke-opacity: 0.75;
-  stroke-width: var(--horizon-guide-width, 1px);
+  stroke-width: var(--player-line-width, var(--horizon-guide-width, 1px));
 }
 
 .player-confidence-box {
   stroke-opacity: 0.45;
-  stroke-width: var(--horizon-guide-width, 1px);
+  stroke-width: var(--player-line-width, var(--horizon-guide-width, 1px));
 }
 
 .camera-cone {

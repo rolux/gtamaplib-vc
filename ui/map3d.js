@@ -1728,15 +1728,106 @@ function createFaaMiamiAtctWireframe(landmarks) {
   return { name: "FAA Miami ATCT (MIA)", color: colorForName("FAA Miami ATCT (MIA)"), segments };
 }
 
-function createJasonWireframe(cameras) {
-  const center = cameras.find((camera) => camera.name === "House with Boat (X)")?.player;
+const PLAYER_WIREFRAMES = [
+  { camera: "Diner", character: "Jason" },
+  { camera: "Diner (NE)", character: "Lucia" },
+  { camera: "Diner (N)", character: "Lucia" },
+  { camera: "Diner (NW)", character: "Lucia" },
+  { camera: "Diner (W) (A)", character: "Lucia" },
+  { camera: "Diner (W) (B)", character: "Lucia" },
+  { camera: "Diner (SW)", character: "Lucia" },
+  { camera: "Diner (S)", character: "Lucia" },
+  { camera: "Diner (E)", character: "Lucia" },
+  { camera: "Diner (SE) (A)", character: "Lucia" },
+  { camera: "Diner (SE) (B)", character: "Lucia" },
+  { camera: "Easy Inn", character: "Lucia" },
+  { camera: "Car Wash", character: "Lucia" },
+  { camera: "Trees", character: "Unknown" },
+  { camera: "Sidewalk (Jason) (E)", character: "Jason" },
+  { camera: "Port", character: "Jason" },
+  { camera: "Gas Station (Lucia)", character: "Lucia" },
+  { camera: "Motel", character: "Jason" },
+  { camera: "Pawn Shop (W)", character: "Jason" },
+  { camera: "Pawn Shop (S)", character: "Jason" },
+  { camera: "Sidewalk (Lucia)", character: "Lucia" },
+  { camera: "Auto Shop (SE)", character: "Jason" },
+  { camera: "Auto Shop (SW)", character: "Jason" },
+  { camera: "Auto Shop (NW)", character: "Jason" },
+  { camera: "Auto Shop (NE)", character: "Jason" },
+  { camera: "House with Boat (X)", character: "Jason" },
+  { camera: "Shootout (S)", character: "Lucia" },
+  { camera: "Shootout (W)", character: "Lucia" },
+  { camera: "Park", character: "Lucia" },
+  { camera: "Bar", character: "Lucia" },
+  { camera: "Yard", character: "Lucia" },
+  { camera: "Hedge (B) (X)", character: "Lucia" },
+  { camera: "Hedge (C) (X)", character: "Lucia" },
+  { camera: "Hedge (D)", character: "Lucia" },
+  { camera: "Glitch (A)", character: "Lucia" },
+  { camera: "Boat (Jason)", character: "Jason" },
+  { camera: "Hotel (E)", character: "Jason" },
+  { camera: "Hotel (W)", character: "Jason" },
+  { camera: "Farm", character: "Jason" },
+  { camera: "Gas Station (Jason)", character: "Jason" },
+  { camera: "Ocean near Keys (N)", character: "Jason" },
+  { camera: "Ocean near Keys (E)", character: "Jason" },
+  { camera: "Metro (SE) (A) (4K)", character: "Jason" },
+  { camera: "Metro (SE) (B)", character: "Jason" },
+  { camera: "Metro (SE) (C)", character: "Jason" },
+  { camera: "Metro (NE) (B)", character: "Jason" },
+  { camera: "Tarmac", character: "Unknown" },
+  { camera: "Sidewalk (Jason) (S)", character: "Jason" },
+  { camera: "Parking Lot", character: "Lucia" },
+  { camera: "Loading Zone near Prison (N)", character: "Lucia" },
+  { camera: "Pool", character: "Jason" },
+  { camera: "Loading Zone near Prison (SW)", character: "Lucia" },
+  { camera: "Highway (N)", character: "Lucia" },
+  { camera: "Highway (NE)", character: "Lucia" },
+  { camera: "Highway (E)", character: "Lucia" },
+  { camera: "Welcome Center (E)", character: "Lucia" },
+  { camera: "Welcome Center (W)", character: "Lucia" },
+  { camera: "Store (Lucia)", character: "Lucia" },
+  { camera: "Intersection (W)", character: "Lucia" },
+  { camera: "Police Chase (A)", character: "Lucia" },
+  { camera: "Police Chase (B)", character: "Lucia" },
+  { camera: "Police Chase (C)", character: "Lucia" },
+  { camera: "Police Chase (D)", character: "Lucia" },
+  { camera: "Police Chase (E)", character: "Lucia" },
+  { camera: "Police Chase (F)", character: "Lucia" },
+  { camera: "Police Chase (G)", character: "Lucia" },
+  { camera: "Police Chase (H)", character: "Lucia" },
+  { camera: "Police Chase (I)", character: "Lucia" },
+  { camera: "Police Chase (J)", character: "Lucia" },
+  { camera: "Strip Club (Jason) (U)", character: "Jason" },
+  { camera: "Strip Club (Jason) (D)", character: "Jason" },
+  { camera: "Intersection (SE)", character: "Lucia" },
+  { camera: "Alley (W)", character: "Unknown" },
+  { camera: "Airport (X)", character: "Jason" },
+  { camera: "Bedroom", character: "Jason" },
+  { camera: "Backyard", character: "Lucia" },
+  { camera: "Grassrivers Sign", character: "Unknown" },
+  { camera: "Tennis Court (SW)", character: "Jason" },
+  { camera: "Tennis Court (N)", character: "Jason" },
+  { camera: "Tennis Court (NE)", character: "Jason" },
+  { camera: "Tennis Court (E)", character: "Jason" },
+  { camera: "Tennis Court (SE)", character: "Jason" },
+  { camera: "Tennis Stadium (4K)", character: "Unknown" },
+  { camera: "Hangar (A)", character: "Unknown" },
+  { camera: "Hangar (B)", character: "Unknown" },
+  { camera: "Hangar (C)", character: "Unknown" },
+];
+
+function createPlayerWireframe(camera, character) {
+  const center = camera?.player;
   if (!center) return null;
   const segments = [];
   const radialSegments = 36;
   const bodyRadius = 0.2;
+  const height = character === "Lucia" ? 1.6 : character === "Unknown" ? 1.7 : 1.8;
+  const shoulderHeight = Math.max(0, height - 0.2);
   const feetZ = center[2] - 1.0;
-  const shoulderZ = center[2] + 0.6;
-  const topZ = center[2] + 0.8;
+  const shoulderZ = feetZ + shoulderHeight;
+  const topZ = feetZ + height;
   const line = (a, b, style = "single") => segments.push({ points: [a, b], style });
   const point = (angle, radius, z) => [
     center[0] + Math.sin(angle) * radius,
@@ -1759,7 +1850,14 @@ function createJasonWireframe(cameras) {
       line(rings[ringIndex][index], rings[ringIndex + 1][index]);
     }
   }
-  return { name: "Jason", color: colorForName("Jason"), segments };
+  return { name: `${character} (${camera.name})`, color: colorForName(camera.name), segments };
+}
+
+function createPlayerWireframes(cameras) {
+  const camerasByName = new Map(cameras.map((camera) => [camera.name, camera]));
+  return PLAYER_WIREFRAMES
+    .map(({ camera, character }) => createPlayerWireframe(camerasByName.get(camera), character))
+    .filter(Boolean);
 }
 
 function drawOverlay(matrix) {
@@ -2209,8 +2307,7 @@ async function init() {
   if (stephenPClarkGovernmentCenter) state.wireframes.push(stephenPClarkGovernmentCenter);
   const faaMiamiAtct = createFaaMiamiAtctWireframe(state.landmarks);
   if (faaMiamiAtct) state.wireframes.push(faaMiamiAtct);
-  const jason = createJasonWireframe(state.cameras);
-  if (jason) state.wireframes.push(jason);
+  state.wireframes.push(...createPlayerWireframes(state.cameras));
   try {
     const fourSeasons = await loadJson(FOUR_SEASONS_WIREFRAME);
     if (fourSeasons.schema === "gtamaplibvc-map3d-four-seasons-v1") {
