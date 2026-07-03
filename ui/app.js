@@ -52,6 +52,9 @@ const FAKE_CAMERA_SUFFIX = " Fake Cam";
 const MAP_CAMERA_CONE_DISTANCE = 25;
 const UNRESOLVED_MAP_RAY_DISTANCE = 32000;
 const FOCUS_ORDER = ["cameras", "map", "landmarks"];
+const PLAYER_CROSS_RADIUS_M = 1.0;
+const PLAYER_CONFIDENCE_HALF_SIZE_M = 0.1;
+const PLAYER_TIER3_CONFIDENCE_HALF_SIZE_M = 0.001;
 
 const els = {
   cameraFind: document.querySelector("#camera-find"),
@@ -324,7 +327,7 @@ function applyWorldSnapshot(snapshot) {
   for (const camera of state.data.cameras) {
     const current = snapshotCameras[camera.name];
     if (!current) continue;
-    camera.player = current.player;
+    if (Object.prototype.hasOwnProperty.call(current, "player")) camera.player = current.player;
     camera.xyz = current.xyz;
     camera.ypr = current.ypr;
     camera.fov = current.fov;
@@ -1032,30 +1035,62 @@ function renderGuides(layer) {
       }
     }
   }
+  renderPlayers(layer);
+}
 
-  const player = state.data.uiOverlay?.players?.[state.camera.name];
-  if (!player) return;
-  for (const item of player.cross || []) {
-    const segment = item.segment;
+function renderPlayers(layer) {
+  if (!state.camera) return;
+  const axes = [
+    ["#ff0000", [-PLAYER_CROSS_RADIUS_M, 0, 0], [PLAYER_CROSS_RADIUS_M, 0, 0]],
+    ["#00ff00", [0, -PLAYER_CROSS_RADIUS_M, 0], [0, PLAYER_CROSS_RADIUS_M, 0]],
+    ["#0000ff", [0, 0, -PLAYER_CROSS_RADIUS_M], [0, 0, PLAYER_CROSS_RADIUS_M]],
+  ];
+  const projectLine = (playerCamera, color, startOffset, endOffset, className, lineWidth) => {
+    const start = worldToCameraPixel(state.camera, [
+      playerCamera.player[0] + startOffset[0],
+      playerCamera.player[1] + startOffset[1],
+      playerCamera.player[2] + startOffset[2],
+    ]);
+    const end = worldToCameraPixel(state.camera, [
+      playerCamera.player[0] + endOffset[0],
+      playerCamera.player[1] + endOffset[1],
+      playerCamera.player[2] + endOffset[2],
+    ]);
+    if (!start || !end) return;
     layer.append(svg("line", {
-      class: "player-cross",
-      x1: segment[0][0],
-      y1: segment[0][1],
-      x2: segment[1][0],
-      y2: segment[1][1],
-      stroke: item.color,
+      class: className,
+      x1: start[0],
+      y1: start[1],
+      x2: end[0],
+      y2: end[1],
+      stroke: color,
+      style: `--player-line-width: ${lineWidth}px`,
     }));
-  }
-  for (const item of player.box || []) {
-    const segment = item.segment;
-    layer.append(svg("line", {
-      class: "player-confidence-box",
-      x1: segment[0][0],
-      y1: segment[0][1],
-      x2: segment[1][0],
-      y2: segment[1][1],
-      stroke: item.color,
-    }));
+  };
+  for (const playerCamera of state.data.cameras) {
+    if (!playerCamera?.player) continue;
+    const lineWidth = playerCamera.name === state.camera.name ? 2.0 : 1.0;
+    for (const [color, startOffset, endOffset] of axes) {
+      projectLine(playerCamera, color, startOffset, endOffset, "player-cross", lineWidth);
+    }
+    const halfSize = /^[A-Z]3(?:\/|$)/.test(playerCamera.id || "")
+      ? PLAYER_TIER3_CONFIDENCE_HALF_SIZE_M
+      : PLAYER_CONFIDENCE_HALF_SIZE_M;
+    for (const dz of [-halfSize, halfSize]) {
+      for (const dy of [-halfSize, halfSize]) {
+        projectLine(playerCamera, "#ff0000", [-halfSize, dy, dz], [halfSize, dy, dz], "player-confidence-box", lineWidth);
+      }
+    }
+    for (const dz of [-halfSize, halfSize]) {
+      for (const dx of [-halfSize, halfSize]) {
+        projectLine(playerCamera, "#00ff00", [dx, -halfSize, dz], [dx, halfSize, dz], "player-confidence-box", lineWidth);
+      }
+    }
+    for (const dy of [-halfSize, halfSize]) {
+      for (const dx of [-halfSize, halfSize]) {
+        projectLine(playerCamera, "#0000ff", [dx, dy, -halfSize], [dx, dy, halfSize], "player-confidence-box", lineWidth);
+      }
+    }
   }
 }
 
