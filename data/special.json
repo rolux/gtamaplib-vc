@@ -445,6 +445,26 @@
             ]
         },
         {
+            "z": 3.5,
+            "landmarks": [
+                "Grass (MIA) (A)",
+                "Grass (MIA) (B)",
+                "Grass (MIA) (C)",
+                "Grass (MIA) (D)",
+                "Grass (MIA) (E)",
+                "Road (MIA) (A)",
+                "Road (MIA) (B)",
+                "Road (MIA) (C)",
+                "Road (MIA) (D)",
+                "Road (MIA) (E)",
+                "Road (MIA) (F)",
+                "Road (MIA) (G)",
+                "Road (MIA) (H)",
+                "Road (MIA) (I)",
+                "Road (MIA) (J)"
+            ]
+        },
+        {
             "z": 5.0,
             "landmarks": [
                 "Lake Leonida (A)",
