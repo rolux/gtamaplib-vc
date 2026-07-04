@@ -20,6 +20,7 @@ const state = {
   editMode: false,
   renameMode: false,
   editingObservation: null,
+  hideMarkup: false,
   settings: {
     useMonospaceFont: false,
     showCameraIDs: false,
@@ -86,6 +87,7 @@ const els = {
   cameraData: document.querySelector("#camera-data"),
   landmarkData: document.querySelector("#landmark-data"),
   addObservation: document.querySelector("#add-observation"),
+  hideMarkup: document.querySelector("#hide-markup"),
   editObservation: document.querySelector("#edit-observation"),
   renameLandmark: document.querySelector("#rename-landmark"),
   removeObservation: document.querySelector("#remove-observation"),
@@ -234,6 +236,13 @@ function addScaledVector(point, direction, distance) {
 
 function distance3d(a, b) {
   return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+}
+
+function pointRayDistance(point, origin, direction) {
+  const delta = subtractVector(point, origin);
+  const projected = dotVector(delta, direction);
+  const closest = addScaledVector(origin, direction, projected);
+  return distance3d(point, closest);
 }
 
 function observedRayEndpointWorld(camera, observation, landmark, unresolvedDistance = null) {
@@ -442,6 +451,28 @@ function renderStatus(target, name, fields) {
   }
 }
 
+function selectedObservation() {
+  if (!state.camera || !state.landmark) return null;
+  return (byCamera.get(state.camera.name) || []).find((observation) => observation.landmark === state.landmark) || null;
+}
+
+function selectedObservationRayDelta() {
+  const observation = selectedObservation();
+  const landmark = state.landmark ? landmarkByName.get(state.landmark) : null;
+  if (!state.camera?.xyz || !observation || !landmark?.xyz) return null;
+  if ((byLandmark.get(state.landmark) || []).length < 2) return null;
+  const direction = observedPixelDirection(state.camera, observation.xy);
+  if (!direction) return null;
+  return pointRayDistance(landmark.xyz, state.camera.xyz, direction);
+}
+
+function formatMeters(value) {
+  if (!Number.isFinite(value)) return null;
+  if (value < 10) return `${value.toFixed(3)} m`;
+  if (value < 100) return `${value.toFixed(2)} m`;
+  return `${value.toFixed(1)} m`;
+}
+
 function updateGlobalStatus() {
   if (state.camera) {
     renderStatus(els.cameraData, cameraLabel(state.camera), [
@@ -455,7 +486,10 @@ function updateGlobalStatus() {
 
   if (state.landmark) {
     const landmark = landmarkByName.get(state.landmark);
-    renderStatus(els.landmarkData, state.landmark, [["XYZ", formatTuple(landmark?.xyz)]]);
+    renderStatus(els.landmarkData, state.landmark, [
+      ["XYZ", formatTuple(landmark?.xyz)],
+      ["D", formatMeters(selectedObservationRayDelta())],
+    ]);
   } else {
     els.landmarkData.replaceChildren();
   }
@@ -464,11 +498,16 @@ function updateGlobalStatus() {
 function updateEditTools() {
   const canAdd = state.view === "camera" && Boolean(state.camera);
   const canEditObservation = state.view === "camera" && Boolean(state.camera && state.landmark);
+  const canHideMarkup = state.view === "camera" && Boolean(state.camera && state.landmark);
   const canRenameGlobally = Boolean(state.landmark && !state.camera);
+  if (!canHideMarkup) state.hideMarkup = false;
+  els.hideMarkup.hidden = !canHideMarkup;
   els.addObservation.hidden = !canAdd;
   els.editObservation.hidden = !canEditObservation;
   els.removeObservation.hidden = !canEditObservation;
   els.renameLandmark.hidden = !canRenameGlobally;
+  els.hideMarkup.classList.toggle("active", state.hideMarkup);
+  els.hideMarkup.textContent = state.hideMarkup ? "Show Markup" : "Hide Markup";
   els.editObservation.classList.toggle("active", state.editMode);
   els.renameLandmark.classList.toggle("active", state.renameMode);
   els.editObservation.textContent = state.editMode ? "Done" : "Edit";
@@ -1220,6 +1259,25 @@ function renderScreenshotRays(layer) {
   }
 }
 
+function renderSelectedLandmarkDropLine(layer) {
+  if (state.view !== "camera" || !state.camera || !state.landmark) return;
+  const landmark = landmarkByName.get(state.landmark);
+  if (!landmark?.xyz) return;
+  const top = landmark.xyz;
+  const bottom = [top[0], top[1], 0];
+  const pixelTop = worldToCameraPixel(state.camera, top);
+  const pixelBottom = worldToCameraPixel(state.camera, bottom);
+  if (!pixelTop || !pixelBottom) return;
+  layer.append(svg("line", {
+    class: "screenshot-drop-line",
+    x1: pixelTop[0],
+    y1: pixelTop[1],
+    x2: pixelBottom[0],
+    y2: pixelBottom[1],
+    stroke: landmarkColor(state.landmark),
+  }));
+}
+
 function renderOverlay() {
   els.overlay.replaceChildren();
   els.guidesOverlay.replaceChildren();
@@ -1231,14 +1289,18 @@ function renderOverlay() {
   const markerLayer = svg("g", { class: "marker-layer" });
   els.guidesOverlay.append(guideLayer);
   els.overlay.append(coneLayer, rayLayer, markerLayer);
-  renderGuides(guideLayer);
-  renderCameraCones(coneLayer);
-  renderScreenshotRays(rayLayer);
+  if (!state.hideMarkup) {
+    renderGuides(guideLayer);
+    renderCameraCones(coneLayer);
+    renderScreenshotRays(rayLayer);
+    renderSelectedLandmarkDropLine(rayLayer);
+  }
   const observations = byCamera.get(state.camera.name) || [];
   for (const observation of observations) {
     const circle = svg("circle");
     const isSelected = observation.landmark === state.landmark;
     const isEditing = state.editMode && isSelected;
+    if (state.hideMarkup && !isSelected) continue;
     circle.setAttribute("class", `marker${isSelected ? " selected" : ""}${isEditing ? " editing" : ""}`);
     circle.setAttribute("cx", observation.xy[0]);
     circle.setAttribute("cy", observation.xy[1]);
@@ -1757,6 +1819,7 @@ function cancelObservationEditMode() {
   state.editMode = false;
   state.renameMode = false;
   state.editingObservation = null;
+  state.hideMarkup = false;
   document.body.classList.remove("is-editing-observation", "is-dragging-observation");
   renderLandmarkList();
   renderOverlay();
@@ -1829,6 +1892,7 @@ function toggleObservationEditMode() {
   state.renameMode = false;
   state.editMode = !state.editMode;
   state.editingObservation = null;
+  if (!state.editMode) state.hideMarkup = false;
   document.body.classList.toggle("is-editing-observation", state.editMode);
   renderLandmarkList();
   renderOverlay();
@@ -1840,6 +1904,7 @@ function toggleGlobalRenameMode() {
   state.editMode = false;
   state.renameMode = !state.renameMode;
   state.editingObservation = null;
+  state.hideMarkup = false;
   document.body.classList.toggle("is-editing-observation", state.renameMode);
   renderLandmarkList();
   updateEditTools();
@@ -1873,6 +1938,7 @@ async function addObservation() {
   state.editMode = true;
   state.renameMode = false;
   state.editingObservation = null;
+  state.hideMarkup = false;
   document.body.classList.add("is-editing-observation");
   writeHash(state.camera.name, result.edit.landmark);
   renderCameraList();
@@ -2083,6 +2149,7 @@ function clearCameraSelection() {
   cancelObservationEditMode();
   state.camera = null;
   state.landmark = null;
+  state.hideMarkup = false;
   state.scale = 1;
   state.panX = 0;
   state.panY = 0;
@@ -2108,6 +2175,7 @@ function applyCameraSelection(name, resetView = true) {
   if (previousCameraName !== state.camera?.name && !cameraObservesLandmark(name, state.landmark)) {
     cancelObservationEditMode();
     state.landmark = null;
+    state.hideMarkup = false;
   }
   if (!state.camera) return;
   if (state.view === "camera") {
@@ -2154,6 +2222,7 @@ function applyLandmarkSelection(name, focus) {
   }
   if (state.landmark !== name) cancelObservationEditMode();
   state.landmark = name;
+  if (!state.landmark) state.hideMarkup = false;
   renderCameraList();
   renderLandmarkList();
   if (state.view === "map") {
@@ -2483,6 +2552,11 @@ function wireControls() {
   });
   els.landmarkPanel.addEventListener("mousedown", () => {
     setFocus("landmarks");
+  });
+  els.hideMarkup.addEventListener("click", () => {
+    state.hideMarkup = !state.hideMarkup;
+    renderOverlay();
+    updateEditTools();
   });
   els.addObservation.addEventListener("click", () => runObservationAction("add"));
   els.editObservation.addEventListener("click", () => runObservationAction("edit"));

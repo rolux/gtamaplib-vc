@@ -592,6 +592,14 @@ body.is-dragging #viewport {
   stroke-opacity: 0.9;
 }
 
+.screenshot-drop-line {
+  fill: none;
+  stroke-width: 0.5px;
+  stroke-opacity: 0.75;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
 .marker {
   cursor: pointer;
   fill: transparent;
