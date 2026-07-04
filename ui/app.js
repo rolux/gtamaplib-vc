@@ -468,9 +468,7 @@ function selectedObservationRayDelta() {
 
 function formatMeters(value) {
   if (!Number.isFinite(value)) return null;
-  if (value < 10) return `${value.toFixed(3)} m`;
-  if (value < 100) return `${value.toFixed(2)} m`;
-  return `${value.toFixed(1)} m`;
+  return `${value.toFixed(3)} m`;
 }
 
 function updateGlobalStatus() {
@@ -2332,6 +2330,7 @@ function installPan() {
       if (!pointer) return;
       state.editingObservation.observation.xy = offsetImagePoint(pointer, state.editingObservation.pointerOffset);
       renderOverlay();
+      updateGlobalStatus();
       return;
     }
     if (!drag) return;
@@ -2362,6 +2361,7 @@ function installPan() {
       const xy = pointer ? offsetImagePoint(pointer, editing.pointerOffset) : editing.observation.xy;
       editing.observation.xy = xy;
       renderOverlay();
+      updateGlobalStatus();
       try {
         const result = await postObservationEdit({
           action: "edit",
@@ -2371,9 +2371,11 @@ function installPan() {
         });
         updateObservationInState(result.edit);
         renderOverlay();
+        updateGlobalStatus();
       } catch (error) {
         editing.observation.xy = editing.originalXY;
         renderOverlay();
+        updateGlobalStatus();
         console.error(error);
         els.title.textContent = error.message;
       }
