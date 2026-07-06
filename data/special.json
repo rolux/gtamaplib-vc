@@ -424,6 +424,12 @@
                 "Star Island Bridge (4W)",
                 "Star Island Bridge (5E)",
                 "Star Island Bridge (5W)",
+                "Stiltsville (1)",
+                "Stiltsville (2)",
+                "Stiltsville (3)",
+                "Stiltsville (4)",
+                "Stiltsville (5)",
+                "Stiltsville (6)",
                 "East Coast (A)",
                 "East Coast (B)",
                 "East Coast (C)",
@@ -456,6 +462,23 @@
                 "Virginia Key (A)",
                 "Virginia Key (B)",
                 "Virginia Key (C)"
+            ]
+        },
+        {
+            "z": 1.9,
+            "landmarks": [
+                "Jason's House (Boat Ramp) (SW)",
+                "Jason's House (Boat Ramp) (S)",
+                "Jason's House (Garden Table) (BC)",
+                "Jason's House (Pillar 1) (BNE)",
+                "Jason's House (Pillar 1) (BSE)",
+                "Jason's House (Pillar 1) (BSW)",
+                "Jason's House (Pillar 5) (BNE)",
+                "Jason's House (Pillar 5) (BSE)",
+                "Jason's House (Pillar 5) (BSW)",
+                "Jason's House (Pillar 11) (BNE)",
+                "Jason's House (Pillar 11) (BSE)",
+                "Jason's House (Pillar 11) (BSW)"
             ]
         },
         {
