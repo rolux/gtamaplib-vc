@@ -2,13 +2,19 @@
     "schema": "gtamaplibvc-optimizer-config-v1",
     "landmarks": [
         "Blimp Bay",
+        "Island V (N)",
         "Island V (S)",
-        "Seven Mile Bridge (20B)",
-        "Seven Mile Bridge (5B)"
+        "Island W (N)",
+        "Island W (S)",
+        "Seven Mile Bridge (3B)",
+        "Seven Mile Bridge (6B)",
+        "Seven Mile Bridge (9B)",
+        "Seven Mile Bridge (12B)",
+        "Seven Mile Bridge (15B)",
+        "Seven Mile Bridge (18B)",
+        "Seven Mile Bridge (21B)"
     ],
     "rays": [
-        ["Leonida Keys 01 (Airplane) (X)", "Seven Mile Bridge (E)"],
-        ["Leonida Keys 01 (Airplane) (X)", "Seven Mile Bridge (W)"],
         ["Leonida Keys 01 (Airplane) (X)", "Unnamed Building #1 (Blimp Key)"],
         ["Ocean near Keys (E)", "Sombrero Key Light (B)"]
     ],

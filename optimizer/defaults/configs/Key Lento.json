@@ -1,15 +1,18 @@
 {
     "schema": "gtamaplibvc-optimizer-config-v1",
     "landmarks": [
-        "Island G (E)",
         "Island V (S)",
-        "99353 Overseas Hwy"
+        "Island W (S)",
+        "99353 Overseas Hwy",
+        "Pin D01L"
     ],
     "rays": [
+        ["Leonida Keys Postcard (X)", "House C (E)"],
+        ["Leonida Keys Postcard (X)", "House C (W)"],
         ["Leonida Keys Postcard (X)", "Marina Club at Blackwater Sound (N)"],
         ["Leonida Keys Postcard (X)", "Marina Club at Blackwater Sound (S)"],
-        ["Leonida Keys Postcard (X)", "500 Pompano Dr"],
-        ["Leonida Keys Postcard (X)", "200 Pompano Dr"],
+        ["Leonida Keys Postcard (X)", "PIN D03L"],
+        ["Leonida Keys Postcard (X)", "Small Radio Tower (Key Lento)"],
         ["Leonida Keys Postcard (X)", "Squalo Billboard (TN)"],
         ["Leonida Keys Postcard (X)", "Squalo Billboard (TS)"]
     ],
