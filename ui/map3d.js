@@ -39,6 +39,7 @@ const GAME_START_TARGET = [-6250, 265, -5050];
 const MAX_TARGET_RADIUS = 32768;
 const ACTIVE_SCREENSHOT_DIM_RADIUS = 100;
 const ACTIVE_SCREENSHOT_DIM_ALPHA = 0.25;
+const PLAYER_MARKER_Z = 0.9;
 const FOUR_SEASONS_TOUR_CAMERA_NAMES = [
   "Leonida Keys 01 (Airplane) (X)",
   "Ocean near Keys (N)",
@@ -1825,7 +1826,7 @@ function createPlayerWireframe(camera, character) {
   const bodyRadius = 0.2;
   const height = character === "Lucia" ? 1.6 : character === "Unknown" ? 1.7 : 1.8;
   const shoulderHeight = Math.max(0, height - 0.2);
-  const feetZ = center[2] - 1.0;
+  const feetZ = center[2] - PLAYER_MARKER_Z;
   const shoulderZ = feetZ + shoulderHeight;
   const topZ = feetZ + height;
   const line = (a, b, style = "single") => segments.push({ points: [a, b], style });
