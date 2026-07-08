@@ -17,6 +17,7 @@ const FOUR_SEASONS_WIREFRAME = "/ui/data/map3d-four-seasons.json";
 const SUNSHINE_SKYWAY_WIREFRAME = "/ui/data/map3d-sunshine-skyway.json";
 const HOMESTEAD_WATER_TOWER_WIREFRAME = "/ui/data/map3d-homestead-water-tower.json";
 const HANKS_WAFFLES_WIREFRAME = "/ui/data/map3d-hanks-waffles.json";
+const JASONS_HOUSE_WIREFRAME = "/ui/data/map3d-jasons-house.json";
 const FAKE_CAMERA_SUFFIX = " Fake Cam";
 const AIWE_CAMERA_NAME = "AI World Editor Map (4K)";
 const YANIS_WATER_COLOR = [44 / 255, 103 / 255, 164 / 255, 1];
@@ -2343,6 +2344,16 @@ async function init() {
     if (hanksWaffles.schema === "gtamaplibvc-map3d-hanks-waffles-v1") {
       hanksWaffles.color = colorForName("536 Richard Jackson Blvd");
       state.wireframes.push(hanksWaffles);
+    }
+  } catch (_error) {
+    // Optional helper geometry.
+  }
+  try {
+    const jasonsHouse = await loadJson(JASONS_HOUSE_WIREFRAME);
+    if (jasonsHouse.schema === "gtamaplibvc-map3d-jasons-house-v1") {
+      jasonsHouse.name = "Jason's House";
+      jasonsHouse.color = colorForName("Jason's House");
+      state.wireframes.push(jasonsHouse);
     }
   } catch (_error) {
     // Optional helper geometry.

@@ -224,6 +224,77 @@ def construct_homestead_water_tower_wireframe(cameras: dict[str, Any], landmarks
     return {"schema": "gtamaplibvc-map3d-homestead-water-tower-v1", "segments": segments}
 
 
+def construct_jasons_house_wireframe(landmarks: dict[str, Any]) -> dict[str, Any] | None:
+    names = {
+        "roof_ne": "Jason's House (Roof) (NE)",
+        "roof_s": "Jason's House (Roof) (S)",
+        "roof_se": "Jason's House (Roof) (SE)",
+        "roof_sw": "Jason's House (Roof) (SW)",
+        "base_ne": "Jason's House (Main) (BNE)",
+        "top_ne": "Jason's House (Main) (TNE)",
+        "top_se": "Jason's House (Main) (TSE)",
+        "top_sw": "Jason's House (Main) (TSW)",
+    }
+    if any(name not in landmarks for name in names.values()):
+        return None
+
+    points = {key: _point(landmarks[name]) for key, name in names.items()}
+    base_ne = points["base_ne"]
+    top_ne = points["top_ne"]
+    top_se = points["top_se"]
+    top_sw = points["top_sw"]
+    roof_ne = points["roof_ne"]
+    roof_s = points["roof_s"]
+    roof_se = points["roof_se"]
+    roof_sw = points["roof_sw"]
+
+    z = 1.9
+    base_se = (top_se[0], top_se[1], base_ne[2])
+    base_sw = (top_sw[0], top_sw[1], base_ne[2])
+    base_nw = (top_sw[0], top_ne[1], base_ne[2])
+    ground_se = (base_se[0], base_se[1], z)
+    ground_sw = (base_sw[0], base_sw[1], z)
+    ground_nw = (base_nw[0], base_nw[1], z)
+    ground_ne = (base_ne[0], base_ne[1], z)
+    top_nw = (base_nw[0], base_nw[1], (top_sw[2] + top_ne[2]) / 2)
+    roof_n = (
+        roof_ne[0] + (roof_s[0] - roof_se[0]),
+        roof_ne[1] + (roof_s[1] - roof_se[1]),
+        roof_ne[2] + (roof_s[2] - roof_se[2]),
+    )
+    roof_nw = (
+        roof_ne[0] + (roof_sw[0] - roof_se[0]),
+        roof_ne[1] + (roof_sw[1] - roof_se[1]),
+        roof_ne[2] + (roof_sw[2] - roof_se[2]),
+    )
+
+    lines = (
+        (ground_se, base_se),
+        (ground_sw, base_sw),
+        (ground_nw, base_nw),
+        (ground_ne, base_ne),
+        (base_se, base_sw),
+        (base_sw, base_nw),
+        (base_nw, base_ne),
+        (base_ne, base_se),
+        (base_se, top_se),
+        (base_sw, top_sw),
+        (base_nw, top_nw),
+        (base_ne, top_ne),
+        (roof_se, roof_s),
+        (roof_s, roof_sw),
+        (roof_sw, roof_nw),
+        (roof_nw, roof_n),
+        (roof_n, roof_ne),
+        (roof_ne, roof_se),
+        (roof_s, roof_n),
+    )
+    return {
+        "schema": "gtamaplibvc-map3d-jasons-house-v1",
+        "segments": [_segment(a, b, "bold") for a, b in lines],
+    }
+
+
 def construct_landmarks(cameras: dict[str, Any], landmarks: dict[str, Any]) -> dict[str, Any]:
     constructed_landmarks = construct_wdna_fm(cameras, landmarks)
     current_landmarks = {**landmarks, **constructed_landmarks}
@@ -234,6 +305,9 @@ def construct_landmarks(cameras: dict[str, Any], landmarks: dict[str, Any]) -> d
     homestead_water_tower = construct_homestead_water_tower_wireframe(cameras, current_landmarks)
     if homestead_water_tower:
         wireframes["map3d-homestead-water-tower.json"] = homestead_water_tower
+    jasons_house = construct_jasons_house_wireframe(current_landmarks)
+    if jasons_house:
+        wireframes["map3d-jasons-house.json"] = jasons_house
     return {
         "landmarks": constructed_landmarks,
         "wireframes": wireframes,
