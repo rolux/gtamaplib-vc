@@ -1852,7 +1852,8 @@ function createPlayerWireframe(camera, character) {
       line(rings[ringIndex][index], rings[ringIndex + 1][index]);
     }
   }
-  return { name: `${character} (${camera.name})`, color: colorForName(camera.name), segments };
+  const color = character === "Jason" ? colorForName("Jason") : colorForName(camera.name);
+  return { name: `${character} (${camera.name})`, color, segments };
 }
 
 function createPlayerWireframes(cameras) {
