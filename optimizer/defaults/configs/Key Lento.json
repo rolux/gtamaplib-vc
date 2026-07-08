@@ -1,9 +1,8 @@
 {
     "schema": "gtamaplibvc-optimizer-config-v1",
     "landmarks": [
-        "Island V (S)",
-        "Island W (S)",
         "99353 Overseas Hwy",
+        "102180 Overseas Hwy",
         "Pin D01L"
     ],
     "rays": [

@@ -1,6 +1,7 @@
 {
     "schema": "gtamaplibvc-optimizer-config-v1",
     "landmarks": [
+        "House with Boat (X)",
         "Portofino Tower (NW)"
     ],
     "rays": [
