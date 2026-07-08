@@ -234,6 +234,18 @@ def construct_jasons_house_wireframe(landmarks: dict[str, Any]) -> dict[str, Any
         "top_ne": "Jason's House (Main) (TNE)",
         "top_se": "Jason's House (Main) (TSE)",
         "top_sw": "Jason's House (Main) (TSW)",
+        "stairs_2": "Jason's House (Front Stairs) (MTNE)",
+        "stairs_3": "Jason's House (Front Stairs) (MTSE)",
+        "stairs_4": "Jason's House (South Veranda) (TNE)",
+        "veranda_se": "Jason's House (South Veranda) (TSE)",
+        "veranda_sw": "Jason's House (South Veranda) (TSW)",
+        "veranda_ne": "Jason's House (Upper Veranda) (TNE)",
+        "rear_stairs_1": "Jason's House (Rear Stairs) (BW)",
+        "terrace_ne": "Jason's House (North Veranda) (TNE)",
+        "power_pole_t": "Jason's House (Power Pole) (T)",
+        "boat_ramp_s": "Jason's House (Boat Ramp) (S)",
+        "boat_ramp_sw": "Jason's House (Boat Ramp) (SW)",
+        "boat_ramp_nw": "Jason's House (Boat Ramp) (NW)",
     }
     if any(name not in landmarks for name in names.values()):
         return None
@@ -247,6 +259,18 @@ def construct_jasons_house_wireframe(landmarks: dict[str, Any]) -> dict[str, Any
     roof_s = points["roof_s"]
     roof_se = points["roof_se"]
     roof_sw = points["roof_sw"]
+    stairs_2 = points["stairs_2"]
+    stairs_3 = points["stairs_3"]
+    stairs_4 = points["stairs_4"]
+    veranda_se = points["veranda_se"]
+    veranda_sw = points["veranda_sw"]
+    veranda_ne = points["veranda_ne"]
+    rear_stairs_1 = points["rear_stairs_1"]
+    terrace_ne = points["terrace_ne"]
+    power_pole_t = points["power_pole_t"]
+    boat_ramp_s = points["boat_ramp_s"]
+    boat_ramp_sw = points["boat_ramp_sw"]
+    boat_ramp_nw = points["boat_ramp_nw"]
 
     z = 1.9
     base_se = (top_se[0], top_se[1], base_ne[2])
@@ -267,6 +291,27 @@ def construct_jasons_house_wireframe(landmarks: dict[str, Any]) -> dict[str, Any
         roof_ne[1] + (roof_sw[1] - roof_se[1]),
         roof_ne[2] + (roof_sw[2] - roof_se[2]),
     )
+    stairs_1 = (
+        stairs_2[0] + (stairs_3[0] - stairs_4[0]) * 1.6,
+        stairs_2[1] + (stairs_3[1] - stairs_4[1]) * 1.6,
+        stairs_2[2] + (stairs_3[2] - stairs_4[2]) * 1.6,
+    )
+    stairs_0 = (stairs_1[0], stairs_1[1], z)
+    veranda_nw = (
+        veranda_sw[0],
+        veranda_ne[1],
+        (veranda_sw[2] + veranda_ne[2]) / 2,
+    )
+    veranda_e = (base_ne[0], base_ne[1], veranda_ne[2])
+    rear_stairs_0 = (rear_stairs_1[0], rear_stairs_1[1], z)
+    rear_stairs_2 = (
+        rear_stairs_1[0],
+        rear_stairs_1[1] + terrace_ne[2] - rear_stairs_1[2] + 1.0,
+        terrace_ne[2],
+    )
+    terrace_nw = (rear_stairs_1[0], terrace_ne[1], terrace_ne[2])
+    terrace_e = (terrace_ne[0], veranda_ne[1], terrace_ne[2])
+    power_pole_b = (power_pole_t[0], power_pole_t[1], z)
 
     lines = (
         (ground_se, base_se),
@@ -288,6 +333,23 @@ def construct_jasons_house_wireframe(landmarks: dict[str, Any]) -> dict[str, Any
         (roof_n, roof_ne),
         (roof_ne, roof_se),
         (roof_s, roof_n),
+        (stairs_0, stairs_1),
+        (stairs_1, stairs_2),
+        (stairs_2, stairs_3),
+        (stairs_3, stairs_4),
+        (stairs_4, veranda_se),
+        (veranda_se, veranda_sw),
+        (veranda_sw, veranda_nw),
+        (veranda_nw, veranda_ne),
+        (veranda_ne, veranda_e),
+        (rear_stairs_0, rear_stairs_1),
+        (rear_stairs_1, rear_stairs_2),
+        (rear_stairs_2, terrace_nw),
+        (terrace_nw, terrace_ne),
+        (terrace_ne, terrace_e),
+        (power_pole_b, power_pole_t),
+        (boat_ramp_s, boat_ramp_sw),
+        (boat_ramp_sw, boat_ramp_nw),
     )
     return {
         "schema": "gtamaplibvc-map3d-jasons-house-v1",
