@@ -3020,6 +3020,7 @@ def write_optimizer_result_snapshot(report: dict[str, Any], result_path: Path) -
     }
     import_extras = load_import_extras()
 
+    all_cameras = {}
     cameras = {}
     for camera_name, camera in md.cameras.items():
         if camera_name in final_cameras:
@@ -3034,7 +3035,7 @@ def write_optimizer_result_snapshot(report: dict[str, Any], result_path: Path) -
             ypr = [float(value) for value in cam.ypr]
             hfov = float(cam.hfov)
             vfov = float(cam.vfov)
-        cameras[camera_name] = {
+        row = {
             "id": str(camera["id"]),
             "player": [float(value) for value in camera["player"]] if camera.get("player") else None,
             "xyz": xyz,
@@ -3043,6 +3044,9 @@ def write_optimizer_result_snapshot(report: dict[str, Any], result_path: Path) -
             "size": [int(camera["size"][0]), int(camera["size"][1])],
             "source": str(camera.get("source", "")),
         }
+        all_cameras[camera_name] = row
+        if camera_name in final_cameras:
+            cameras[camera_name] = row
 
     landmarks = {
         landmark_name: [float(value) for value in xyz]
@@ -3060,15 +3064,15 @@ def write_optimizer_result_snapshot(report: dict[str, Any], result_path: Path) -
         landmarks[landmark_name] = [float(value) for value in xyz]
         landmark_sources[landmark_name] = "optimizer"
 
-    for landmark_name, xyz in recompute_fixed_elevation_landmarks(cameras).items():
+    for landmark_name, xyz in recompute_fixed_elevation_landmarks(all_cameras).items():
         landmarks[landmark_name] = [float(value) for value in xyz]
         landmark_sources[landmark_name] = "fixed_elevation"
 
-    constructed = construct_landmarks(cameras, landmarks)
+    constructed = construct_landmarks(all_cameras, landmarks)
     for landmark_name, xyz in constructed["landmarks"].items():
         landmarks[landmark_name] = [float(value) for value in xyz]
         landmark_sources[landmark_name] = "constructed"
-    write_map3d_constructed_data(cameras, landmarks, ROOT / "ui" / "data")
+    write_map3d_constructed_data(all_cameras, landmarks, ROOT / "ui" / "data")
 
     maps = {}
     for map_name, map_info in md.maps.items():
@@ -3151,7 +3155,11 @@ def refresh_ui_overlay_from_world_snapshot(path: Path | None = None) -> None:
 
     path = path or ACTIVE_OPTIMIZER_RESULT_PATH
     original_cameras = md.cameras
-    md.cameras = world_snapshot_cameras(path)
+    md.cameras = {
+        name: dict(camera)
+        for name, camera in md.cameras.items()
+    }
+    md.cameras.update(world_snapshot_cameras(path))
     get_camera.cache_clear()
     try:
         write_ui_overlay_data(md, get_camera, get_point, get_rotation)
